@@ -1,14 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { Store, Building2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/types'
 
-export default function RegisterPage() {
+function RegisterForm() {
   const searchParams = useSearchParams()
   const rolInicial = (searchParams.get('rol') as UserRole) ?? 'comprador'
   const [rol, setRol] = useState<UserRole>(rolInicial)
@@ -32,7 +32,7 @@ export default function RegisterPage() {
               resuelve<span className="text-orange-500">lo</span>
             </span>
           </Link>
-          <h1 className="mt-4 text-xl font-semibold text-gray-900">Creá tu cuenta</h1>
+          <h1 className="mt-4 text-xl font-semibold text-gray-900">Crea tu cuenta</h1>
           <p className="mt-1 text-sm text-gray-500">Es gratis, siempre</p>
         </div>
 
@@ -112,17 +112,25 @@ export default function RegisterPage() {
             className="w-full bg-orange-500 hover:bg-orange-600 text-white"
             disabled={loading}
           >
-            {loading ? 'Creando cuenta...' : `Registrarme como ${rol}`}
+            {loading ? 'Creando cuenta...' : `Registrarme como ${rol === 'comprador' ? 'comprador' : 'proveedor'}`}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">
-          ¿Ya tenés cuenta?{' '}
+          ¿Ya tienes cuenta?{' '}
           <Link href="/login" className="font-medium text-orange-500 hover:underline">
-            Ingresá
+            Ingresa
           </Link>
         </p>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[calc(100vh-4rem)] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" /></div>}>
+      <RegisterForm />
+    </Suspense>
   )
 }

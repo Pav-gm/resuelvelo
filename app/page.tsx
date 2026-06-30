@@ -10,8 +10,8 @@ const categorias = [
 ]
 
 const beneficios = [
-  { icono: Search, titulo: 'Compará precios al instante', descripcion: 'Consultá catálogos de múltiples proveedores en un solo lugar, sin llamadas ni visitas.' },
-  { icono: Zap, titulo: 'Cotizá en minutos', descripcion: 'Enviá solicitudes de cotización a varios proveedores simultáneamente y recibí respuestas rápidas.' },
+  { icono: Search, titulo: 'Compara precios al instante', descripcion: 'Consulta catálogos de múltiples proveedores en un solo lugar, sin llamadas ni visitas.' },
+  { icono: Zap, titulo: 'Cotiza en minutos', descripcion: 'Envía solicitudes de cotización a varios proveedores simultáneamente y recibe respuestas rápidas.' },
   { icono: Shield, titulo: 'Proveedores verificados', descripcion: 'Cada proveedor en la plataforma pasa por un proceso de verificación para garantizar confiabilidad.' },
   { icono: Star, titulo: 'Historial y trazabilidad', descripcion: 'Todas tus cotizaciones, pedidos y facturas en un solo lugar, siempre disponibles.' },
 ]
@@ -27,12 +27,12 @@ export default function HomePage() {
             Marketplace B2B en República Dominicana
           </span>
           <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-white md:text-6xl">
-            Conseguí los mejores<br />
+            Consigue los mejores<br />
             <span className="text-orange-400">proveedores de materiales</span><br />
             en un solo lugar
           </h1>
           <p className="mt-6 text-lg text-gray-300 max-w-2xl mx-auto">
-            Conectamos contratistas, constructoras y PYMEs con ferreterías, distribuidoras y mayoristas como Promeria. Comparás precios, cotizás y comprás sin perder tiempo.
+            Conectamos contratistas, constructoras y PYMEs con ferreterías, plomerías, distribuidoras y mayoristas. Compara precios, cotiza y compra sin perder tiempo.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link href="/catalogo">
@@ -42,7 +42,7 @@ export default function HomePage() {
               </Button>
             </Link>
             <Link href="/register?rol=proveedor">
-              <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 px-8">
+              <Button size="lg" variant="outline" className="bg-transparent border-white/40 text-white hover:bg-white/10 hover:text-white px-8">
                 Soy proveedor
               </Button>
             </Link>
@@ -53,7 +53,7 @@ export default function HomePage() {
       {/* Categorías */}
       <section className="py-16 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <h2 className="text-center text-2xl font-bold text-gray-900">Explorá por categoría</h2>
+          <h2 className="text-center text-2xl font-bold text-gray-900">Explora por categoría</h2>
           <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
             {categorias.map((cat) => (
               <Link
@@ -73,7 +73,7 @@ export default function HomePage() {
       <section className="py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">¿Por qué usar Resuelvelo?</h2>
+            <h2 className="text-2xl font-bold text-gray-900">¿Por qué usar Resuélvelo?</h2>
             <p className="mt-2 text-gray-500">Todo lo que necesitás para comprar materiales con inteligencia</p>
           </div>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -95,11 +95,11 @@ export default function HomePage() {
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <h2 className="text-3xl font-bold text-white">¿Sos proveedor de materiales?</h2>
           <p className="mt-4 text-orange-100">
-            Publicá tu catálogo, recibí cotizaciones y llegá a cientos de compradores profesionales en toda la República Dominicana.
+            Publica tu catálogo, recibe cotizaciones y llega a cientos de compradores profesionales en toda la República Dominicana.
           </p>
           <Link href="/register?rol=proveedor" className="mt-8 inline-block">
             <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 px-8 font-semibold">
-              Registrá tu empresa gratis
+              Registra tu empresa gratis
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>

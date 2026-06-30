@@ -28,7 +28,7 @@ export default function LoginPage() {
             </span>
           </Link>
           <h1 className="mt-4 text-xl font-semibold text-gray-900">Bienvenido de vuelta</h1>
-          <p className="mt-1 text-sm text-gray-500">Ingresá a tu cuenta</p>
+          <p className="mt-1 text-sm text-gray-500">Ingresa a tu cuenta</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -82,9 +82,9 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">
-          ¿No tenés cuenta?{' '}
+          ¿No tienes cuenta?{' '}
           <Link href="/register" className="font-medium text-orange-500 hover:underline">
-            Registrate gratis
+            Regístrate gratis
           </Link>
         </p>
       </div>

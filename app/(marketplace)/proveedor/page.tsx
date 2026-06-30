@@ -39,7 +39,7 @@ export default function PanelProveedorPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Panel de proveedor</h1>
-          <p className="mt-1 text-gray-500">Bienvenido, <span className="font-medium text-gray-700">Promeria</span></p>
+          <p className="mt-1 text-gray-500">Bienvenido, <span className="font-medium text-gray-700">Promeria</span> <span className="text-xs text-gray-400">(Plomería)</span></p>
         </div>
         <Link href="/proveedor/productos/nuevo">
           <Button className="bg-orange-500 hover:bg-orange-600 text-white">

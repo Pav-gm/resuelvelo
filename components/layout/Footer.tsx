@@ -11,7 +11,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-2">
               <Store className="h-5 w-5 text-orange-500" />
               <span className="font-bold text-gray-900">
-                resuelve<span className="text-orange-500">lo</span>
+                Resuél<span className="text-orange-500">velo</span>
               </span>
             </Link>
             <p className="mt-2 text-xs text-gray-500 leading-relaxed">
@@ -48,7 +48,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-8 border-t pt-6 text-center text-xs text-gray-400">
-          © {new Date().getFullYear()} Resuelvelo. Todos los derechos reservados.
+          © {new Date().getFullYear()} Resuélvelo. Todos los derechos reservados.
         </div>
       </div>
     </footer>

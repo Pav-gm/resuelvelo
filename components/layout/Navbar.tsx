@@ -18,7 +18,7 @@ export default function Navbar() {
         <Link href="/" className="flex items-center gap-2">
           <Store className="h-6 w-6 text-orange-500" />
           <span className="text-xl font-bold text-gray-900">
-            resuelve<span className="text-orange-500">lo</span>
+            Resuél<span className="text-orange-500">velo</span>
           </span>
         </Link>
 

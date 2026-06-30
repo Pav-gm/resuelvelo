@@ -7,7 +7,7 @@ import Footer from '@/components/layout/Footer'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Resuelvelo — Marketplace de Proveedores',
+  title: 'Resuélvelo — Marketplace de Proveedores',
   description: 'Conectamos compradores profesionales con proveedores de materiales e insumos en República Dominicana.',
 }
 
