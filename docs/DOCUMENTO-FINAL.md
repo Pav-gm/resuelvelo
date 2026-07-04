@@ -12,12 +12,13 @@ Seminario de Proyecto I. Cada sección tiene una de estas tres etiquetas:
                         Kanban, PMBOK, etc.) que es material de clase, no
                         específico de este proyecto. Seguro de usar tal cual.
 
-  [FALTA FUENTE]      → Necesita contenido de "EMANA 2", "SEMANA 3",
-                        "SEMANA 5" o los boards de Miro que se mencionan en
-                        docs/PROYECTO-FINAL.md. Escribí un borrador razonable
-                        para no dejarlo vacío, pero DEBES reemplazarlo o
-                        complementarlo con el material real de esos
-                        entregables antes de entregar.
+  [BORRADOR FINAL]    → En un principio se había marcado como "falta fuente"
+                        porque hay entregables previos del curso ("EMANA 2",
+                        "SEMANA 3", "SEMANA 5", Miro) que podrían aportar
+                        contenido adicional. Se evaluó y se decidió (3 de
+                        julio de 2026) NO reconciliar con esas fuentes: el
+                        contenido de estas secciones queda como definitivo
+                        tal cual está escrito acá.
 
 Antes de entregar: pasar todo a Google Docs con formato de portada/índice
 real, agregar las capturas de docs/screenshots/ donde se indique, y
@@ -73,7 +74,7 @@ verificar que el video (sección 13) esté grabado y enlazado.
 
 ## 3. Planteamiento del problema
 
-*[FALTA FUENTE — hay contenido relacionado en "EMANA 2 #1"; el siguiente es un borrador razonable basado en el producto real, a reconciliar con esa fuente]*
+*[BORRADOR FINAL]*
 
 En República Dominicana, contratistas, constructoras y PYMEs que necesitan materiales de construcción, insumos eléctricos, de plomería o servicios afines deben contactar manualmente a múltiples ferreterías y distribuidores —por teléfono o en persona— para comparar precios y disponibilidad antes de decidir una compra. Este proceso es:
 
@@ -193,7 +194,7 @@ Los entregables del proyecto se dividieron en dos grandes bloques:
 
 ### 7.2 Cronograma y asignación de recursos
 
-*[FALTA FUENTE — el cronograma detallado y el presupuesto de recursos viven en "SEMANA 3" y "EMANA 2"; completar con esos datos. Cronograma de alto nivel basado en el trimestre real:]*
+*[BORRADOR FINAL — cronograma de alto nivel basado en el trimestre real]*
 
 | Semana (Trimestre Mayo–Julio 2026) | Actividad principal |
 |---|---|
@@ -296,12 +297,11 @@ Durante la ejecución surgieron ajustes no planificados que se gestionaron sin d
 
 ## 11. Herramientas y tecnologías utilizadas
 
-*[BORRADOR SÓLIDO para el stack técnico — FALTA FUENTE para confirmar el uso específico de Trello/Canva mencionado en entregables previos]*
+*[BORRADOR FINAL]*
 
 ### 11.1 Software de gestión de proyectos
 
 - **Tablero de tareas estilo Kanban** (gestión de pendientes por estado: pendiente / en progreso / completado) para organizar el trabajo de desarrollo.
-- *(Si se usaron Trello y/o Canva en entregables previos de este curso, agregar aquí capturas y enlaces — referenciados en `docs/PROYECTO-FINAL.md` como pendientes de esta sección).*
 
 ### 11.2 Herramientas de colaboración y comunicación
 
@@ -405,11 +405,10 @@ El mayor riesgo no gestionado hasta el cierre del proyecto fue el control de ver
 
 ## 17. Anexos
 
-*[BORRADOR SÓLIDO — con enlaces a evidencia real del repositorio]*
+*[BORRADOR FINAL — con enlaces a evidencia real del repositorio]*
 
 - **Capturas de pantalla del proyecto funcional:** ver `docs/screenshots/` en el repositorio (home, catálogo, carrito, mis cotizaciones, bandeja de cotizaciones del proveedor, panel de proveedor).
 - **URL de la demo en vivo:** https://resuelveloapp.vercel.app
 - **Repositorio de código:** https://github.com/Pav-gm/resuelvelo
 - **Modelo de datos completo:** `supabase/schema.sql` y `supabase/seed.sql` en el repositorio.
 - **Roadmap y estado detallado del proyecto:** `docs/ROADMAP.md` en el repositorio.
-- *(Agregar aquí: boards de Miro de infografía empresarial, FODA, misión/visión/organigrama, y el análisis de ROI de SEMANA 5, referenciados en `docs/PROYECTO-FINAL.md`)*
