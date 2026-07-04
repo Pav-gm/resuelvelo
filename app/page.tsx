@@ -3,10 +3,10 @@ import { Search, Star, Shield, Zap, ArrowRight, Package, Hammer, Wrench, Lightbu
 import { Button } from '@/components/ui/button'
 
 const categorias = [
-  { nombre: 'Ferretería', icono: Hammer, color: 'bg-orange-50 text-orange-600' },
-  { nombre: 'Electricidad', icono: Lightbulb, color: 'bg-yellow-50 text-yellow-600' },
-  { nombre: 'Plomería', icono: Wrench, color: 'bg-blue-50 text-blue-600' },
-  { nombre: 'Materiales', icono: Package, color: 'bg-green-50 text-green-600' },
+  { nombre: 'Ferretería', slug: 'ferreteria', icono: Hammer, color: 'bg-orange-50 text-orange-600' },
+  { nombre: 'Electricidad', slug: 'electricidad', icono: Lightbulb, color: 'bg-yellow-50 text-yellow-600' },
+  { nombre: 'Plomería', slug: 'plomeria', icono: Wrench, color: 'bg-blue-50 text-blue-600' },
+  { nombre: 'Materiales', slug: 'materiales', icono: Package, color: 'bg-green-50 text-green-600' },
 ]
 
 const beneficios = [
@@ -58,7 +58,7 @@ export default function HomePage() {
             {categorias.map((cat) => (
               <Link
                 key={cat.nombre}
-                href={`/catalogo?categoria=${cat.nombre.toLowerCase()}`}
+                href={`/catalogo?categoria=${cat.slug}`}
                 className={`flex flex-col items-center gap-3 rounded-2xl p-6 transition-transform hover:scale-105 ${cat.color}`}
               >
                 <cat.icono className="h-8 w-8" />

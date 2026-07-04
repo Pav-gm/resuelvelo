@@ -7,28 +7,35 @@
 
 ## 1. Estado actual
 
-**Tipo:** MVP / Proof of Concept (frontend funcional con datos mock).
+**Tipo:** MVP funcional, verificado de punta a punta contra un proyecto Supabase real (no solo datos mock).
 **Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui · Zustand · Supabase (SSR).
 
-### Implementado
+> Nota histórica: esta sección marcaba como "Pendiente" ítems que ya están implementados y verificados
+> (Fases 1–6 completas). Se actualizó el 2 de julio de 2026 tras una verificación end-to-end con
+> Supabase en vivo (registro, catálogo, carrito, cotizaciones, panel de proveedor).
+
+### Implementado y verificado end-to-end
 - [x] Scaffold del proyecto y configuración base (TS, ESLint, Tailwind, shadcn).
 - [x] Layout global con `Navbar` + `Footer` (branding "Resuélvelo" con tilde).
-- [x] Página **Home** (`app/page.tsx`): hero, categorías, beneficios, CTA proveedores.
-- [x] **Login** y **Registro** (`app/(auth)/...`) — UI lista, con selector de rol comprador/proveedor.
-- [x] **Catálogo** (`app/(marketplace)/catalogo`) — grid de productos con datos mock.
-- [x] **Panel de proveedor** (`app/(marketplace)/proveedor`) — stats y cotizaciones mock.
-- [x] Componente `ProductoCard` y store de carrito (`Zustand`, persistido en `localStorage`).
-- [x] Tipos del dominio (`types/index.ts`) y clientes Supabase browser/server.
+- [x] Página **Home** (`app/page.tsx`): hero, categorías (con slugs correctos), beneficios, CTA proveedores.
+- [x] Esquema de base de datos en Supabase (`supabase/schema.sql`) + RLS + trigger de `profile`.
+- [x] Seed de demo (`supabase/seed.sql`): 6 usuarios, 5 proveedores, 20 productos, cotizaciones de ejemplo.
+- [x] Refresco de sesión vía `proxy.ts` (reemplaza `middleware.ts` en Next 16).
+- [x] **Auth real**: registro (crea `profile` y, si aplica, `proveedor`), login con redirección por rol, logout.
+- [x] **Recuperación de contraseña** (`/recuperar` → email → `/actualizar-password`).
+- [x] **Catálogo** leyendo de Supabase, con fallback a mock si no hay credenciales configuradas.
+- [x] **CRUD de productos** en el panel de proveedor, incluyendo **eliminar** (antes solo existía la Server Action, sin botón en la UI).
+- [x] **Flujo de cotizaciones** completo: crear desde carrito (agrupado por proveedor, resolviendo proveedor/precio desde la BD, no desde datos del cliente) → bandeja del proveedor → aceptar/rechazar.
+- [x] Páginas legales (`/terminos`, `/privacidad`) y página 404 personalizada (`app/not-found.tsx`).
+- [x] README completo, capturas funcionales y `LICENSE` (MIT).
+- [x] Removido el stack exploratorio Vue 3 + FastAPI (`frontend/`, `backend/`) que coexistía en el repo — rompía `next build` y `npm run lint` porque `tsconfig.json`/`eslint.config.mjs` no lo excluían, y confundía la detección automática de "monorepo" de Vercel al desplegar.
 
-### Pendiente (núcleo funcional)
-- [ ] Esquema de base de datos en Supabase + RLS + seed.
-- [ ] Middleware de refresco de sesión.
-- [ ] Auth real (registro crea `profile` y, si aplica, `proveedor`; login; logout).
-- [ ] Catálogo leyendo de Supabase (con fallback a mock si no hay credenciales).
-- [ ] CRUD de productos en el panel de proveedor.
-- [ ] Flujo de cotizaciones (crear desde carrito → bandeja del proveedor → responder).
-- [ ] README completo, capturas y evidencia funcional.
-- [ ] Deploy en Vercel con URL pública.
+- [x] Deploy en Vercel: **https://resuelveloapp.vercel.app** (proyecto `resuelvelo/resuelvelo_app`).
+
+### Pendiente
+- [ ] Panel/UI para el rol `admin` (existe en el esquema y tipos, sin pantallas propias).
+- [ ] Filtros avanzados de catálogo (precio, stock) — el botón "Filtros" decorativo se removió hasta implementarlos.
+- [ ] Enforcement de rutas por rol a nivel `proxy.ts` (hoy es por página, con `redirect()` individual).
 
 ---
 
@@ -97,8 +104,9 @@ Supabase
 11. Bandeja del proveedor: ver y responder cotizaciones (cambiar `estado`).
 
 ### Fase 7 — Entrega
-12. README completo, capturas, `LICENSE` (MIT).
-13. Deploy en Vercel + verificación end-to-end.
+12. [x] README completo, capturas, `LICENSE` (MIT).
+13. [x] Verificación end-to-end (registro, catálogo, carrito, cotizaciones, panel de proveedor) contra Supabase real.
+14. [x] Deploy en Vercel + URL pública: https://resuelveloapp.vercel.app
 
 ---
 

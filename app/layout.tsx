@@ -14,7 +14,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className={`${geist.className} flex min-h-screen flex-col bg-gray-50 antialiased`}>
+      <body
+        suppressHydrationWarning
+        className={`${geist.className} flex min-h-screen flex-col bg-gray-50 antialiased`}
+      >
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

@@ -1,25 +1,21 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-import { Store, Eye, EyeOff } from 'lucide-react'
+import { useActionState, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Store, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { iniciarSesion } from '@/app/(auth)/actions'
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams()
+  const passwordActualizada = searchParams.get('password_actualizada')
   const [verPassword, setVerPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
-    // TODO: integrar con Supabase auth
-    setTimeout(() => setLoading(false), 1000)
-  }
+  const [state, action, pending] = useActionState(iniciarSesion, null)
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Store className="h-7 w-7 text-orange-500" />
@@ -31,13 +27,27 @@ export default function LoginPage() {
           <p className="mt-1 text-sm text-gray-500">Ingresa a tu cuenta</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {passwordActualizada && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            Tu contraseña se actualizó. Ingresa con la nueva.
+          </div>
+        )}
+
+        {state?.error && (
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            {state.error}
+          </div>
+        )}
+
+        <form action={action} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
               id="email"
+              name="email"
               type="email"
               required
               placeholder="tu@email.com"
@@ -57,6 +67,7 @@ export default function LoginPage() {
             <div className="relative">
               <input
                 id="password"
+                name="password"
                 type={verPassword ? 'text' : 'password'}
                 required
                 placeholder="••••••••"
@@ -75,9 +86,9 @@ export default function LoginPage() {
           <Button
             type="submit"
             className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-            disabled={loading}
+            disabled={pending}
           >
-            {loading ? 'Ingresando...' : 'Ingresar'}
+            {pending ? 'Ingresando...' : 'Ingresar'}
           </Button>
         </form>
 
@@ -89,5 +100,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   )
 }

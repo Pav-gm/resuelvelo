@@ -1,30 +1,24 @@
 'use client'
 
 import Link from 'next/link'
+import { useActionState } from 'react'
 import { useState, Suspense } from 'react'
 import { Store, Building2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { UserRole } from '@/types'
+import { registrar } from '@/app/(auth)/actions'
 
 function RegisterForm() {
   const searchParams = useSearchParams()
   const rolInicial = (searchParams.get('rol') as UserRole) ?? 'comprador'
   const [rol, setRol] = useState<UserRole>(rolInicial)
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
-    // TODO: integrar con Supabase auth
-    setTimeout(() => setLoading(false), 1000)
-  }
+  const [state, action, pending] = useActionState(registrar, null)
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
             <Store className="h-7 w-7 text-orange-500" />
@@ -36,7 +30,12 @@ function RegisterForm() {
           <p className="mt-1 text-sm text-gray-500">Es gratis, siempre</p>
         </div>
 
-        {/* Selector de rol */}
+        {state?.error && (
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            {state.error}
+          </div>
+        )}
+
         <div className="mb-6 grid grid-cols-2 gap-3">
           <button
             type="button"
@@ -66,13 +65,16 @@ function RegisterForm() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={action} className="space-y-4">
+          <input type="hidden" name="rol" value={rol} />
+
           <div>
             <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
               {rol === 'proveedor' ? 'Nombre de la empresa' : 'Nombre completo'}
             </label>
             <input
               id="nombre"
+              name="nombre"
               type="text"
               required
               placeholder={rol === 'proveedor' ? 'Ferretería Ejemplo S.R.L.' : 'Juan Pérez'}
@@ -86,6 +88,7 @@ function RegisterForm() {
             </label>
             <input
               id="email"
+              name="email"
               type="email"
               required
               placeholder="tu@email.com"
@@ -99,6 +102,7 @@ function RegisterForm() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
               required
               minLength={8}
@@ -110,9 +114,11 @@ function RegisterForm() {
           <Button
             type="submit"
             className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-            disabled={loading}
+            disabled={pending}
           >
-            {loading ? 'Creando cuenta...' : `Registrarme como ${rol === 'comprador' ? 'comprador' : 'proveedor'}`}
+            {pending
+              ? 'Creando cuenta...'
+              : `Registrarme como ${rol === 'comprador' ? 'comprador' : 'proveedor'}`}
           </Button>
         </form>
 
@@ -129,7 +135,13 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[calc(100vh-4rem)] items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
+        </div>
+      }
+    >
       <RegisterForm />
     </Suspense>
   )
