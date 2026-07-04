@@ -40,7 +40,7 @@ verificar que el video (sección 13) esté grabado y enlazado.
 **Asignatura:** Seminario de Proyecto I
 **Trimestre:** Mayo–Julio 2026
 **Fecha de entrega:** 8 de julio de 2026
-**Repositorio:** (agregar URL de GitHub una vez publicado)
+**Repositorio:** https://github.com/Pav-gm/resuelvelo
 **Demo en vivo:** https://resuelveloapp.vercel.app
 
 *[BORRADOR SÓLIDO — completar con logo/formato institucional si el docente lo pide]*
@@ -409,7 +409,7 @@ El mayor riesgo no gestionado hasta el cierre del proyecto fue el control de ver
 
 - **Capturas de pantalla del proyecto funcional:** ver `docs/screenshots/` en el repositorio (home, catálogo, carrito, mis cotizaciones, bandeja de cotizaciones del proveedor, panel de proveedor).
 - **URL de la demo en vivo:** https://resuelveloapp.vercel.app
-- **Repositorio de código:** _(agregar enlace de GitHub una vez publicado)_
+- **Repositorio de código:** https://github.com/Pav-gm/resuelvelo
 - **Modelo de datos completo:** `supabase/schema.sql` y `supabase/seed.sql` en el repositorio.
 - **Roadmap y estado detallado del proyecto:** `docs/ROADMAP.md` en el repositorio.
 - *(Agregar aquí: boards de Miro de infografía empresarial, FODA, misión/visión/organigrama, y el análisis de ROI de SEMANA 5, referenciados en `docs/PROYECTO-FINAL.md`)*

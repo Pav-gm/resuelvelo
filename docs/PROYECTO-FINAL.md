@@ -23,7 +23,7 @@
 ## Componentes de la entrega
 
 1. **Documento de gestión de proyecto** (17 secciones) — Google Docs + Markdown.
-2. **Repositorio funcional en GitHub** — este repo (`resuelvelo_app`).
+2. **Repositorio funcional en GitHub** — https://github.com/Pav-gm/resuelvelo
 3. **Video** explicando el proyecto punto por punto — subir a Drive y compartir el enlace.
 
 ---
@@ -62,7 +62,7 @@ Leyenda: ✅ Listo (revisado y aprobado) · 📝 Borrador (redactado en `docs/DO
 - [x] `.gitignore` adecuado al lenguaje.
 - [x] Evidencia funcional (capturas en `docs/screenshots/` + URL en vivo: https://resuelveloapp.vercel.app).
 - [x] Licencia (MIT, en `LICENSE`).
-- [ ] **Uso evidente de GitHub como control de versiones — 🔴 CRÍTICO, NO cumplido todavía.** Hay 4 commits locales pero **ningún repositorio remoto configurado** (`git remote -v` vacío); la mayor parte del código actual (Supabase, auth, cotizaciones, panel de proveedor, pruebas, y todo el trabajo de cierre) está sin commitear. Sin esto, un revisor que abra "el repo de GitHub" no vería la funcionalidad real. **Acción pendiente:** crear el repositorio remoto, commitear el trabajo pendiente y hacer push, antes de la entrega del 8 de julio.
+- [x] Uso evidente de GitHub como control de versiones — **https://github.com/Pav-gm/resuelvelo** (repositorio público, historial de commits con todo el desarrollo).
 
 ---
 
@@ -84,6 +84,6 @@ Leyenda: ✅ Listo (revisado y aprobado) · 📝 Borrador (redactado en `docs/DO
 2. ~~Redactar el documento de las 17 secciones~~ — ✅ borrador completo en `docs/DOCUMENTO-FINAL.md`; falta reconciliar secciones `[FALTA FUENTE]` con EMANA 2 / SEMANA 3 / SEMANA 5 / Miro y pasarlo a Google Docs con formato final.
 3. ~~Escribir el guion del video~~ — ✅ hecho en `docs/GUION-VIDEO.md`; **falta grabarlo y subirlo**.
 4. ~~Tomar capturas, completar README, desplegar en Vercel~~ — ✅ hecho: `docs/screenshots/`, README reescrito, https://resuelveloapp.vercel.app.
-5. **🔴 Publicar el repo en GitHub** — pendiente y crítico; ver nota en la sección de requisitos del repositorio arriba.
+5. ~~Publicar el repo en GitHub~~ — ✅ hecho: https://github.com/Pav-gm/resuelvelo
 6. Revisar y ajustar el tono/contenido de `docs/DOCUMENTO-FINAL.md` a la voz propia antes de copiarlo a Google Docs.
 7. Grabar el video siguiendo `docs/GUION-VIDEO.md` y compartir el enlace en ambos documentos.
