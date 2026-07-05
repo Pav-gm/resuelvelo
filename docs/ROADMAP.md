@@ -155,4 +155,4 @@ git push -u origin main
 - App móvil nativa (iOS + Android).
 - Motor de recomendación de proveedores.
 - Panel de analytics/BI para proveedores (plan Premium).
-- Expansión regional (Haití, Puerto Rico, Jamaica).
+- Expansión regional a otros mercados de LATAM.

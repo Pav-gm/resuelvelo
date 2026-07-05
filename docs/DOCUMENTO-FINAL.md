@@ -12,13 +12,10 @@ Seminario de Proyecto I. Cada sección tiene una de estas tres etiquetas:
                         Kanban, PMBOK, etc.) que es material de clase, no
                         específico de este proyecto. Seguro de usar tal cual.
 
-  [BORRADOR FINAL]    → En un principio se había marcado como "falta fuente"
-                        porque hay entregables previos del curso ("EMANA 2",
-                        "SEMANA 3", "SEMANA 5", Miro) que podrían aportar
-                        contenido adicional. Se evaluó y se decidió (3 de
-                        julio de 2026) NO reconciliar con esas fuentes: el
-                        contenido de estas secciones queda como definitivo
-                        tal cual está escrito acá.
+Nota: se evaluó reconciliar algunas secciones con entregables previos del
+curso ("EMANA 2", "SEMANA 3", "SEMANA 5", Miro) y se decidió (3 de julio de
+2026) no hacerlo — el contenido de este documento queda como definitivo tal
+cual está escrito acá.
 
 Antes de entregar: pasar todo a Google Docs con formato de portada/índice
 real, agregar las capturas de docs/screenshots/ donde se indique, y
@@ -73,8 +70,6 @@ verificar que el video (sección 13) esté grabado y enlazado.
 ---
 
 ## 3. Planteamiento del problema
-
-*[BORRADOR FINAL]*
 
 En República Dominicana, contratistas, constructoras y PYMEs que necesitan materiales de construcción, insumos eléctricos, de plomería o servicios afines deben contactar manualmente a múltiples ferreterías y distribuidores —por teléfono o en persona— para comparar precios y disponibilidad antes de decidir una compra. Este proceso es:
 
@@ -194,8 +189,6 @@ Los entregables del proyecto se dividieron en dos grandes bloques:
 
 ### 7.2 Cronograma y asignación de recursos
 
-*[BORRADOR FINAL — cronograma de alto nivel basado en el trimestre real]*
-
 | Semana (Trimestre Mayo–Julio 2026) | Actividad principal |
 |---|---|
 | Semanas 1–2 | Definición del problema, objetivos y stack tecnológico |
@@ -297,8 +290,6 @@ Durante la ejecución surgieron ajustes no planificados que se gestionaron sin d
 
 ## 11. Herramientas y tecnologías utilizadas
 
-*[BORRADOR FINAL]*
-
 ### 11.1 Software de gestión de proyectos
 
 - **Tablero de tareas estilo Kanban** (gestión de pendientes por estado: pendiente / en progreso / completado) para organizar el trabajo de desarrollo.
@@ -334,13 +325,13 @@ Durante la ejecución surgieron ajustes no planificados que se gestionaron sin d
 
 Los siete objetivos específicos definidos en la sección 4.3 se cumplieron y verificaron:
 
-1. ✅ Esquema de datos con RLS implementado y aplicado a un proyecto Supabase real.
-2. ✅ Autenticación completa (registro, login, logout, recuperación de contraseña) funcionando contra Supabase en producción.
-3. ✅ Catálogo funcional con 20 productos reales de 5 proveedores, con búsqueda y filtro por categoría.
-4. ✅ Flujo de carrito y cotizaciones verificado de punta a punta: se creó una cotización real agrupando productos de dos proveedores distintos, y el proveedor la recibió y aceptó correctamente.
-5. ✅ Panel de proveedor con estadísticas reales, CRUD de productos completo (incluyendo eliminar, que se agregó durante la fase de cierre).
-6. ✅ Verificación end-to-end realizada con cuentas reales de comprador y proveedor contra la base de datos de producción.
-7. ✅ Aplicación desplegada públicamente en https://resuelveloapp.vercel.app.
+1. Esquema de datos con RLS implementado y aplicado a un proyecto Supabase real.
+2. Autenticación completa (registro, login, logout, recuperación de contraseña) funcionando contra Supabase en producción.
+3. Catálogo funcional con 20 productos reales de 5 proveedores, con búsqueda y filtro por categoría.
+4. Flujo de carrito y cotizaciones verificado de punta a punta: se creó una cotización real agrupando productos de dos proveedores distintos, y el proveedor la recibió y aceptó correctamente.
+5. Panel de proveedor con estadísticas reales, CRUD de productos completo (incluyendo eliminar, que se agregó durante la fase de cierre).
+6. Verificación end-to-end realizada con cuentas reales de comprador y proveedor contra la base de datos de producción.
+7. Aplicación desplegada públicamente en https://resuelveloapp.vercel.app.
 
 ### 12.2 Lecciones aprendidas (ensayo)
 
@@ -404,8 +395,6 @@ El mayor riesgo no gestionado hasta el cierre del proyecto fue el control de ver
 ---
 
 ## 17. Anexos
-
-*[BORRADOR FINAL — con enlaces a evidencia real del repositorio]*
 
 - **Capturas de pantalla del proyecto funcional:** ver `docs/screenshots/` en el repositorio (home, catálogo, carrito, mis cotizaciones, bandeja de cotizaciones del proveedor, panel de proveedor).
 - **URL de la demo en vivo:** https://resuelveloapp.vercel.app

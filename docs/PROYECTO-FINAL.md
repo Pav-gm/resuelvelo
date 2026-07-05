@@ -35,25 +35,25 @@
 
 | # | Sección | Estado | Fuente / Notas |
 |---|---|---|---|
-| 1 | Portada | 📝 Borrador | Completa en `docs/DOCUMENTO-FINAL.md` |
-| 2 | Índice | 📝 Borrador | Completo en `docs/DOCUMENTO-FINAL.md` |
-| 3 | Planteamiento del problema | 📝 Borrador final | Redactado desde cero — se decidió no reconciliar con EMANA 2 |
-| 4 | Introducción + objetivos (general y específicos) | 📝 Borrador | Completo |
-| 5 | Marco teórico | 📝 Borrador | Scrum, Kanban, Lean, Agile, XP, FDD, PMBOK — completo |
-| 6 | Ciclo de vida del proyecto (5 fases) | 📝 Borrador | Completo, con ejemplos reales del repo (commits) |
-| 7 | Proceso de planificación (cronograma + recursos) | 📝 Borrador final | Cronograma de alto nivel — se decidió no reconciliar con SEMANA 3 |
-| 8 | Ejecución del proyecto | 📝 Borrador | Completo |
-| 9 | Monitoreo y control | 📝 Borrador | Completo, con evidencia real (pruebas, build, verificación manual) |
-| 10 | Gestión de riesgos | 📝 Borrador | Completo, con 5 riesgos reales encontrados y resueltos en el proyecto |
-| 11 | Herramientas y tecnologías | 📝 Borrador final | Stack técnico completo — se decidió no confirmar Trello/Canva |
-| 12 | Resultados y logros (ensayo) | 📝 Borrador | Completo |
-| 13 | Explicación punto por punto (VIDEO) | ⬜ Pendiente | Guion completo en `docs/GUION-VIDEO.md` — falta grabar y subir |
-| 14 | Conclusiones | 📝 Borrador | Completo |
-| 15 | Recomendaciones y futuras mejoras | 📝 Borrador | Backlog real del ROADMAP.md |
-| 16 | Bibliografía | 📝 Borrador | Completo |
-| 17 | Anexos | 📝 Borrador final | Capturas y repo reales — se decidió no agregar Miro/ROI |
+| 1 | Portada | Borrador | Completa en `docs/DOCUMENTO-FINAL.md` |
+| 2 | Índice | Borrador | Completo en `docs/DOCUMENTO-FINAL.md` |
+| 3 | Planteamiento del problema | Borrador | Redactado desde cero — se decidió no reconciliar con EMANA 2 |
+| 4 | Introducción + objetivos (general y específicos) | Borrador | Completo |
+| 5 | Marco teórico | Borrador | Scrum, Kanban, Lean, Agile, XP, FDD, PMBOK — completo |
+| 6 | Ciclo de vida del proyecto (5 fases) | Borrador | Completo, con ejemplos reales del repo (commits) |
+| 7 | Proceso de planificación (cronograma + recursos) | Borrador | Cronograma de alto nivel — se decidió no reconciliar con SEMANA 3 |
+| 8 | Ejecución del proyecto | Borrador | Completo |
+| 9 | Monitoreo y control | Borrador | Completo, con evidencia real (pruebas, build, verificación manual) |
+| 10 | Gestión de riesgos | Borrador | Completo, con 5 riesgos reales encontrados y resueltos en el proyecto |
+| 11 | Herramientas y tecnologías | Borrador | Stack técnico completo — se decidió no confirmar Trello/Canva |
+| 12 | Resultados y logros (ensayo) | Borrador | Completo |
+| 13 | Explicación punto por punto (VIDEO) | Pendiente | Guion completo en `docs/GUION-VIDEO.md` — falta grabar y subir |
+| 14 | Conclusiones | Borrador | Completo |
+| 15 | Recomendaciones y futuras mejoras | Borrador | Backlog real del ROADMAP.md |
+| 16 | Bibliografía | Borrador | Completo |
+| 17 | Anexos | Borrador | Capturas y repo reales — se decidió no agregar Miro/ROI |
 
-Leyenda: ✅ Listo (revisado y aprobado) · 📝 Borrador (redactado en `docs/DOCUMENTO-FINAL.md`, listo salvo ajustes de tono) · ⬜ Pendiente de redactar.
+Leyenda: Listo (revisado y aprobado) · Borrador (redactado en `docs/DOCUMENTO-FINAL.md`, listo salvo ajustes de tono) · Pendiente (de redactar).
 
 ---
 
@@ -88,10 +88,10 @@ Leyenda: ✅ Listo (revisado y aprobado) · 📝 Borrador (redactado en `docs/DO
 
 ## Próximos pasos
 
-1. ~~Construir el núcleo funcional del repo~~ — ✅ hecho, Fases 1–7 completas y verificadas.
-2. ~~Redactar el documento de las 17 secciones~~ — ✅ completo en `docs/DOCUMENTO-FINAL.md` (se decidió no reconciliar con EMANA 2 / SEMANA 3 / SEMANA 5 / Miro); falta pasarlo a Google Docs con formato final.
-3. ~~Escribir el guion del video~~ — ✅ hecho en `docs/GUION-VIDEO.md`; **falta grabarlo y subirlo**.
-4. ~~Tomar capturas, completar README, desplegar en Vercel~~ — ✅ hecho: `docs/screenshots/`, README reescrito, https://resuelveloapp.vercel.app.
-5. ~~Publicar el repo en GitHub~~ — ✅ hecho: https://github.com/Pav-gm/resuelvelo
+1. ~~Construir el núcleo funcional del repo~~ — hecho, Fases 1–7 completas y verificadas.
+2. ~~Redactar el documento de las 17 secciones~~ — completo en `docs/DOCUMENTO-FINAL.md` (se decidió no reconciliar con EMANA 2 / SEMANA 3 / SEMANA 5 / Miro); falta pasarlo a Google Docs con formato final.
+3. ~~Escribir el guion del video~~ — hecho en `docs/GUION-VIDEO.md`; **falta grabarlo y subirlo**.
+4. ~~Tomar capturas, completar README, desplegar en Vercel~~ — hecho: `docs/screenshots/`, README reescrito, https://resuelveloapp.vercel.app.
+5. ~~Publicar el repo en GitHub~~ — hecho: https://github.com/Pav-gm/resuelvelo
 6. Revisar y ajustar el tono/contenido de `docs/DOCUMENTO-FINAL.md` a la voz propia antes de copiarlo a Google Docs.
 7. Grabar el video siguiendo `docs/GUION-VIDEO.md` y compartir el enlace en ambos documentos.

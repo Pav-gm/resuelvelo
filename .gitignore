@@ -45,3 +45,6 @@ next-env.d.ts
 .env.local
 
 .vercel
+
+# guion de video (material de grabación personal, no forma parte del código)
+docs/GUION-VIDEO.md
