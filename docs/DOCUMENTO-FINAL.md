@@ -347,9 +347,9 @@ Finalmente, trabajar con alcance acotado (un MVP con siete fases claramente defi
 
 ## 13. Explicación del proyecto punto por punto (video)
 
-*[FALTA — grabar el video. Guion completo disponible en `docs/GUION-VIDEO.md`]*
+Video grabado siguiendo el guion de `docs/GUION-VIDEO.md`, mostrando el flujo completo de comprador y de proveedor contra la aplicación real en producción.
 
-**Enlace al video:** _(agregar enlace de Google Drive con permisos de visualización una vez grabado)_
+**Enlace al video:** https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing
 
 ---
 

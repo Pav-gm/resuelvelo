@@ -2,7 +2,7 @@
 
 Marketplace B2B que conecta compradores profesionales (contratistas, constructoras y PYMEs) con proveedores de materiales, insumos y servicios en República Dominicana. Los compradores exploran un catálogo multi-proveedor, arman un carrito y solicitan cotizaciones; los proveedores publican su catálogo y responden esas solicitudes desde un panel propio.
 
-**Demo en vivo:** [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app)
+**Demo en vivo:** [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) · **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
 
 ![Home de Resuélvelo](docs/screenshots/01-home.png)
 
