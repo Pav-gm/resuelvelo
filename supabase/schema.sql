@@ -116,6 +116,26 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- Evita recursión: las políticas de admin no pueden leer profiles
+-- bajo RLS, porque esa lectura volvería a evaluar las mismas políticas.
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and rol = 'admin'
+  );
+$$;
+
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to anon, authenticated;
+
 -- =============================================================
 -- ROW LEVEL SECURITY
 -- =============================================================
@@ -128,10 +148,13 @@ alter table public.cotizaciones      enable row level security;
 alter table public.items_cotizacion  enable row level security;
 
 -- ─── profiles ───────────────────────────────────────────────
+-- drop + create para poder re-ejecutar este archivo en un proyecto que ya tiene políticas.
+drop policy if exists "profiles: usuario ve el suyo" on public.profiles;
 create policy "profiles: usuario ve el suyo"
   on public.profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "profiles: usuario actualiza el suyo" on public.profiles;
 create policy "profiles: usuario actualiza el suyo"
   on public.profiles for update
   using (auth.uid() = id);
@@ -140,46 +163,47 @@ drop policy if exists "profiles: admin lee todos" on public.profiles;
 create policy "profiles: admin lee todos"
   on public.profiles for select
   using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and rol = 'admin'
-    )
+    public.is_admin()
   );
 
 -- ─── proveedores ────────────────────────────────────────────
+drop policy if exists "proveedores: lectura pública" on public.proveedores;
 create policy "proveedores: lectura pública"
   on public.proveedores for select
   using (true);
 
+drop policy if exists "proveedores: proveedor inserta el suyo" on public.proveedores;
 create policy "proveedores: proveedor inserta el suyo"
   on public.proveedores for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "proveedores: proveedor actualiza el suyo" on public.proveedores;
 create policy "proveedores: proveedor actualiza el suyo"
   on public.proveedores for update
   using (auth.uid() = user_id);
 
 -- ─── categorias ─────────────────────────────────────────────
+drop policy if exists "categorias: lectura pública" on public.categorias;
 create policy "categorias: lectura pública"
   on public.categorias for select
   using (true);
 
+drop policy if exists "categorias: solo admin inserta" on public.categorias;
 create policy "categorias: solo admin inserta"
   on public.categorias for insert
   with check (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and rol = 'admin'
-    )
+    public.is_admin()
   );
 
 -- ─── productos ──────────────────────────────────────────────
+drop policy if exists "productos: lectura pública de activos" on public.productos;
 create policy "productos: lectura pública de activos"
   on public.productos for select
   using (activo = true or auth.uid() = (
     select user_id from public.proveedores where id = proveedor_id
   ));
 
+drop policy if exists "productos: proveedor inserta los suyos" on public.productos;
 create policy "productos: proveedor inserta los suyos"
   on public.productos for insert
   with check (
@@ -189,6 +213,7 @@ create policy "productos: proveedor inserta los suyos"
     )
   );
 
+drop policy if exists "productos: proveedor actualiza los suyos" on public.productos;
 create policy "productos: proveedor actualiza los suyos"
   on public.productos for update
   using (
@@ -198,6 +223,7 @@ create policy "productos: proveedor actualiza los suyos"
     )
   );
 
+drop policy if exists "productos: proveedor elimina los suyos" on public.productos;
 create policy "productos: proveedor elimina los suyos"
   on public.productos for delete
   using (
@@ -211,27 +237,23 @@ drop policy if exists "productos: admin lee todos" on public.productos;
 create policy "productos: admin lee todos"
   on public.productos for select
   using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and rol = 'admin'
-    )
+    public.is_admin()
   );
 
 drop policy if exists "productos: admin actualiza" on public.productos;
 create policy "productos: admin actualiza"
   on public.productos for update
   using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and rol = 'admin'
-    )
+    public.is_admin()
   );
 
 -- ─── cotizaciones ───────────────────────────────────────────
+drop policy if exists "cotizaciones: comprador ve las suyas" on public.cotizaciones;
 create policy "cotizaciones: comprador ve las suyas"
   on public.cotizaciones for select
   using (auth.uid() = comprador_id);
 
+drop policy if exists "cotizaciones: proveedor ve las dirigidas a él" on public.cotizaciones;
 create policy "cotizaciones: proveedor ve las dirigidas a él"
   on public.cotizaciones for select
   using (
@@ -241,10 +263,12 @@ create policy "cotizaciones: proveedor ve las dirigidas a él"
     )
   );
 
+drop policy if exists "cotizaciones: comprador crea" on public.cotizaciones;
 create policy "cotizaciones: comprador crea"
   on public.cotizaciones for insert
   with check (auth.uid() = comprador_id);
 
+drop policy if exists "cotizaciones: proveedor actualiza estado" on public.cotizaciones;
 create policy "cotizaciones: proveedor actualiza estado"
   on public.cotizaciones for update
   using (
@@ -258,13 +282,11 @@ drop policy if exists "cotizaciones: admin lee todas" on public.cotizaciones;
 create policy "cotizaciones: admin lee todas"
   on public.cotizaciones for select
   using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and rol = 'admin'
-    )
+    public.is_admin()
   );
 
 -- ─── items_cotizacion ───────────────────────────────────────
+drop policy if exists "items: comprador ve los suyos" on public.items_cotizacion;
 create policy "items: comprador ve los suyos"
   on public.items_cotizacion for select
   using (
@@ -274,6 +296,7 @@ create policy "items: comprador ve los suyos"
     )
   );
 
+drop policy if exists "items: proveedor ve los suyos" on public.items_cotizacion;
 create policy "items: proveedor ve los suyos"
   on public.items_cotizacion for select
   using (
@@ -284,6 +307,7 @@ create policy "items: proveedor ve los suyos"
     )
   );
 
+drop policy if exists "items: comprador inserta" on public.items_cotizacion;
 create policy "items: comprador inserta"
   on public.items_cotizacion for insert
   with check (
@@ -297,8 +321,5 @@ drop policy if exists "items: admin lee todos" on public.items_cotizacion;
 create policy "items: admin lee todos"
   on public.items_cotizacion for select
   using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and rol = 'admin'
-    )
+    public.is_admin()
   );
