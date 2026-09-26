@@ -19,7 +19,7 @@
 - [x] Layout global con `Navbar` + `Footer` (branding "Resuélvelo" con tilde).
 - [x] Página **Home** (`app/page.tsx`): hero, categorías (con slugs correctos), beneficios, CTA proveedores.
 - [x] Esquema de base de datos en Supabase (`supabase/schema.sql`) + RLS + trigger de `profile`.
-- [x] Seed de demo (`supabase/seed.sql`): 6 usuarios, 5 proveedores, 20 productos, cotizaciones de ejemplo.
+- [x] Seed de demo (`supabase/seed.sql`): 7 usuarios, 5 proveedores, 20 productos, cotizaciones de ejemplo.
 - [x] Refresco de sesión vía `proxy.ts` (reemplaza `middleware.ts` en Next 16).
 - [x] **Auth real**: registro (crea `profile` y, si aplica, `proveedor`), login con redirección por rol, logout.
 - [x] **Recuperación de contraseña** (`/recuperar` → email → `/actualizar-password`).
@@ -33,9 +33,9 @@
 - [x] Deploy en Vercel: **https://resuelveloapp.vercel.app** (proyecto `resuelvelo/resuelvelo_app`).
 
 ### Pendiente
-- [ ] Panel/UI para el rol `admin` (existe en el esquema y tipos, sin pantallas propias).
-- [ ] Filtros avanzados de catálogo (precio, stock) — el botón "Filtros" decorativo se removió hasta implementarlos.
-- [ ] Enforcement de rutas por rol a nivel `proxy.ts` (hoy es por página, con `redirect()` individual).
+- [ ] **Panel `/admin` para el rol `admin`:** implementado en el repositorio (`app/(marketplace)/admin/`, RLS en `schema.sql`, usuario `admin@demo.com` en `seed.sql`); verificado con tests, lint, tsc y comprobaciones HTTP locales del 26-09-2026. **Pendiente:** aplicar `schema.sql` y `seed.sql` en Supabase, probar login y moderación con `admin@demo.com` contra una base accesible, captura/video del panel, y volver a desplegar en Vercel.
+- [ ] **Filtros de catálogo (precio mínimo/máximo, solo con stock):** implementados en `lib/data.ts`, la página de catálogo y `CatalogoFiltros`; cubiertos por pruebas en fallback. **Pendiente:** validar contra Supabase real tras aplicar el SQL, evidencia visual en capturas/video, y deploy en producción.
+- [ ] **Protección de rutas por rol en `lib/supabase/proxy.ts`:** implementada (redirección a `/login` sin sesión; rol incorrecto → `/catalogo`; `/proveedor` y `/admin` restringidos por rol). **Pendiente:** prueba end-to-end con sesiones comprador/proveedor/admin en un proyecto Supabase reachable, y deploy en producción (hoy [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) sigue en el MVP anterior).
 
 ---
 
@@ -144,7 +144,7 @@ git push -u origin main
 
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`).
 - **Branch principal:** `main`.
-- **Idioma:** UI y dominio en español (tuteo dominicano). Código/identificadores en español sin tildes.
+- **Idioma:** UI y dominio en español latinoamericano neutro (tuteo: eres, tienes, crea). Código/identificadores en español sin tildes.
 - **Branding:** "Resuélvelo" con tilde en todo texto visible; `resuelvelo` (sin tilde) en slugs y keys.
 
 ---

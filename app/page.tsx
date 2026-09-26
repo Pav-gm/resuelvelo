@@ -74,7 +74,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900">¿Por qué usar Resuélvelo?</h2>
-            <p className="mt-2 text-gray-500">Todo lo que necesitás para comprar materiales con inteligencia</p>
+            <p className="mt-2 text-gray-500">Todo lo que necesitas para comprar materiales con inteligencia</p>
           </div>
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {beneficios.map((b) => (
@@ -93,7 +93,7 @@ export default function HomePage() {
       {/* CTA Proveedor */}
       <section className="bg-orange-500 py-16">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <h2 className="text-3xl font-bold text-white">¿Sos proveedor de materiales?</h2>
+          <h2 className="text-3xl font-bold text-white">¿Eres proveedor de materiales?</h2>
           <p className="mt-4 text-orange-100">
             Publica tu catálogo, recibe cotizaciones y llega a cientos de compradores profesionales en toda la República Dominicana.
           </p>

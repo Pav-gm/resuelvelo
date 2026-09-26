@@ -1,0 +1,54 @@
+---
+description: Repository conventions, gate commands, shared local resources, and git safety for every agent.
+alwaysApply: true
+---
+
+# PROJECT ENGINEERING RULES
+
+Resuélvelo is a B2B marketplace (Next.js 16 App Router, React 19, TypeScript, Tailwind v4, shadcn/ui, Supabase, Zustand, Vitest). This Next.js version differs from training data. Before writing Next.js code, read the relevant guide in `node_modules/next/dist/docs/` and heed deprecation notices.
+
+## Architecture
+
+- Transport and UI live in `app/` (routes, layouts, Server Actions) and `components/` (`layout/`, `marketplace/`, `ui/`).
+- Domain types live in `types/index.ts`.
+- The data boundary is `lib/data.ts`: catalog and quote reads go through Supabase, with an automatic fallback to `lib/mock.ts` when `NEXT_PUBLIC_SUPABASE_URL` is missing or still the example placeholder. Do not query Supabase from components.
+- `lib/supabase/client.ts`, `lib/supabase/server.ts`, and `lib/supabase/proxy.ts` are clients only.
+- The cart is client-only Zustand in `lib/store/carrito.ts`, persisted in `localStorage`.
+- Quote creation resolves provider and price on the server. Never trust prices or provider ids sent by the client.
+- Authorization is Postgres Row Level Security in `supabase/schema.sql`. UI checks are not the authorization layer.
+- Buyer flows: `app/(marketplace)/` catalog, cart, quotes. Provider flows: `app/(marketplace)/proveedor/`. Auth: `app/(auth)/`.
+
+## Gate commands
+
+| Command | What it checks | Shared state |
+|---|---|---|
+| `npm run test` | Vitest unit tests (`tests/`). Local only; no Supabase. | Does not mutate shared remote state. |
+| `npm run lint` | ESLint. | Local. |
+| `npx tsc --noEmit` | Typecheck. There is no `typecheck` script. | Writes `*.tsbuildinfo` (gitignored). |
+| `npm run build` | Production Next.js build. | Writes `.next/`. |
+| `npm run dev` | Dev server on port 3000. | Binds port 3000. |
+
+A skipped test is not a pass. Do not claim a command passed unless you ran it and saw it pass.
+
+## Shared resources
+
+Parallel workers share this checkout. In one fan-out, assign each of these to at most one worker:
+
+- `npm run dev` (port 3000)
+- `npm run build` and `npx tsc --noEmit` (they write compiler output)
+- Applying `supabase/schema.sql` or `supabase/seed.sql` (one shared Supabase project)
+- `npx vercel deploy` (production)
+
+`npm run test` and `npm run lint` do not touch Supabase. Still do not run two copies of the same gate at once on this checkout.
+
+Do not add npm dependencies unless the approved plan includes them. Do not commit `.env`, `.env.local`, or any secret. `.env.example` is the only env file that belongs in git.
+
+UI, layout, routing, client state, or rendered-data changes need a browser pass of the affected flow before the work is called complete. If no browser is available, use the closest substitute (`npm run test`, or a request against the dev server) and say what was not verified.
+
+## Git
+
+Do not commit, push, or amend unless the user explicitly asks.
+
+While the tree has uncommitted work, these commands are forbidden: `git reset --hard`, `git checkout --`, `git clean`, `git rebase`, and `git push --force`.
+
+An isolated worktree is built from committed history. Uncommitted files are not in that history.
