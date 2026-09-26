@@ -4,15 +4,35 @@ import CatalogoFiltros from '@/components/marketplace/CatalogoFiltros'
 import { getCategorias, getProductos } from '@/lib/data'
 
 interface CatalogoPageProps {
-  searchParams: Promise<{ busqueda?: string; categoria?: string; proveedor?: string }>
+  searchParams: Promise<{
+    busqueda?: string
+    categoria?: string
+    proveedor?: string
+    precioMin?: string
+    precioMax?: string
+    conStock?: string
+  }>
+}
+
+function parsePrecioParam(value?: string): number | undefined {
+  if (!value) return undefined
+  const n = Number(value)
+  return Number.isNaN(n) ? undefined : n
 }
 
 export default async function CatalogoPage({ searchParams }: CatalogoPageProps) {
   const params = await searchParams
-  const { busqueda, categoria, proveedor } = params
+  const { busqueda, categoria, proveedor, precioMin, precioMax, conStock } = params
 
   const [productos, categorias] = await Promise.all([
-    getProductos({ busqueda, categoriaSlug: categoria, proveedorId: proveedor }),
+    getProductos({
+      busqueda,
+      categoriaSlug: categoria,
+      proveedorId: proveedor,
+      precioMin: parsePrecioParam(precioMin),
+      precioMax: parsePrecioParam(precioMax),
+      conStock: conStock === '1' ? true : undefined,
+    }),
     getCategorias(),
   ])
 
@@ -31,6 +51,9 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
         categorias={categorias}
         busquedaInicial={busqueda}
         categoriaInicial={categoria}
+        precioMinInicial={precioMin}
+        precioMaxInicial={precioMax}
+        conStockInicial={conStock === '1'}
       />
 
       <Suspense fallback={<GridSkeleton />}>

@@ -136,6 +136,16 @@ create policy "profiles: usuario actualiza el suyo"
   on public.profiles for update
   using (auth.uid() = id);
 
+drop policy if exists "profiles: admin lee todos" on public.profiles;
+create policy "profiles: admin lee todos"
+  on public.profiles for select
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and rol = 'admin'
+    )
+  );
+
 -- ─── proveedores ────────────────────────────────────────────
 create policy "proveedores: lectura pública"
   on public.proveedores for select
@@ -197,6 +207,26 @@ create policy "productos: proveedor elimina los suyos"
     )
   );
 
+drop policy if exists "productos: admin lee todos" on public.productos;
+create policy "productos: admin lee todos"
+  on public.productos for select
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and rol = 'admin'
+    )
+  );
+
+drop policy if exists "productos: admin actualiza" on public.productos;
+create policy "productos: admin actualiza"
+  on public.productos for update
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and rol = 'admin'
+    )
+  );
+
 -- ─── cotizaciones ───────────────────────────────────────────
 create policy "cotizaciones: comprador ve las suyas"
   on public.cotizaciones for select
@@ -221,6 +251,16 @@ create policy "cotizaciones: proveedor actualiza estado"
     exists (
       select 1 from public.proveedores
       where id = proveedor_id and user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "cotizaciones: admin lee todas" on public.cotizaciones;
+create policy "cotizaciones: admin lee todas"
+  on public.cotizaciones for select
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and rol = 'admin'
     )
   );
 
@@ -250,5 +290,15 @@ create policy "items: comprador inserta"
     exists (
       select 1 from public.cotizaciones
       where id = cotizacion_id and comprador_id = auth.uid()
+    )
+  );
+
+drop policy if exists "items: admin lee todos" on public.items_cotizacion;
+create policy "items: admin lee todos"
+  on public.items_cotizacion for select
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and rol = 'admin'
     )
   );

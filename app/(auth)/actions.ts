@@ -81,7 +81,13 @@ export async function iniciarSesion(
     .single()
 
   revalidatePath('/', 'layout')
-  redirect(profile?.rol === 'proveedor' ? '/proveedor' : '/catalogo')
+  redirect(
+    profile?.rol === 'admin'
+      ? '/admin'
+      : profile?.rol === 'proveedor'
+        ? '/proveedor'
+        : '/catalogo'
+  )
 }
 
 // ─── Logout ──────────────────────────────────────────────────

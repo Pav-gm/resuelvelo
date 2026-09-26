@@ -31,6 +31,24 @@ export interface FiltrosProductos {
   busqueda?: string
   categoriaSlug?: string
   proveedorId?: string
+  precioMin?: number
+  precioMax?: number
+  /** true: solo productos con stock > 0; false u omitido: sin filtro por stock */
+  conStock?: boolean
+}
+
+function normalizePrecioRange(
+  precioMin?: number,
+  precioMax?: number
+): { min?: number; max?: number } {
+  let min =
+    precioMin !== undefined && !Number.isNaN(precioMin) ? precioMin : undefined
+  let max =
+    precioMax !== undefined && !Number.isNaN(precioMax) ? precioMax : undefined
+  if (min !== undefined && max !== undefined && min > max) {
+    ;[min, max] = [max, min]
+  }
+  return { min, max }
 }
 
 export async function getProductos(filtros?: FiltrosProductos): Promise<Producto[]> {
@@ -51,6 +69,19 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
     }
     if (filtros?.proveedorId) {
       productos = productos.filter((p) => p.proveedor_id === filtros.proveedorId)
+    }
+    const { min: precioMin, max: precioMax } = normalizePrecioRange(
+      filtros?.precioMin,
+      filtros?.precioMax
+    )
+    if (precioMin !== undefined) {
+      productos = productos.filter((p) => p.precio >= precioMin)
+    }
+    if (precioMax !== undefined) {
+      productos = productos.filter((p) => p.precio <= precioMax)
+    }
+    if (filtros?.conStock === true) {
+      productos = productos.filter((p) => p.stock > 0)
     }
     return productos
   }
@@ -83,6 +114,20 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
 
   if (filtros?.proveedorId) {
     query = query.eq('proveedor_id', filtros.proveedorId)
+  }
+
+  const { min: precioMin, max: precioMax } = normalizePrecioRange(
+    filtros?.precioMin,
+    filtros?.precioMax
+  )
+  if (precioMin !== undefined) {
+    query = query.gte('precio', precioMin)
+  }
+  if (precioMax !== undefined) {
+    query = query.lte('precio', precioMax)
+  }
+  if (filtros?.conStock === true) {
+    query = query.gt('stock', 0)
   }
 
   const { data, error } = await query

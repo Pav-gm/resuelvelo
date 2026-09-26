@@ -14,7 +14,12 @@ interface NavbarClientProps {
 
 export default function NavbarClient({ usuario }: NavbarClientProps) {
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const panelHref = usuario?.rol === 'proveedor' ? '/proveedor' : '/mis-cotizaciones'
+  const panelHref =
+    usuario?.rol === 'admin'
+      ? '/admin'
+      : usuario?.rol === 'proveedor'
+        ? '/proveedor'
+        : '/mis-cotizaciones'
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
@@ -36,6 +41,11 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           <Link href="/como-funciona" className="text-gray-600 hover:text-orange-500 transition-colors">
             ¿Cómo funciona?
           </Link>
+          {usuario?.rol === 'admin' && (
+            <Link href="/admin" className="text-gray-600 hover:text-orange-500 transition-colors">
+              Administración
+            </Link>
+          )}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -93,6 +103,11 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           <Link href="/como-funciona" className="py-2 text-gray-700 hover:text-orange-500" onClick={() => setMenuAbierto(false)}>
             ¿Cómo funciona?
           </Link>
+          {usuario?.rol === 'admin' && (
+            <Link href="/admin" className="py-2 text-gray-700 hover:text-orange-500" onClick={() => setMenuAbierto(false)}>
+              Administración
+            </Link>
+          )}
           <div className="mt-2 flex gap-2 pb-2">
             {usuario ? (
               <>

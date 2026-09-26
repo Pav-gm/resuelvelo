@@ -2,7 +2,7 @@
 
 Marketplace B2B que conecta compradores profesionales (contratistas, constructoras y PYMEs) con proveedores de materiales, insumos y servicios en República Dominicana. Los compradores exploran un catálogo multi-proveedor, arman un carrito y solicitan cotizaciones; los proveedores publican su catálogo y responden esas solicitudes desde un panel propio.
 
-**Demo en vivo:** [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) · **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
+**Demo en vivo:** [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) (MVP de Seminario I; el panel `/admin`, la protección centralizada de rutas y los filtros de precio/stock del catálogo están en el repositorio local y requieren un deploy nuevo para verse en esa URL) · **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
 
 ![Home de Resuélvelo](docs/screenshots/01-home.png)
 
@@ -14,7 +14,7 @@ Reemplazar el proceso manual de "llamar a varias ferreterías para comparar prec
 
 - **Comprador** — explora el catálogo, arma un carrito y solicita cotizaciones a uno o varios proveedores a la vez.
 - **Proveedor** — publica y administra su catálogo de productos/servicios, y responde las cotizaciones que recibe.
-- **Admin** — rol reservado en el modelo de datos para moderación futura (sin panel propio en este MVP).
+- **Admin** — panel en **`/admin`**: listado de proveedores, productos (activos e inactivos) con activar/desactivar, y cotizaciones de la plataforma (moderación vía RLS en Postgres).
 
 ## Stack técnico
 
@@ -28,10 +28,12 @@ Reemplazar el proceso manual de "llamar a varias ferreterías para comparar prec
 
 - Registro / login / logout con Supabase Auth y redirección según rol (`app/(auth)/`)
 - Recuperación de contraseña por email (`/recuperar` → `/actualizar-password`)
-- Catálogo con búsqueda por texto y filtro por categoría, leído directo de Supabase con **fallback automático a datos mock** si no hay credenciales configuradas (`lib/data.ts`)
+- Catálogo con búsqueda por texto, filtro por categoría, **precio mínimo**, **precio máximo** y opción **solo con stock**, leído directo de Supabase con **fallback automático a datos mock** si no hay credenciales configuradas (`lib/data.ts`)
+- Protección de rutas en `lib/supabase/proxy.ts`: sin sesión no se accede a `/admin`, `/proveedor` ni `/mis-cotizaciones`; con sesión, cada rol solo entra donde le corresponde (p. ej. `/admin` solo administradores)
 - Carrito de compras (agregar, editar cantidad, vaciar) persistido en el navegador
 - Solicitud de cotizaciones desde el carrito: se agrupan los items por proveedor y se crea una cotización por cada uno, resolviendo el proveedor y el precio directo desde la base de datos (nunca confiando en datos del cliente)
 - Panel de proveedor: estadísticas, listado de productos con activar/desactivar/editar/**eliminar**, y bandeja de cotizaciones con aceptar/rechazar
+- Panel de administración (`/admin`): proveedores, productos (activos e inactivos) con activar/desactivar, y cotizaciones de la plataforma
 - Row Level Security en Postgres: cada usuario solo puede leer/escribir lo que le corresponde, incluso si la UI fallara
 
 ## Capturas
@@ -95,10 +97,11 @@ Abrir [http://localhost:3000](http://localhost:3000).
 
 ### 6. Credenciales de demo
 
-Si corriste `seed.sql`, podés ingresar con cualquiera de estos usuarios (contraseña `Demo1234!` para todos):
+Si corriste `seed.sql`, puedes ingresar con cualquiera de estos usuarios (contraseña `Demo1234!` para todos):
 
 | Email | Rol | Empresa |
 |---|---|---|
+| `admin@demo.com` | Admin | — |
 | `comprador@demo.com` | Comprador | Construcciones Herrera |
 | `promeria@demo.com` | Proveedor | Promeria (plomería) |
 | `lopez@demo.com` | Proveedor | Ferretería López |
