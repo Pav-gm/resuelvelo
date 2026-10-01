@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { useActionState } from 'react'
-import { Store, ArrowLeft, MailCheck } from 'lucide-react'
+import { ArrowLeft, MailCheck } from 'lucide-react'
+import Logo from '@/components/layout/Logo'
 import { Button } from '@/components/ui/button'
 import { solicitarRecuperacion } from '@/app/(auth)/actions'
 
@@ -15,9 +16,9 @@ export default function RecuperarPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <Store className="h-7 w-7 text-orange-500" />
+            <Logo size={40} />
             <span className="text-2xl font-bold text-gray-900">
-              resuelve<span className="text-orange-500">lo</span>
+              Resuél<span className="text-orange-500">velo</span>
             </span>
           </Link>
           <h1 className="mt-4 text-xl font-semibold text-gray-900">Recupera tu contraseña</h1>

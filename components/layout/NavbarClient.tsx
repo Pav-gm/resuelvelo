@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Store, User, Menu, X, LogOut, LayoutDashboard } from 'lucide-react'
+import { User, Menu, X, LogOut, LayoutDashboard } from 'lucide-react'
+import Logo from '@/components/layout/Logo'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -20,7 +21,7 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
-          <Store className="h-6 w-6 text-orange-500" />
+          <Logo size={36} />
           <span className="text-xl font-bold text-gray-900">
             Resuél<span className="text-orange-500">velo</span>
           </span>

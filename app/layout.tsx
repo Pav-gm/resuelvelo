@@ -9,6 +9,11 @@ const geist = Geist({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Resuélvelo — Marketplace de Proveedores',
   description: 'Conectamos compradores profesionales con proveedores de materiales e insumos en República Dominicana.',
+  applicationName: 'Resuélvelo',
+  icons: {
+    icon: [{ url: '/logo.png', type: 'image/png' }],
+    apple: [{ url: '/logo.png', type: 'image/png' }],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
