@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useCarritoStore } from '@/lib/store/carrito'
 import type { Producto } from '@/types'
 import { cn } from '@/lib/utils'
+import { stockDisponible } from '@/lib/stock'
 
 interface ProductoCardProps {
   producto: Producto
@@ -14,6 +15,7 @@ interface ProductoCardProps {
 
 export default function ProductoCard({ producto, className }: ProductoCardProps) {
   const agregar = useCarritoStore((s) => s.agregar)
+  const disponible = stockDisponible(producto)
 
   return (
     <div className={cn('group rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col', className)}>
@@ -31,9 +33,11 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
             <Package className="h-12 w-12 text-gray-300" />
           </div>
         )}
-        {producto.stock === 0 && (
+        {disponible === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">Sin stock</span>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">
+              {producto.stock > 0 ? 'Reservado' : 'Sin stock'}
+            </span>
           </div>
         )}
       </div>
@@ -55,7 +59,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
           <Button
             size="sm"
             className="bg-orange-500 hover:bg-orange-600 text-white"
-            disabled={producto.stock === 0}
+            disabled={disponible === 0}
             onClick={() => agregar(producto)}
           >
             <ShoppingCart className="mr-1.5 h-4 w-4" />

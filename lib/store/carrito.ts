@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { stockDisponible } from '@/lib/stock'
 import type { ItemCarrito, Producto } from '@/types'
 
 interface CarritoStore {
@@ -18,18 +19,22 @@ export const useCarritoStore = create<CarritoStore>()(
       items: [],
 
       agregar: (producto, cantidad = 1) => {
+        const disponible = stockDisponible(producto)
+        if (disponible <= 0 || cantidad <= 0) return
+
         const items = get().items
         const existente = items.find((i) => i.producto.id === producto.id)
         if (existente) {
+          const nueva = Math.min(existente.cantidad + cantidad, disponible)
           set({
             items: items.map((i) =>
               i.producto.id === producto.id
-                ? { ...i, cantidad: i.cantidad + cantidad }
+                ? { ...i, cantidad: nueva, producto }
                 : i
             ),
           })
         } else {
-          set({ items: [...items, { producto, cantidad }] })
+          set({ items: [...items, { producto, cantidad: Math.min(cantidad, disponible) }] })
         }
       },
 
@@ -43,7 +48,9 @@ export const useCarritoStore = create<CarritoStore>()(
         }
         set({
           items: get().items.map((i) =>
-            i.producto.id === productoId ? { ...i, cantidad } : i
+            i.producto.id === productoId
+              ? { ...i, cantidad: Math.min(cantidad, stockDisponible(i.producto)) }
+              : i
           ),
         })
       },

@@ -100,32 +100,74 @@ export async function cotizarDesdeCarrito(
   redirect(`/mis-cotizaciones?enviada=1${algunProductoInvalido ? '&parcial=1' : ''}`)
 }
 
-// ─── Responder cotización (proveedor) ────────────────────────
+// ─── Seguimiento de la venta ─────────────────────────────────
+// Aceptar reserva stock. Despachar no lo descuenta.
+// Confirmar recepción lo descuenta. Cancelar libera la reserva.
 
-type EstadoCotizacion = 'respondida' | 'aceptada' | 'rechazada'
+export type VentaError = { error: string } | null
 
-export async function responderCotizacion(
-  cotizacionId: string,
-  estado: EstadoCotizacion
-): Promise<void> {
+function mensajeRpc(error: { message: string } | null): VentaError {
+  if (!error) return null
+  const limpio = error.message.replace(/^.*ERROR:\s*/i, '').trim()
+  return { error: limpio || 'No se pudo completar la operación.' }
+}
+
+async function exigirUsuario() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  return supabase
+}
 
-  const { data: prov } = await supabase
-    .from('proveedores')
-    .select('id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!prov) return
-
-  await supabase
-    .from('cotizaciones')
-    .update({ estado })
-    .eq('id', cotizacionId)
-    .eq('proveedor_id', prov.id)
-
+function revalidarVenta() {
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
+  revalidatePath('/proveedor/ventas')
+  revalidatePath('/mis-cotizaciones')
+  revalidatePath('/catalogo')
+}
+
+export async function aceptarCotizacion(cotizacionId: string): Promise<VentaError> {
+  const supabase = await exigirUsuario()
+  const { error } = await supabase.rpc('aceptar_cotizacion', { p_cotizacion_id: cotizacionId })
+  const fallo = mensajeRpc(error)
+  if (fallo) return fallo
+  revalidarVenta()
+  return null
+}
+
+export async function rechazarCotizacion(cotizacionId: string): Promise<VentaError> {
+  const supabase = await exigirUsuario()
+  const { error } = await supabase.rpc('rechazar_cotizacion', { p_cotizacion_id: cotizacionId })
+  const fallo = mensajeRpc(error)
+  if (fallo) return fallo
+  revalidarVenta()
+  return null
+}
+
+export async function despacharCotizacion(cotizacionId: string): Promise<VentaError> {
+  const supabase = await exigirUsuario()
+  const { error } = await supabase.rpc('despachar_cotizacion', { p_cotizacion_id: cotizacionId })
+  const fallo = mensajeRpc(error)
+  if (fallo) return fallo
+  revalidarVenta()
+  return null
+}
+
+export async function cancelarVenta(cotizacionId: string): Promise<VentaError> {
+  const supabase = await exigirUsuario()
+  const { error } = await supabase.rpc('cancelar_venta', { p_cotizacion_id: cotizacionId })
+  const fallo = mensajeRpc(error)
+  if (fallo) return fallo
+  revalidarVenta()
+  return null
+}
+
+export async function confirmarRecepcion(cotizacionId: string): Promise<VentaError> {
+  const supabase = await exigirUsuario()
+  const { error } = await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
+  const fallo = mensajeRpc(error)
+  if (fallo) return fallo
+  revalidarVenta()
+  return null
 }

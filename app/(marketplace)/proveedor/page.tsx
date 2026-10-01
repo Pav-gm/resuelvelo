@@ -14,13 +14,8 @@ import {
 } from '@/lib/data'
 import ToggleProductoButton from '@/components/marketplace/ToggleProductoButton'
 import EliminarProductoButton from '@/components/marketplace/EliminarProductoButton'
-
-const estadoBadge: Record<string, string> = {
-  pendiente:  'bg-yellow-100 text-yellow-700',
-  respondida: 'bg-blue-100 text-blue-700',
-  aceptada:   'bg-green-100 text-green-700',
-  rechazada:  'bg-red-100 text-red-700',
-}
+import { ESTADO_BADGE, ESTADO_LABEL } from '@/lib/cotizacion-estado'
+import { stockDisponible } from '@/lib/stock'
 
 const estadoIcono: Record<string, React.ElementType> = {
   pendiente:  Clock,
@@ -85,12 +80,19 @@ export default async function PanelProveedorPage() {
       <div className="rounded-2xl bg-white border shadow-sm mb-8">
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="font-semibold text-gray-900">Cotizaciones recientes</h2>
-          <Link href="/proveedor/pedidos">
-            <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600">
-              Ver todas
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/proveedor/ventas">
+              <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600">
+                Ventas
+              </Button>
+            </Link>
+            <Link href="/proveedor/pedidos">
+              <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600">
+                Ver todas
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
         <div className="divide-y">
           {cotizaciones.slice(0, 5).map((cot) => {
@@ -98,9 +100,9 @@ export default async function PanelProveedorPage() {
             const cantItems = cot.items?.length ?? 0
             return (
               <div key={cot.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors">
-                <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
+                <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${ESTADO_BADGE[cot.estado]}`}>
                   <Icono className="h-3 w-3" />
-                  {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
+                  {ESTADO_LABEL[cot.estado]}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">Cotización #{cot.id.slice(0, 8)}</p>
@@ -131,7 +133,7 @@ export default async function PanelProveedorPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-900 truncate">{p.nombre}</p>
                 <p className="text-xs text-gray-400">
-                  ${p.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {p.unidad} · Stock: {p.stock}
+                  ${p.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {p.unidad} · Stock: {p.stock} · Reservado: {p.stock_reservado ?? 0} · Disponible: {stockDisponible(p)}
                 </p>
               </div>
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${p.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>

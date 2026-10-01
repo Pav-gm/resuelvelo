@@ -32,6 +32,7 @@ Reemplazar el proceso manual de "llamar a varias ferreterías para comparar prec
 - Protección de rutas en `lib/supabase/proxy.ts`: sin sesión no se accede a `/admin`, `/proveedor` ni `/mis-cotizaciones`; con sesión, cada rol solo entra donde le corresponde (p. ej. `/admin` solo administradores)
 - Carrito de compras (agregar, editar cantidad, vaciar) persistido en el navegador
 - Solicitud de cotizaciones desde el carrito: se agrupan los items por proveedor y se crea una cotización por cada uno, resolviendo el proveedor y el precio directo desde la base de datos (nunca confiando en datos del cliente)
+- Seguimiento de la venta: al aceptar, el stock se reserva; al despachar sigue reservado; se descuenta solo cuando el cliente confirma la recepción. El cliente puede cancelar antes del despacho y el proveedor puede cancelar antes de esa confirmación (`/proveedor/ventas`)
 - Panel de proveedor: estadísticas, listado de productos con activar/desactivar/editar/**eliminar**, y bandeja de cotizaciones con aceptar/rechazar
 - Panel de administración (`/admin`): proveedores, productos (activos e inactivos) con activar/desactivar, y cotizaciones de la plataforma
 - Row Level Security en Postgres: cada usuario solo puede leer/escribir lo que le corresponde, incluso si la UI fallara

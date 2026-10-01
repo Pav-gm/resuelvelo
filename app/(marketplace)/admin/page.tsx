@@ -1,13 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ToggleActivoButton from './ToggleActivoButton'
-
-const estadoBadge: Record<string, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-700',
-  respondida: 'bg-blue-100 text-blue-700',
-  aceptada: 'bg-green-100 text-green-700',
-  rechazada: 'bg-red-100 text-red-700',
-}
+import { ESTADO_BADGE, ESTADO_LABEL } from '@/lib/cotizacion-estado'
+import type { EstadoCotizacion } from '@/types'
 
 type Rel<T> = T | T[] | null | undefined
 
@@ -158,15 +153,16 @@ export default async function AdminPage() {
               cot.proveedor as Rel<{ nombre_empresa: string }>,
               'nombre_empresa'
             )
+            const estado = String(cot.estado) as EstadoCotizacion
+            const etiqueta = ESTADO_LABEL[estado] ?? String(cot.estado)
+            const badge = ESTADO_BADGE[estado] ?? 'bg-gray-100 text-gray-500'
             return (
               <div key={cot.id} className="px-6 py-4">
                 <div className="flex items-center gap-3 flex-wrap">
                   <span
-                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                      estadoBadge[cot.estado] ?? 'bg-gray-100 text-gray-500'
-                    }`}
+                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge}`}
                   >
-                    {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
+                    {etiqueta}
                   </span>
                   <p className="font-medium text-gray-900">
                     {formatoMoneda(cot.total_estimado)}
