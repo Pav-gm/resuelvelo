@@ -1,0 +1,56 @@
+project:
+  name: resuelvelo
+  base_branch: main
+  repo_path: "C:/Users/HMN/resuelvelo"
+  worktrees_root: "C:/Users/HMN/_worktrees/resuelvelo"
+
+brain:
+  provider: cursor
+
+agents:
+  claude:
+    enabled: true
+    role: infrastructure
+
+  codex:
+    enabled: true
+    role: backend
+
+  antigravity:
+    enabled: true
+    role: frontend
+
+  cursor:
+    enabled: true
+    role: qa_documentation
+
+validation:
+  worker_checks:
+    - "npm run lint"
+    - "npm run typecheck"
+    - "npm test"
+
+  integration_checks:
+    - "npm run lint"
+    - "npm run typecheck"
+    - "npm test"
+    - "npm run build"
+
+execution:
+  parallel_workers: true
+  max_parallel_workers: 4
+
+integration:
+  strategy: sequential_merge
+  auto_merge_main: false
+
+safety:
+  allow_dangerous_permission_bypass: false
+  allow_agent_push: false
+  allow_agent_merge: false
+  allow_agent_checkout_other_branches: false
+
+timeouts:
+  planning_minutes: 10
+  implementation_minutes: 45
+  validation_minutes: 15

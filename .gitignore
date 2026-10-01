@@ -48,3 +48,6 @@ next-env.d.ts
 
 # guion de video (material de grabación personal, no forma parte del código)
 docs/GUION-VIDEO.md
+
+# supabase cli
+supabase/.temp/

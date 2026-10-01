@@ -11,6 +11,10 @@
     "vercel": {
       "type": "http",
       "url": "https://mcp.vercel.com/resuelvelo/resuelvelo_app"
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=aczxxribccodovuosuqe&features=docs%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions"
     }
   }
 }

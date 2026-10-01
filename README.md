@@ -118,7 +118,15 @@ npm run start    # servir el build de producción
 npm run lint     # ESLint
 npm run test     # pruebas unitarias (Vitest)
 npm run test:watch
+npm run typecheck # tipos de rutas de Next.js y TypeScript
+npm run docs:check # índice, enlaces y tamaño de instrucciones
+npm run test:tooling # pruebas del ejecutor de verificaciones
+npm run verify    # todos los controles, en serie y con historial
 ```
+
+Para una pasada sin compilación: `npm run verify -- --quick`. Para seleccionar controles: `npm run verify -- --only docs,test`. Para consultar resultados anteriores: `npm run verify -- --history`.
+
+Los asistentes comparten [AGENTS.md](AGENTS.md), el [índice de documentación](docs/index/MASTER_INDEX.md) y la [guía de verificación](docs/engineering/VERIFICATION.md). El ejecutor guarda sus resultados en `docs/history/verification.jsonl`.
 
 ## Estructura del proyecto
 
