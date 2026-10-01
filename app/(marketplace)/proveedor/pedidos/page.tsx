@@ -1,14 +1,9 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getCotizacionesDeProveedor } from '@/lib/data'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
-
-const estadoBadge: Record<string, string> = {
-  pendiente:  'bg-yellow-100 text-yellow-700',
-  respondida: 'bg-blue-100 text-blue-700',
-  aceptada:   'bg-green-100 text-green-700',
-  rechazada:  'bg-red-100 text-red-700',
-}
+import { ESTADO_BADGE, ESTADO_LABEL } from '@/lib/cotizacion-estado'
 
 export default async function PedidosPage() {
   const supabase = await createClient()
@@ -22,7 +17,12 @@ export default async function PedidosPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Bandeja de cotizaciones</h1>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">Bandeja de cotizaciones</h1>
+        <Link href="/proveedor/ventas" className="text-sm font-medium text-orange-500 hover:underline">
+          Seguimiento de ventas
+        </Link>
+      </div>
 
       {cotizaciones.length === 0 ? (
         <div className="rounded-2xl bg-white border p-12 text-center text-gray-400">
@@ -51,8 +51,8 @@ export default async function PedidosPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
-                      {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
+                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${ESTADO_BADGE[cot.estado]}`}>
+                      {ESTADO_LABEL[cot.estado]}
                     </span>
                     {cot.estado === 'pendiente' && (
                       <ResponderCotizacionButton cotizacionId={cot.id} />

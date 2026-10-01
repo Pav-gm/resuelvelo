@@ -57,6 +57,11 @@ describe('Carrito — agregar productos', () => {
     expect(items[0].cantidad).toBe(5)
   })
 
+  it('no supera el stock disponible', () => {
+    useCarritoStore.getState().agregar({ ...PRODUCTO_B, stock: 50, stock_reservado: 40 }, 20)
+    expect(useCarritoStore.getState().items[0].cantidad).toBe(10)
+  })
+
   it('agrega productos distintos como items separados', () => {
     useCarritoStore.getState().agregar(PRODUCTO_A)
     useCarritoStore.getState().agregar(PRODUCTO_B)

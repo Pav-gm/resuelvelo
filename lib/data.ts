@@ -1,3 +1,4 @@
+import { stockDisponible } from '@/lib/stock'
 import type { Categoria, Cotizacion, Producto, Proveedor } from '@/types'
 import { CATEGORIAS_MOCK, PRODUCTOS_MOCK } from '@/lib/mock'
 
@@ -81,7 +82,7 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
       productos = productos.filter((p) => p.precio <= precioMax)
     }
     if (filtros?.conStock === true) {
-      productos = productos.filter((p) => p.stock > 0)
+      productos = productos.filter((p) => stockDisponible(p) > 0)
     }
     return productos
   }
@@ -126,13 +127,13 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
   if (precioMax !== undefined) {
     query = query.lte('precio', precioMax)
   }
-  if (filtros?.conStock === true) {
-    query = query.gt('stock', 0)
-  }
-
   const { data, error } = await query
   if (error || !data) return PRODUCTOS_MOCK
-  return data as unknown as Producto[]
+  let productos = data as unknown as Producto[]
+  if (filtros?.conStock === true) {
+    productos = productos.filter((p) => stockDisponible(p) > 0)
+  }
+  return productos
 }
 
 // ─── Productos de un proveedor específico ────────────────────
@@ -228,7 +229,7 @@ export async function getStatsProveedor(proveedorId: string): Promise<StatsProve
   const [productosRes, cotizacionesRes] = await Promise.all([
     supabase
       .from('productos')
-      .select('activo, stock')
+      .select('activo, stock, stock_reservado')
       .eq('proveedor_id', proveedorId),
     supabase
       .from('cotizaciones')
@@ -241,7 +242,7 @@ export async function getStatsProveedor(proveedorId: string): Promise<StatsProve
   return {
     productosActivos: productos.filter((p) => p.activo).length,
     cotizacionesPendientes: cotizacionesRes.data?.length ?? 0,
-    sinStock: productos.filter((p) => p.stock === 0).length,
+    sinStock: productos.filter((p) => stockDisponible(p as Producto) === 0).length,
   }
 }
 
@@ -262,7 +263,29 @@ export async function getCotizacionesDeProveedor(proveedorId: string): Promise<C
     `)
     .eq('proveedor_id', proveedorId)
     .order('created_at', { ascending: false })
-    .limit(20)
+    .limit(50)
+
+  if (error || !data) return []
+  return data as unknown as Cotizacion[]
+}
+
+export async function getVentasDeProveedor(proveedorId: string): Promise<Cotizacion[]> {
+  if (!SUPABASE_DISPONIBLE) return []
+
+  const supabase = await getServerClient()
+  const { data, error } = await supabase
+    .from('cotizaciones')
+    .select(`
+      *,
+      items:items_cotizacion(
+        *,
+        producto:productos(nombre)
+      )
+    `)
+    .eq('proveedor_id', proveedorId)
+    .in('estado', ['aceptada', 'despachada', 'recibida', 'cancelada'])
+    .order('created_at', { ascending: false })
+    .limit(50)
 
   if (error || !data) return []
   return data as unknown as Cotizacion[]

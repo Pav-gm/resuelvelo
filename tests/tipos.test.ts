@@ -3,7 +3,7 @@
  * Validan que los tipos TypeScript cubren los valores esperados.
  */
 import { describe, it, expect } from 'vitest'
-import type { UserRole, Cotizacion } from '@/types'
+import type { UserRole, EstadoCotizacion } from '@/types'
 
 describe('UserRole', () => {
   it('acepta los tres roles válidos', () => {
@@ -16,17 +16,21 @@ describe('UserRole', () => {
 })
 
 describe('Estado de cotización', () => {
-  it('cubre los cuatro estados del flujo de negocio', () => {
-    const estados: Cotizacion['estado'][] = [
+  it('cubre la cotización y el seguimiento de la venta', () => {
+    const estados: EstadoCotizacion[] = [
       'pendiente',
       'respondida',
       'aceptada',
       'rechazada',
+      'despachada',
+      'recibida',
+      'cancelada',
     ]
-    expect(estados).toHaveLength(4)
-    expect(estados).toContain('pendiente')
+    expect(estados).toHaveLength(7)
     expect(estados).toContain('aceptada')
-    expect(estados).toContain('rechazada')
+    expect(estados).toContain('despachada')
+    expect(estados).toContain('recibida')
+    expect(estados).toContain('cancelada')
   })
 })
 

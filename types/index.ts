@@ -38,6 +38,8 @@ export interface Producto {
   precio: number
   unidad: string
   stock: number
+  /** Unidades bloqueadas por ventas aceptadas o despachadas, todavía no recibidas. */
+  stock_reservado?: number
   imagen_url?: string
   activo: boolean
   created_at: string
@@ -50,11 +52,23 @@ export interface ItemCarrito {
   cantidad: number
 }
 
+export type EstadoCotizacion =
+  | 'pendiente'
+  | 'respondida'
+  | 'aceptada'
+  | 'rechazada'
+  | 'despachada'
+  | 'recibida'
+  | 'cancelada'
+
 export interface Cotizacion {
   id: string
   comprador_id: string
   proveedor_id: string
-  estado: 'pendiente' | 'respondida' | 'aceptada' | 'rechazada'
+  estado: EstadoCotizacion
+  cancelada_por?: 'comprador' | 'proveedor' | null
+  recibida_por?: 'comprador' | 'proveedor' | null
+  despachada_at?: string | null
   mensaje?: string
   total_estimado?: number
   created_at: string

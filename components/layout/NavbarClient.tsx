@@ -41,6 +41,11 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           <Link href="/como-funciona" className="text-gray-600 hover:text-orange-500 transition-colors">
             ¿Cómo funciona?
           </Link>
+          {usuario?.rol === 'proveedor' && (
+            <Link href="/proveedor/ventas" className="text-gray-600 hover:text-orange-500 transition-colors">
+              Ventas
+            </Link>
+          )}
           {usuario?.rol === 'admin' && (
             <Link href="/admin" className="text-gray-600 hover:text-orange-500 transition-colors">
               Administración
@@ -103,6 +108,11 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           <Link href="/como-funciona" className="py-2 text-gray-700 hover:text-orange-500" onClick={() => setMenuAbierto(false)}>
             ¿Cómo funciona?
           </Link>
+          {usuario?.rol === 'proveedor' && (
+            <Link href="/proveedor/ventas" className="py-2 text-gray-700 hover:text-orange-500" onClick={() => setMenuAbierto(false)}>
+              Ventas
+            </Link>
+          )}
           {usuario?.rol === 'admin' && (
             <Link href="/admin" className="py-2 text-gray-700 hover:text-orange-500" onClick={() => setMenuAbierto(false)}>
               Administración
