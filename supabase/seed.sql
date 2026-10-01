@@ -135,10 +135,10 @@ insert into public.cotizaciones (id, comprador_id, proveedor_id, estado, mensaje
   ('e0000000-0000-0000-0000-000000000001',
    'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001',
    'pendiente',  'Necesito estos materiales para una obra en Santo Domingo Este.', 1040.00),
-  -- Promeria: aceptada
+  -- Promeria: pendiente (se acepta desde la demo para reservar stock)
   ('e0000000-0000-0000-0000-000000000002',
    'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001',
-   'aceptada',   'Pedido recurrente de plomería.', 640.00),
+   'pendiente',  'Pedido recurrente de plomería.', 640.00),
   -- Ferretería López: respondida
   ('e0000000-0000-0000-0000-000000000003',
    'a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002',
