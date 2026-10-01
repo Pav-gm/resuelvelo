@@ -4,20 +4,20 @@ import { Button } from '@/components/ui/button'
 
 export const metadata = {
   title: '¿Cómo funciona? — Resuélvelo',
-  description: 'Conectá con proveedores de materiales e insumos en pocos pasos.',
+  description: 'Conecta con proveedores de materiales e insumos en pocos pasos.',
 }
 
 const pasosComprador = [
-  { icono: UserPlus, titulo: 'Creá tu cuenta', texto: 'Registrate gratis como comprador en menos de un minuto.' },
-  { icono: Search, titulo: 'Explorá el catálogo', texto: 'Buscá productos por categoría, proveedor o palabra clave.' },
-  { icono: ShoppingCart, titulo: 'Armá tu carrito', texto: 'Agregá los materiales que necesitás de uno o varios proveedores.' },
-  { icono: MessageSquareQuote, titulo: 'Solicitá cotización', texto: 'Enviá tu pedido y recibí respuesta directa de cada proveedor.' },
+  { icono: UserPlus, titulo: 'Crea tu cuenta', texto: 'Regístrate gratis como comprador en menos de un minuto.' },
+  { icono: Search, titulo: 'Explora el catálogo', texto: 'Busca productos por categoría, proveedor o palabra clave.' },
+  { icono: ShoppingCart, titulo: 'Arma tu carrito', texto: 'Agrega los materiales que necesitas de uno o varios proveedores.' },
+  { icono: MessageSquareQuote, titulo: 'Solicita cotización', texto: 'Envía tu pedido y recibe respuesta directa de cada proveedor.' },
 ]
 
 const pasosProveedor = [
-  { icono: Store, titulo: 'Registrá tu empresa', texto: 'Creá tu cuenta de proveedor y configurá tu perfil.' },
-  { icono: ShoppingCart, titulo: 'Publicá tus productos', texto: 'Cargá tu catálogo con precios, stock y unidades.' },
-  { icono: MessageSquareQuote, titulo: 'Recibí cotizaciones', texto: 'Gestioná las solicitudes desde tu panel y respondé al instante.' },
+  { icono: Store, titulo: 'Registra tu empresa', texto: 'Crea tu cuenta de proveedor y configura tu perfil.' },
+  { icono: ShoppingCart, titulo: 'Publica tus productos', texto: 'Carga tu catálogo con precios, stock y unidades.' },
+  { icono: MessageSquareQuote, titulo: 'Recibe cotizaciones', texto: 'Gestiona las solicitudes desde tu panel y responde al instante.' },
 ]
 
 export default function ComoFuncionaPage() {

@@ -4,7 +4,7 @@ import { getProveedores } from '@/lib/data'
 
 export const metadata = {
   title: 'Proveedores — Resuélvelo',
-  description: 'Conocé a los proveedores verificados de materiales e insumos.',
+  description: 'Conoce a los proveedores verificados de materiales e insumos.',
 }
 
 export default async function ProveedoresPage() {

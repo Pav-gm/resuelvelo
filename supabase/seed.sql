@@ -3,14 +3,17 @@
 -- Ejecutar DESPUÉS de schema.sql, en Supabase → SQL Editor.
 -- Es idempotente: se puede re-ejecutar sin duplicar datos.
 --
--- Crea: 4 usuarios de Auth + profiles (vía trigger) + 3 proveedores
---       + 10 productos + 1 cotización de ejemplo.
+-- Crea: 7 usuarios de Auth + profiles + 5 proveedores
+--       + 20 productos + cotizaciones de ejemplo.
 --
 -- CREDENCIALES DEMO (password para todos):  Demo1234!
---   comprador@demo.com   (comprador)
+--   comprador@demo.com    (comprador)
 --   promeria@demo.com     (proveedor — Promeria)
 --   lopez@demo.com        (proveedor — Ferretería López)
 --   norte@demo.com        (proveedor — Materiales del Norte)
+--   admin@demo.com        (admin — sin fila en proveedores)
+--   solartech@demo.com    (proveedor — SolarTech RD)
+--   autochequeo@demo.com  (proveedor — AutoChequeo RD)
 -- =============================================================
 
 create extension if not exists pgcrypto;
@@ -50,7 +53,11 @@ insert into auth.users (
   ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-000000000004',
    'authenticated', 'authenticated', 'norte@demo.com', crypt('Demo1234!', gen_salt('bf')),
    now(), '{"provider":"email","providers":["email"]}',
-   '{"nombre":"Materiales del Norte","rol":"proveedor"}', now(), now(), '', '', '', '')
+   '{"nombre":"Materiales del Norte","rol":"proveedor"}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-0000-0000-000000000007',
+   'authenticated', 'authenticated', 'admin@demo.com', crypt('Demo1234!', gen_salt('bf')),
+   now(), '{"provider":"email","providers":["email"]}',
+   '{"nombre":"Administración Resuélvelo","rol":"admin"}', now(), now(), '', '', '', '')
 on conflict (id) do nothing;
 
 -- Identidades (necesarias para login con email en GoTrue)
@@ -65,7 +72,9 @@ insert into auth.identities (
   ('a0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003',
    '{"sub":"a0000000-0000-0000-0000-000000000003","email":"lopez@demo.com"}', 'email', now(), now(), now()),
   ('a0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000004',
-   '{"sub":"a0000000-0000-0000-0000-000000000004","email":"norte@demo.com"}', 'email', now(), now(), now())
+   '{"sub":"a0000000-0000-0000-0000-000000000004","email":"norte@demo.com"}', 'email', now(), now(), now()),
+  ('a0000000-0000-0000-0000-000000000007', 'a0000000-0000-0000-0000-000000000007',
+   '{"sub":"a0000000-0000-0000-0000-000000000007","email":"admin@demo.com"}', 'email', now(), now(), now())
 on conflict do nothing;
 
 -- Asegurar profiles (por si el trigger no estuviera activo al crear los users)
@@ -73,7 +82,8 @@ insert into public.profiles (id, email, nombre, rol) values
   ('a0000000-0000-0000-0000-000000000001', 'comprador@demo.com', 'Construcciones Herrera', 'comprador'),
   ('a0000000-0000-0000-0000-000000000002', 'promeria@demo.com',  'Promeria',               'proveedor'),
   ('a0000000-0000-0000-0000-000000000003', 'lopez@demo.com',     'Ferretería López',       'proveedor'),
-  ('a0000000-0000-0000-0000-000000000004', 'norte@demo.com',     'Materiales del Norte',   'proveedor')
+  ('a0000000-0000-0000-0000-000000000004', 'norte@demo.com',     'Materiales del Norte',   'proveedor'),
+  ('a0000000-0000-0000-0000-000000000007', 'admin@demo.com',     'Administración Resuélvelo', 'admin')
 on conflict (id) do nothing;
 
 -- =============================================================
