@@ -67,6 +67,8 @@ export interface Cotizacion {
   proveedor_id: string
   estado: EstadoCotizacion
   cancelada_por?: 'comprador' | 'proveedor' | null
+  recibida_por?: 'comprador' | 'proveedor' | null
+  despachada_at?: string | null
   mensaje?: string
   total_estimado?: number
   created_at: string

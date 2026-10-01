@@ -13,9 +13,18 @@ interface Props {
   cotizacionId: string
   estado: EstadoCotizacion
   rol: 'comprador' | 'proveedor'
+  /** Solo el proveedor, y solo cuando ya pasaron 7 días del despacho. */
+  puedeConfirmarRecepcion?: boolean
+  confirmarProveedorEl?: string | null
 }
 
-export default function SeguimientoVentaButtons({ cotizacionId, estado, rol }: Props) {
+export default function SeguimientoVentaButtons({
+  cotizacionId,
+  estado,
+  rol,
+  puedeConfirmarRecepcion = false,
+  confirmarProveedorEl = null,
+}: Props) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -35,6 +44,9 @@ export default function SeguimientoVentaButtons({ cotizacionId, estado, rol }: P
   }
 
   if (rol === 'proveedor' && estado === 'despachada') {
+    if (puedeConfirmarRecepcion) {
+      botones.push({ label: 'Marcar como recibido', accion: confirmarRecepcion })
+    }
     botones.push({ label: 'Cancelar venta', accion: cancelarVenta, peligro: true })
   }
 
@@ -43,7 +55,7 @@ export default function SeguimientoVentaButtons({ cotizacionId, estado, rol }: P
   }
 
   if (rol === 'comprador' && estado === 'despachada') {
-    botones.push({ label: 'Confirmar recepción', accion: confirmarRecepcion })
+    botones.push({ label: 'Marcar como recibido', accion: confirmarRecepcion })
   }
 
   if (botones.length === 0) return null
@@ -64,6 +76,13 @@ export default function SeguimientoVentaButtons({ cotizacionId, estado, rol }: P
           </Button>
         ))}
       </div>
+      {rol === 'proveedor' && estado === 'despachada' && !puedeConfirmarRecepcion && (
+        <p className="max-w-xs text-right text-xs text-gray-500">
+          {confirmarProveedorEl
+            ? `Podrás marcarla como recibida el ${confirmarProveedorEl} si el cliente no lo hace.`
+            : 'Podrás marcarla como recibida 7 días después del despacho si el cliente no lo hace.'}
+        </p>
+      )}
       {error && <p className="max-w-xs text-right text-xs text-red-600">{error}</p>}
     </div>
   )

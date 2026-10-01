@@ -4,12 +4,24 @@ import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getVentasDeProveedor } from '@/lib/data'
 import { ESTADO_BADGE, ESTADO_LABEL } from '@/lib/cotizacion-estado'
 import SeguimientoVentaButtons from '@/components/marketplace/SeguimientoVentaButtons'
+import { fechaConfirmacionProveedor, proveedorPuedeConfirmarRecepcion } from '@/lib/stock'
 
 const notaEstado: Record<string, string> = {
   aceptada: 'El stock está reservado. Despacha cuando salga el pedido, o cancela para liberarlo.',
-  despachada: 'El stock sigue reservado hasta que el cliente confirme que recibió. Si no llega, cancela la venta.',
-  recibida: 'El cliente confirmó la recepción. El stock ya se descontó.',
+  despachada: 'El cliente puede marcarla como recibida en cuanto le llegue. Si no lo hace, tú puedes hacerlo 7 días después del despacho. Mientras tanto el stock sigue reservado.',
+  recibida: 'La venta quedó cerrada y el stock ya se descontó.',
   cancelada: 'La reserva se liberó. El stock físico no se descontó.',
+}
+
+function notaRecepcion(cot: { estado: string; recibida_por?: string | null }) {
+  if (cot.estado !== 'recibida') return notaEstado[cot.estado]
+  if (cot.recibida_por === 'proveedor') {
+    return 'Marcaste esta venta como recibida porque el cliente no lo hizo en 7 días. El stock ya se descontó.'
+  }
+  if (cot.recibida_por === 'comprador') {
+    return 'El cliente marcó el pedido como recibido. El stock ya se descontó.'
+  }
+  return notaEstado.recibida
 }
 
 export default async function VentasPage() {
@@ -28,7 +40,7 @@ export default async function VentasPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Seguimiento de ventas</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Aceptar una cotización reserva el stock. Se descuenta solo cuando el cliente confirma que recibió el pedido.
+            Aceptar una cotización reserva el stock. Se descuenta cuando el cliente marca el pedido como recibido, o cuando tú lo haces 7 días después del despacho.
           </p>
         </div>
         <Link href="/proveedor/pedidos" className="shrink-0 text-sm font-medium text-orange-500 hover:underline">
@@ -45,6 +57,12 @@ export default async function VentasPage() {
         <div className="space-y-4">
           {ventas.map((cot) => {
             const items = cot.items ?? []
+            const puedeConfirmar = cot.estado === 'despachada' && proveedorPuedeConfirmarRecepcion(cot.despachada_at)
+            const confirmarProveedorEl = cot.despachada_at
+              ? fechaConfirmacionProveedor(cot.despachada_at).toLocaleDateString('es-DO', {
+                  year: 'numeric', month: 'long', day: 'numeric',
+                })
+              : null
             const total = items.reduce(
               (sum, i) => sum + (i.precio_unitario ?? 0) * i.cantidad,
               0
@@ -61,7 +79,7 @@ export default async function VentasPage() {
                         year: 'numeric', month: 'long', day: 'numeric',
                       })}
                     </p>
-                    <p className="mt-1 text-xs text-gray-500">{notaEstado[cot.estado]}</p>
+                    <p className="mt-1 text-xs text-gray-500">{notaRecepcion(cot)}</p>
                     {cot.estado === 'cancelada' && cot.cancelada_por && (
                       <p className="mt-1 text-xs text-gray-400">
                         Cancelada por el {cot.cancelada_por === 'comprador' ? 'cliente' : 'proveedor'}.
@@ -76,6 +94,8 @@ export default async function VentasPage() {
                       cotizacionId={cot.id}
                       estado={cot.estado}
                       rol="proveedor"
+                      puedeConfirmarRecepcion={puedeConfirmar}
+                      confirmarProveedorEl={confirmarProveedorEl}
                     />
                   </div>
                 </div>

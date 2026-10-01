@@ -77,7 +77,12 @@ export default async function MisCotizacionesPage({
                 )}
                 {cot.estado === 'despachada' && (
                   <p className="px-6 py-2 text-xs text-blue-800 bg-blue-50">
-                    El pedido va en camino. Confirma cuando lo recibas para cerrar la venta.
+                    El pedido va en camino. Márcalo como recibido en cuanto te llegue.
+                  </p>
+                )}
+                {cot.estado === 'recibida' && cot.recibida_por === 'proveedor' && (
+                  <p className="px-6 py-2 text-xs text-gray-600 bg-gray-50">
+                    El proveedor cerró la venta 7 días después del despacho. El stock ya se descontó.
                   </p>
                 )}
 

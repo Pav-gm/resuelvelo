@@ -355,6 +355,17 @@ alter table public.cotizaciones
   add constraint cotizaciones_cancelada_por_check
   check (cancelada_por is null or cancelada_por in ('comprador', 'proveedor'));
 
+alter table public.cotizaciones
+  add column if not exists despachada_at timestamptz;
+
+alter table public.cotizaciones
+  add column if not exists recibida_por text;
+
+alter table public.cotizaciones drop constraint if exists cotizaciones_recibida_por_check;
+alter table public.cotizaciones
+  add constraint cotizaciones_recibida_por_check
+  check (recibida_por is null or recibida_por in ('comprador', 'proveedor'));
+
 create or replace function public.proteger_stock_reservado()
 returns trigger
 language plpgsql
@@ -552,7 +563,8 @@ begin
   end if;
 
   update public.cotizaciones c
-    set estado = 'despachada'
+    set estado = 'despachada',
+        despachada_at = now()
   from public.proveedores p
   where c.id = p_cotizacion_id
     and c.proveedor_id = p.id
@@ -576,20 +588,39 @@ declare
   v_stock integer;
   v_reservado integer;
   v_nombre text;
+  v_estado text;
+  v_actor text;
+  v_despachada_at timestamptz;
 begin
   if auth.uid() is null then
     raise exception 'No autorizado.';
   end if;
 
-  perform id
-  from public.cotizaciones
-  where id = p_cotizacion_id
-    and comprador_id = auth.uid()
-    and estado = 'despachada'
-  for update;
+  select c.estado, c.despachada_at,
+    case
+      when c.comprador_id = auth.uid() then 'comprador'
+      when p.user_id = auth.uid() then 'proveedor'
+    end
+    into v_estado, v_despachada_at, v_actor
+  from public.cotizaciones c
+  join public.proveedores p on p.id = c.proveedor_id
+  where c.id = p_cotizacion_id
+    and (c.comprador_id = auth.uid() or p.user_id = auth.uid())
+  for update of c;
 
-  if not found then
-    raise exception 'Solo puedes confirmar la recepción de un pedido despachado.';
+  if not found or v_actor is null then
+    raise exception 'No autorizado.';
+  end if;
+
+  if v_estado is distinct from 'despachada' then
+    raise exception 'Solo puedes marcar como recibido un pedido despachado.';
+  end if;
+
+  if v_actor = 'proveedor' and (
+    v_despachada_at is null
+    or v_despachada_at + interval '7 days' > now()
+  ) then
+    raise exception 'Puedes marcarla como recibida 7 días después del despacho, si el cliente no lo hizo.';
   end if;
 
   perform set_config('app.reserva_interna', '1', true);
@@ -622,7 +653,8 @@ begin
   end loop;
 
   update public.cotizaciones
-    set estado = 'recibida'
+    set estado = 'recibida',
+        recibida_por = v_actor
     where id = p_cotizacion_id;
 end;
 $$;
