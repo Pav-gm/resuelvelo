@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Store } from 'lucide-react'
+import Logo from '@/components/layout/Logo'
 
 export default function Footer() {
   return (
@@ -9,7 +9,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2">
-              <Store className="h-5 w-5 text-orange-500" />
+              <Logo size={28} />
               <span className="font-bold text-gray-900">
                 Resuél<span className="text-orange-500">velo</span>
               </span>

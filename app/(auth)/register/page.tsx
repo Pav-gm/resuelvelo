@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useActionState } from 'react'
 import { useState, Suspense } from 'react'
-import { Store, Building2, User } from 'lucide-react'
+import { Building2, User } from 'lucide-react'
+import Logo from '@/components/layout/Logo'
 import { Button } from '@/components/ui/button'
 import { useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -21,9 +22,9 @@ function RegisterForm() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <Store className="h-7 w-7 text-orange-500" />
+            <Logo size={40} />
             <span className="text-2xl font-bold text-gray-900">
-              resuelve<span className="text-orange-500">lo</span>
+              Resuél<span className="text-orange-500">velo</span>
             </span>
           </Link>
           <h1 className="mt-4 text-xl font-semibold text-gray-900">Crea tu cuenta</h1>
