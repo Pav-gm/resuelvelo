@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "supabase-dev": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=aczxxribccodovuosuqe"
+    },
+    "supabase-prod": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=wpbxhgbygykoirglcmbi&read_only=true"
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com/resuelvelo/resuelvelo_app"
+    }
+  }
+}
