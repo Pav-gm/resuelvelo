@@ -11,18 +11,26 @@ agents:
   claude:
     enabled: true
     role: infrastructure
+    model: claude-sonnet-5-5
+    reasoning_effort: high
 
   codex:
     enabled: true
     role: backend
+    model: gpt-6-luna
+    reasoning_effort: high
 
   antigravity:
     enabled: true
     role: frontend
+    model: gemini-3.8-flash
+    reasoning_effort: high
 
   cursor:
     enabled: true
     role: qa_documentation
+    model: grok-4.7
+    reasoning_effort: high
 
 validation:
   worker_checks:
