@@ -1,0 +1,82 @@
+{
+  "agent": "antigravity",
+  "summary": "Plan frontend implementation for the user-facing status page (/status) displaying API availability, backend version, and application environment, including state handling, UX states, tests, and documentation.",
+  "areas_affected": [
+    "app/status/page.tsx",
+    "components/status/StatusCard.tsx",
+    "components/status/HealthIndicator.tsx",
+    "types/status.ts",
+    "tests/status.test.tsx",
+    "docs/engineering/STATUS_PAGE.md"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "TASK-BE-1",
+      "description": "Backend: Implement GET /api/status endpoint returning availability status, backend version, and application environment.",
+      "suggested_owner": "Backend Engineer",
+      "depends_on": []
+    },
+    {
+      "id": "TASK-FE-1",
+      "description": "Frontend: Define TypeScript interfaces and data fetching client for status endpoint contract.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-BE-1"
+      ]
+    },
+    {
+      "id": "TASK-FE-2",
+      "description": "Frontend: Implement StatusCard and HealthIndicator visual components displaying availability status, environment badge, backend version, and last checked timestamp.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-FE-1"
+      ]
+    },
+    {
+      "id": "TASK-FE-3",
+      "description": "Frontend: Create /status route (app/status/page.tsx) with responsive layout, loading skeletons, error states, and manual refresh button.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-FE-2"
+      ]
+    },
+    {
+      "id": "TASK-FE-4",
+      "description": "Frontend: Write unit and integration tests using Vitest and React Testing Library verifying loading, operational, degraded, error states, and refresh trigger.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-FE-3"
+      ]
+    },
+    {
+      "id": "TASK-FE-5",
+      "description": "Documentation: Document the status page route, components, and frontend error-handling behavior in docs.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-FE-4"
+      ]
+    }
+  ],
+  "contracts": [
+    "GET /api/status -> 200 OK: { status: 'operational' | 'degraded' | 'outage', version: string, environment: string, timestamp: string }",
+    "GET /api/status -> 503 Service Unavailable: { status: 'outage', version: string, environment: string, timestamp: string, error?: string }"
+  ],
+  "risks": [
+    "Browser or CDN caching may serve stale health/status responses unless Cache-Control: no-store headers are enforced on the backend endpoint.",
+    "Network timeouts or unhandled 5xx errors from the status endpoint could trigger an uncaught frontend exception if not gracefully caught in the client-side fetcher.",
+    "Exposing excessive backend environment configuration or debug details to the frontend could lead to information disclosure.",
+    "Aggressive client-side polling could cause additional load on a degraded backend service."
+  ],
+  "tests": [
+    "Unit test for StatusCard and HealthIndicator rendering correct badges and styles for 'operational', 'degraded', and 'outage' statuses.",
+    "Component test for app/status/page.tsx displaying loading skeletons while fetching status data.",
+    "Component test verifying error boundary/fallback banner when /api/status returns a 503 or network failure.",
+    "Interaction test verifying that clicking the manual refresh button initiates a re-fetch and updates the displayed timestamp."
+  ],
+  "questions_or_unknowns": [
+    "Should the status page be publicly accessible to all users or restricted to authenticated administrators?",
+    "Should the page support automatic polling/refresh (e.g., every 30 or 60 seconds) or only manual on-demand refresh?",
+    "Where in the site navigation should the status page link be placed (e.g., Footer, Help menu, or standalone)?",
+    "What are the exact allowed strings for the application environment (e.g., 'production', 'staging', 'development')?"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "agent": "/root",
+  "summary": "Ready to participate in planning. Project instructions reviewed; persistent-memory MCP tools are unavailable.",
+  "areas_affected": [],
+  "proposed_tasks": [],
+  "contracts": [
+    "Assign explicit file ownership before implementation.",
+    "Serialize checks that share .next or other project resources."
+  ],
+  "risks": [],
+  "tests": [],
+  "questions_or_unknowns": [
+    "What feature are we planning, what are its acceptance criteria, and what scope should I analyze?"
+  ]
+}

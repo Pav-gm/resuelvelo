@@ -1,0 +1,3 @@
+exited with code 3
+error: INVALID_ARGUMENT (code 400): * GenerateContentRequest.tools[13].function_declarations[0].parameters.properties[contracts].items: missing field.
+AGY_ERROR: {"short_error":"INVALID_ARGUMENT (code 400): * GenerateContentRequest.tools[13].function_declarations[0].parameters.properties[contracts].items: missing field.\n","status":"INVALID_ARGUMENT","error_code":400,"code_kind":"http","retryable":false,"error_id":"80ed9c29-b390-4101-96be-adb15baaf343-1"}

@@ -1,0 +1,466 @@
+OpenAI Codex v0.159.3
+--------
+workdir: C:\Users\HMN\resuelvelo
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 01a0fc95-83a6-7270-9b98-dd5fe9da0afc
+--------
+user
+The previous master plan is valid JSON but does not match the schema.
+
+Preserve every architectural decision, ownership choice, dependency, task meaning, and integration order already present in the original output.
+Do not add, remove, or reorder work.
+Only change the representation so the JSON matches the schema exactly.
+
+Validation errors:
+
+invalid master plan: integration_order: Unknown agent 'First resolve the human approval questions and freeze these contracts. This planning step creates no branches, worktrees, commits, files or implementation.'. Expected one of: claude, codex, antigravity, cursor. stderr: OpenAI Codex v0.159.3 -------- workdir: C:\Users\HMN\resuelvelo model: gpt-6.1-sol provider: openai approval: never sandbox: read-only reasoning effort: xhigh reasoning summaries: ...
+
+JSON Schema:
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature",
+    "summary",
+    "architecture",
+    "assignments",
+    "contracts",
+    "integration_order",
+    "acceptance_criteria",
+    "risks",
+    "open_questions"
+  ],
+  "properties": {
+    "feature": { "type": "string" },
+    "summary": { "type": "string" },
+    "architecture": { "type": "string" },
+    "assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["agent", "tasks", "scope", "depends_on"],
+        "properties": {
+          "agent": { "type": "string" },
+          "tasks": { "type": "array", "items": { "type": "string" } },
+          "scope": { "type": "array", "items": { "type": "string" } },
+          "depends_on": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "description", "owner", "consumers"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "owner": { "type": "string" },
+          "consumers": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "integration_order": { "type": "array", "items": { "type": "string" } },
+    "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "open_questions": { "type": "array", "items": { "type": "string" } }
+  }
+}
+
+Original output:
+
+{
+  "feature": "status-page",
+  "summary": "Planning-only synthesis. Add a public API liveness endpoint and a status page using existing Next.js, React and Vitest facilities. Backend responsibilities are supplied here because the codex report contained no feature proposal. Implementation remains conditional on the approvals listed below.",
+  "architecture": "Use the existing Next.js application as the backend. GET /api/status reports whether its handler can execute, plus the package.json release version, normalized application environment and request timestamp. Availability does not include Supabase readiness; configured and mock deployments use the same liveness contract. /status consists of a server-rendered shell and one client StatusPanel that requests the actual endpoint on mount and on manual refresh. This resolves the server-helper versus client-fetch disagreement in favor of observing the API transport. Shared response types belong in types/index.ts, metadata construction in lib/status.ts, and runtime environment reads in the route handler. A narrow proxy bypass prevents /api/status and /status from invoking updateSession; the page retains the existing layout and Navbar. Add one footer link. Reuse existing documentation instead of creating another document. No separate backend service, Supabase probe, degraded state, polling, custom environment variables, migrations, dependencies or infrastructure are needed for this scope.",
+  "assignments": [
+    {
+      "agent": "claude",
+      "tasks": [
+        "INFRA-1: Review the metadata contract against existing deployment conventions and provide a runtime configuration checklist, identifying whether VERCEL_ENV is available in each intended environment. Report configuration gaps for approval."
+      ],
+      "scope": [
+        "Read-only: package.json",
+        "Read-only: .env.example",
+        "Read-only: existing deployment configuration evidence",
+        "Owns runtime metadata requirements; repository documentation is owned by cursor"
+      ],
+      "depends_on": []
+    },
+    {
+      "agent": "codex",
+      "tasks": [
+        "BE-1: Add the shared response and environment types to types/index.ts and implement pure environment resolution and response construction helpers in lib/status.ts.",
+        "BE-2: Implement GET /api/status with request-time metadata and no-store headers. Add an exact-path bypass for /status and /api/status in proxy.ts before updateSession, preserving all other routing.",
+        "BE-3: Write helper and endpoint tests covering metadata precedence, fallbacks, response shape, headers, timestamps and independence from Supabase configuration."
+      ],
+      "scope": [
+        "types/index.ts: status-related exports only",
+        "lib/status.ts",
+        "app/api/status/route.ts",
+        "proxy.ts: exact status-route bypass only",
+        "tests/status-lib.test.ts",
+        "tests/status-endpoint.test.ts"
+      ],
+      "depends_on": [
+        "INFRA-1"
+      ]
+    },
+    {
+      "agent": "antigravity",
+      "tasks": [
+        "FE-1: Implement /status and one client StatusPanel with initial loading, available and unavailable states, bounded requests and manual refresh. Add one footer link.",
+        "FE-2: Write component tests covering successful display, loading, refresh, HTTP failures, malformed responses, network failures, timeout and request cleanup."
+      ],
+      "scope": [
+        "app/status/page.tsx",
+        "components/status/StatusPanel.tsx",
+        "components/layout/Footer.tsx: status link only",
+        "tests/status-page.test.tsx"
+      ],
+      "depends_on": [
+        "BE-1"
+      ]
+    },
+    {
+      "agent": "cursor",
+      "tasks": [
+        "QA-1: Update README.md and the relevant PROJECT_GUIDE.md sections with routes, an example response, metadata sources, liveness limitations and refresh behavior.",
+        "QA-2: Write integration tests connecting the real endpoint response to the status panel through an in-process fetch adapter. Write routing regression tests for status-path bypasses and existing protected-path authorization.",
+        "QA-3: Integrate approved changes sequentially onto feature/status-page/integration and review the assembled implementation against the frozen contracts. Return defects to the responsible owner.",
+        "QA-4: Run the full verification suite serially, inspect endpoint build behavior and perform browser validation. Perform read-only Preview and Production checks when an authorized deployment containing the change is available; record pending checks explicitly."
+      ],
+      "scope": [
+        "README.md",
+        "docs/engineering/PROJECT_GUIDE.md",
+        "tests/status-integration.test.tsx",
+        "tests/status-routing.test.ts",
+        "Future integration branch: feature/status-page/integration",
+        "Exclusive verification resources: .next/, verification runner, history outputs and development port 3000",
+        "Read-only acceptance review of backend and frontend files"
+      ],
+      "depends_on": [
+        "INFRA-1",
+        "BE-3",
+        "FE-2"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "C-AVAILABILITY",
+      "description": "Availability means Next.js API liveness. A successful status request reports operational even when Supabase is absent or using mock configuration. Neither the handler nor its proxy path performs authentication, database queries or outbound probes. No degraded, mock or database-readiness state is defined.",
+      "owner": "codex",
+      "consumers": [
+        "claude",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-RESPONSE",
+      "description": "GET /api/status succeeds with HTTP 200 and application/json containing exactly { status: 'operational', version: string, environment: 'production' | 'preview' | 'development' | 'test' | 'unknown', timestamp: string }. Version is nonempty; timestamp is ISO 8601 UTC for that request. Non-2xx responses and transport failures indicate unavailability to the client; their bodies have no status-response contract. The endpoint does not manufacture a 503 outage response for an unmeasured dependency.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-METADATA",
+      "description": "Version is the trimmed root package.json version, falling back to 'unknown' when empty or missing; it denotes a release version. Environment inputs are trimmed and lowercased. Recognized nonempty VERCEL_ENV values production, preview and development take precedence; an unsupported nonempty value produces unknown. Otherwise NODE_ENV production, development or test is used, with missing or unsupported values producing unknown. Environment values are read on the server at request time. No custom variables or deployment-setting changes are part of this plan.",
+      "owner": "claude",
+      "consumers": [
+        "codex",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-SHARED-INTERFACES",
+      "description": "codex owns StatusEnvironment and StatusResponse in types/index.ts. lib/status.ts exports resolveEnvironment({ vercelEnv?, nodeEnv? }): StatusEnvironment and createStatus({ version?, environment, now: Date }): StatusResponse. These helpers receive inputs rather than reading globals, package metadata or network resources. The handler supplies runtime inputs. Frontend imports the shared types and validates received JSON without importing server configuration.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-TRANSPORT-SECURITY",
+      "description": "The endpoint is public, evaluated at request time and returns Cache-Control: no-store. The client also requests with cache: 'no-store'. Use conventions supported by the installed Next.js 16 documentation and confirm dynamic endpoint behavior in build output. Exact status paths bypass updateSession; other paths retain their existing handling. Only the four response fields are exposed, with no keys, URLs, environment dumps or diagnostic errors.",
+      "owner": "codex",
+      "consumers": [
+        "claude",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-UI",
+      "description": "StatusPanel requests the same-origin endpoint on mount and manual refresh, with a 5000 ms timeout and at most one active request. It aborts on timeout or unmount and ignores stale completions. HTTP 200 with a valid C-RESPONSE body shows availability, version, environment and last checked time. Non-2xx, malformed JSON, invalid fields, timeout or network failure shows unavailability and unavailable metadata instead of presenting previous data as current. Refresh remains available for recovery. Labels are Spanish, availability has a textual indicator, loading changes are accessible and the layout works on mobile. No automatic polling is added.",
+      "owner": "antigravity",
+      "consumers": [
+        "codex",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-VALIDATION-INTEGRATION",
+      "description": "All implementation paths are relative to C:/Users/HMN/resuelvelo; the nested resuelvelo/ tree is outside implementation scope. Tests use existing Vitest and Testing Library facilities and make no live Supabase calls. Endpoint tests may use a per-file Node environment; UI tests retain jsdom. Backend tests belong to codex, frontend tests to antigravity, and integration/routing regression tests and documentation to cursor. cursor exclusively coordinates gates, .next/ and port 3000; gates run serially. Later integration is sequential onto feature/status-page/integration, preserving unrelated changes and avoiding merges to main. Deployment and remote configuration mutations require separate authorization.",
+      "owner": "cursor",
+      "consumers": [
+        "claude",
+        "codex",
+        "antigravity"
+      ]
+    }
+  ],
+  "integration_order": [
+    "First resolve the human approval questions and freeze these contracts. This planning step creates no branches, worktrees, commits, files or implementation.",
+    "Complete INFRA-1. Any metadata or availability change requires updating the contracts before implementation.",
+    "Complete and integrate BE-1 so the shared interfaces are available to both backend and frontend.",
+    "Complete and integrate BE-2 and BE-3, followed by FE-1 and FE-2. Implementation may proceed independently after BE-1, while shared gates remain serialized.",
+    "Complete QA-1 and QA-2 against the assembled backend and frontend.",
+    "Complete QA-3 by integrating documentation and QA tests in sequence and reviewing the final branch. Corrections go to the owner of the affected files.",
+    "Complete QA-4: run npm run verify without concurrent dev or gate processes, then start the browser-validation server on port 3000. Live deployment checks remain pending until an authorized deployment is available."
+  ],
+  "acceptance_criteria": [
+    "The plan remains an implementation proposal; this planning session modifies no repository files and performs no implementation.",
+    "An anonymous GET /api/status returns HTTP 200, JSON content type, Cache-Control: no-store and exactly the C-RESPONSE fields.",
+    "The endpoint runs at request time and produces a fresh timestamp rather than a prerendered response.",
+    "Environment precedence and all supported, missing and unsupported values match C-METADATA; version matches package.json or the agreed unknown fallback.",
+    "Status endpoint requests make no Supabase authentication or database calls, regardless of configured, missing or placeholder credentials.",
+    "Exact status-route bypasses preserve handling of unrelated paths; anonymous protected routes and role restrictions retain existing behavior.",
+    "The public /status page and footer link work, with accessible Spanish labels for availability, backend release version, environment and last checked time.",
+    "Loading, successful refresh, non-2xx responses including a simulated 503, malformed payloads, network failures and timeout render the agreed UI states. Refresh can recover after failure.",
+    "A timed-out or superseded request cannot overwrite newer results; no periodic polling or client-side server configuration reads occur.",
+    "Backend, frontend, integration and routing regression tests pass without live Supabase access, and existing application tests continue to pass.",
+    "README.md and PROJECT_GUIDE.md describe the exact response, metadata sources and liveness limitations, with no new documentation file required.",
+    "The final integrated code passes one full npm run verify and browser validation. Skipped, failed or invalidated checks are recorded as such.",
+    "Preview and Production metadata are checked when authorized deployments are available; unperformed deployment checks remain explicitly pending."
+  ],
+  "risks": [
+    "API liveness can remain operational while Supabase or marketplace operations are failing; documentation and product approval must establish this meaning.",
+    "package.json versions may remain unchanged across deployments, so this contract does not uniquely identify a deployed commit.",
+    "If VERCEL_ENV is unavailable in a Preview runtime, the NODE_ENV fallback may report production. INFRA-1 and deployment checks must identify this configuration gap.",
+    "The existing root Navbar still awaits Supabase authentication. It may delay the status page during a Supabase incident even though the endpoint bypasses authentication.",
+    "The page shares the Next.js deployment it observes and cannot render during a complete deployment outage.",
+    "Public version and environment metadata provide limited deployment fingerprinting and require approval.",
+    "The nested repository tree may affect existing lint or TypeScript checks despite being outside edit scope; unrelated failures must be reported rather than repaired under this feature.",
+    "Concurrent use of .next/, verification gates or port 3000 can invalidate evidence. Builds may also fail if required font downloads are blocked."
+  ],
+  "open_questions": [
+    "Approve API availability as Next.js liveness only, with the same operational response in mock mode? Measuring Supabase readiness would require a revised probe, timeout and response contract.",
+    "Approve public anonymous access to /status and /api/status, including release version and environment exposure in Production?",
+    "Approve package.json as the backend release-version source? If a deployment identifier is required, revise the version contract before implementation.",
+    "Approve keeping the existing shared page layout and its Navbar authentication dependency? Independent rendering during Supabase incidents would require additional layout work."
+  ]
+}
+
+Return only the corrected JSON object.
+
+2026-10-02T12:27:33.046892Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer error=\"invalid_request\", error_description=\"No access token was provided in this request\", resource_metadata=\"https://mcp.supabase.com/.well-known/oauth-protected-resource/mcp?project_ref=aczxxribccodovuosuqe&features=docs%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions\"" })
+hook: SessionStart
+hook: SessionStart Completed
+2026-10-02T12:27:52.187633Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (http://100.94.56.57:8765/mcp)")))
+2026-10-02T12:27:52.188116Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (http://100.94.56.57:8100/mcp/)")))
+2026-10-02T12:28:01.140368Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (http://100.94.56.57:8765/mcp)")))
+2026-10-02T12:28:01.140443Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (http://100.94.56.57:8100/mcp/)")))
+codex
+{
+  "feature": "status-page",
+  "summary": "Planning-only synthesis. Add a public API liveness endpoint and a status page using existing Next.js, React and Vitest facilities. Backend responsibilities are supplied here because the codex report contained no feature proposal. Implementation remains conditional on the approvals listed below.",
+  "architecture": "Use the existing Next.js application as the backend. GET /api/status reports whether its handler can execute, plus the package.json release version, normalized application environment and request timestamp. Availability does not include Supabase readiness; configured and mock deployments use the same liveness contract. /status consists of a server-rendered shell and one client StatusPanel that requests the actual endpoint on mount and on manual refresh. This resolves the server-helper versus client-fetch disagreement in favor of observing the API transport. Shared response types belong in types/index.ts, metadata construction in lib/status.ts, and runtime environment reads in the route handler. A narrow proxy bypass prevents /api/status and /status from invoking updateSession; the page retains the existing layout and Navbar. Add one footer link. Reuse existing documentation instead of creating another document. No separate backend service, Supabase probe, degraded state, polling, custom environment variables, migrations, dependencies or infrastructure are needed for this scope.\n\nIntegration sequence:\n1. First resolve the human approval questions and freeze these contracts. This planning step creates no branches, worktrees, commits, files or implementation.\n2. Complete INFRA-1. Any metadata or availability change requires updating the contracts before implementation.\n3. Complete and integrate BE-1 so the shared interfaces are available to both backend and frontend.\n4. Complete and integrate BE-2 and BE-3, followed by FE-1 and FE-2. Implementation may proceed independently after BE-1, while shared gates remain serialized.\n5. Complete QA-1 and QA-2 against the assembled backend and frontend.\n6. Complete QA-3 by integrating documentation and QA tests in sequence and reviewing the final branch. Corrections go to the owner of the affected files.\n7. Complete QA-4: run npm run verify without concurrent dev or gate processes, then start the browser-validation server on port 3000. Live deployment checks remain pending until an authorized deployment is available.",
+  "assignments": [
+    {
+      "agent": "claude",
+      "tasks": [
+        "INFRA-1: Review the metadata contract against existing deployment conventions and provide a runtime configuration checklist, identifying whether VERCEL_ENV is available in each intended environment. Report configuration gaps for approval."
+      ],
+      "scope": [
+        "Read-only: package.json",
+        "Read-only: .env.example",
+        "Read-only: existing deployment configuration evidence",
+        "Owns runtime metadata requirements; repository documentation is owned by cursor"
+      ],
+      "depends_on": []
+    },
+    {
+      "agent": "codex",
+      "tasks": [
+        "BE-1: Add the shared response and environment types to types/index.ts and implement pure environment resolution and response construction helpers in lib/status.ts.",
+        "BE-2: Implement GET /api/status with request-time metadata and no-store headers. Add an exact-path bypass for /status and /api/status in proxy.ts before updateSession, preserving all other routing.",
+        "BE-3: Write helper and endpoint tests covering metadata precedence, fallbacks, response shape, headers, timestamps and independence from Supabase configuration."
+      ],
+      "scope": [
+        "types/index.ts: status-related exports only",
+        "lib/status.ts",
+        "app/api/status/route.ts",
+        "proxy.ts: exact status-route bypass only",
+        "tests/status-lib.test.ts",
+        "tests/status-endpoint.test.ts"
+      ],
+      "depends_on": [
+        "INFRA-1"
+      ]
+    },
+    {
+      "agent": "antigravity",
+      "tasks": [
+        "FE-1: Implement /status and one client StatusPanel with initial loading, available and unavailable states, bounded requests and manual refresh. Add one footer link.",
+        "FE-2: Write component tests covering successful display, loading, refresh, HTTP failures, malformed responses, network failures, timeout and request cleanup."
+      ],
+      "scope": [
+        "app/status/page.tsx",
+        "components/status/StatusPanel.tsx",
+        "components/layout/Footer.tsx: status link only",
+        "tests/status-page.test.tsx"
+      ],
+      "depends_on": [
+        "BE-1"
+      ]
+    },
+    {
+      "agent": "cursor",
+      "tasks": [
+        "QA-1: Update README.md and the relevant PROJECT_GUIDE.md sections with routes, an example response, metadata sources, liveness limitations and refresh behavior.",
+        "QA-2: Write integration tests connecting the real endpoint response to the status panel through an in-process fetch adapter. Write routing regression tests for status-path bypasses and existing protected-path authorization.",
+        "QA-3: Integrate approved changes sequentially onto feature/status-page/integration and review the assembled implementation against the frozen contracts. Return defects to the responsible owner.",
+        "QA-4: Run the full verification suite serially, inspect endpoint build behavior and perform browser validation. Perform read-only Preview and Production checks when an authorized deployment containing the change is available; record pending checks explicitly."
+      ],
+      "scope": [
+        "README.md",
+        "docs/engineering/PROJECT_GUIDE.md",
+        "tests/status-integration.test.tsx",
+        "tests/status-routing.test.ts",
+        "Future integration branch: feature/status-page/integration",
+        "Exclusive verification resources: .next/, verification runner, history outputs and development port 3000",
+        "Read-only acceptance review of backend and frontend files"
+      ],
+      "depends_on": [
+        "INFRA-1",
+        "BE-3",
+        "FE-2"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "C-AVAILABILITY",
+      "description": "Availability means Next.js API liveness. A successful status request reports operational even when Supabase is absent or using mock configuration. Neither the handler nor its proxy path performs authentication, database queries or outbound probes. No degraded, mock or database-readiness state is defined.",
+      "owner": "codex",
+      "consumers": [
+        "claude",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-RESPONSE",
+      "description": "GET /api/status succeeds with HTTP 200 and application/json containing exactly { status: 'operational', version: string, environment: 'production' | 'preview' | 'development' | 'test' | 'unknown', timestamp: string }. Version is nonempty; timestamp is ISO 8601 UTC for that request. Non-2xx responses and transport failures indicate unavailability to the client; their bodies have no status-response contract. The endpoint does not manufacture a 503 outage response for an unmeasured dependency.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-METADATA",
+      "description": "Version is the trimmed root package.json version, falling back to 'unknown' when empty or missing; it denotes a release version. Environment inputs are trimmed and lowercased. Recognized nonempty VERCEL_ENV values production, preview and development take precedence; an unsupported nonempty value produces unknown. Otherwise NODE_ENV production, development or test is used, with missing or unsupported values producing unknown. Environment values are read on the server at request time. No custom variables or deployment-setting changes are part of this plan.",
+      "owner": "claude",
+      "consumers": [
+        "codex",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-SHARED-INTERFACES",
+      "description": "codex owns StatusEnvironment and StatusResponse in types/index.ts. lib/status.ts exports resolveEnvironment({ vercelEnv?, nodeEnv? }): StatusEnvironment and createStatus({ version?, environment, now: Date }): StatusResponse. These helpers receive inputs rather than reading globals, package metadata or network resources. The handler supplies runtime inputs. Frontend imports the shared types and validates received JSON without importing server configuration.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-TRANSPORT-SECURITY",
+      "description": "The endpoint is public, evaluated at request time and returns Cache-Control: no-store. The client also requests with cache: 'no-store'. Use conventions supported by the installed Next.js 16 documentation and confirm dynamic endpoint behavior in build output. Exact status paths bypass updateSession; other paths retain their existing handling. Only the four response fields are exposed, with no keys, URLs, environment dumps or diagnostic errors.",
+      "owner": "codex",
+      "consumers": [
+        "claude",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-UI",
+      "description": "StatusPanel requests the same-origin endpoint on mount and manual refresh, with a 5000 ms timeout and at most one active request. It aborts on timeout or unmount and ignores stale completions. HTTP 200 with a valid C-RESPONSE body shows availability, version, environment and last checked time. Non-2xx, malformed JSON, invalid fields, timeout or network failure shows unavailability and unavailable metadata instead of presenting previous data as current. Refresh remains available for recovery. Labels are Spanish, availability has a textual indicator, loading changes are accessible and the layout works on mobile. No automatic polling is added.",
+      "owner": "antigravity",
+      "consumers": [
+        "codex",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-VALIDATION-INTEGRATION",
+      "description": "All implementation paths are relative to C:/Users/HMN/resuelvelo; the nested resuelvelo/ tree is outside implementation scope. Tests use existing Vitest and Testing Library facilities and make no live Supabase calls. Endpoint tests may use a per-file Node environment; UI tests retain jsdom. Backend tests belong to codex, frontend tests to antigravity, and integration/routing regression tests and documentation to cursor. cursor exclusively coordinates gates, .next/ and port 3000; gates run serially. Later integration is sequential onto feature/status-page/integration, preserving unrelated changes and avoiding merges to main. Deployment and remote configuration mutations require separate authorization.",
+      "owner": "cursor",
+      "consumers": [
+        "claude",
+        "codex",
+        "antigravity"
+      ]
+    }
+  ],
+  "integration_order": [
+    "claude",
+    "codex",
+    "antigravity",
+    "cursor"
+  ],
+  "acceptance_criteria": [
+    "The plan remains an implementation proposal; this planning session modifies no repository files and performs no implementation.",
+    "An anonymous GET /api/status returns HTTP 200, JSON content type, Cache-Control: no-store and exactly the C-RESPONSE fields.",
+    "The endpoint runs at request time and produces a fresh timestamp rather than a prerendered response.",
+    "Environment precedence and all supported, missing and unsupported values match C-METADATA; version matches package.json or the agreed unknown fallback.",
+    "Status endpoint requests make no Supabase authentication or database calls, regardless of configured, missing or placeholder credentials.",
+    "Exact status-route bypasses preserve handling of unrelated paths; anonymous protected routes and role restrictions retain existing behavior.",
+    "The public /status page and footer link work, with accessible Spanish labels for availability, backend release version, environment and last checked time.",
+    "Loading, successful refresh, non-2xx responses including a simulated 503, malformed payloads, network failures and timeout render the agreed UI states. Refresh can recover after failure.",
+    "A timed-out or superseded request cannot overwrite newer results; no periodic polling or client-side server configuration reads occur.",
+    "Backend, frontend, integration and routing regression tests pass without live Supabase access, and existing application tests continue to pass.",
+    "README.md and PROJECT_GUIDE.md describe the exact response, metadata sources and liveness limitations, with no new documentation file required.",
+    "The final integrated code passes one full npm run verify and browser validation. Skipped, failed or invalidated checks are recorded as such.",
+    "Preview and Production metadata are checked when authorized deployments are available; unperformed deployment checks remain explicitly pending."
+  ],
+  "risks": [
+    "API liveness can remain operational while Supabase or marketplace operations are failing; documentation and product approval must establish this meaning.",
+    "package.json versions may remain unchanged across deployments, so this contract does not uniquely identify a deployed commit.",
+    "If VERCEL_ENV is unavailable in a Preview runtime, the NODE_ENV fallback may report production. INFRA-1 and deployment checks must identify this configuration gap.",
+    "The existing root Navbar still awaits Supabase authentication. It may delay the status page during a Supabase incident even though the endpoint bypasses authentication.",
+    "The page shares the Next.js deployment it observes and cannot render during a complete deployment outage.",
+    "Public version and environment metadata provide limited deployment fingerprinting and require approval.",
+    "The nested repository tree may affect existing lint or TypeScript checks despite being outside edit scope; unrelated failures must be reported rather than repaired under this feature.",
+    "Concurrent use of .next/, verification gates or port 3000 can invalidate evidence. Builds may also fail if required font downloads are blocked."
+  ],
+  "open_questions": [
+    "Approve API availability as Next.js liveness only, with the same operational response in mock mode? Measuring Supabase readiness would require a revised probe, timeout and response contract.",
+    "Approve public anonymous access to /status and /api/status, including release version and environment exposure in Production?",
+    "Approve package.json as the backend release-version source? If a deployment identifier is required, revise the version contract before implementation.",
+    "Approve keeping the existing shared page layout and its Navbar authentication dependency? Independent rendering during Supabase incidents would require additional layout work."
+  ]
+}
+hook: Stop
+hook: Stop Completed
+tokens used
+26,929

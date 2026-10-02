@@ -5,7 +5,7 @@ project:
   worktrees_root: "C:/Users/HMN/_worktrees/resuelvelo"
 
 brain:
-  provider: cursor
+  provider: codex
 
 agents:
   claude:

@@ -1,0 +1,85 @@
+{
+  "agent": "codex",
+  "summary": "Plan para status-page basado en .orchestrator/features/status-page/request.md:3. Propone una página pública /status y un endpoint Next.js /api/status, con pruebas y documentación. No se modificaron archivos ni se ejecutaron controles.",
+  "areas_affected": [
+    "types/index.ts",
+    "lib/status.ts",
+    "app/api/status/route.ts",
+    "proxy.ts",
+    "app/status/page.tsx",
+    "components/status/StatusPanel.tsx",
+    "app/layout.tsx",
+    "components/layout/Footer.tsx",
+    "tests/status-*.test.ts y tests/status-*.test.tsx",
+    ".env.example",
+    "README.md"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "S1",
+      "description": "Fijar el contrato y los criterios de aceptación siguientes. Propiedad: tipos compartidos en types/index.ts. Definir StatusResponse y el conjunto permitido de entornos.",
+      "suggested_owner": "coordinador",
+      "depends_on": []
+    },
+    {
+      "id": "S2",
+      "description": "Implementar metadatos y GET /api/status. Propiedad: lib/status.ts, app/api/status/route.ts, proxy.ts y .env.example. Leer la versión de package.json y resolver el entorno en el servidor. Evitar el refresco de sesión únicamente para /status y /api/status mediante coincidencias exactas.",
+      "suggested_owner": "backend",
+      "depends_on": [
+        "S1"
+      ]
+    },
+    {
+      "id": "S3",
+      "description": "Implementar la página y el panel en español. Propiedad: app/status/page.tsx, components/status/StatusPanel.tsx, components/layout/Footer.tsx y app/layout.tsx. Añadir enlace, consulta inicial y actualización manual. Encapsular Navbar en Suspense con una cabecera de respaldo independiente de Supabase para permitir que la página se muestre mientras carga la autenticación.",
+      "suggested_owner": "frontend",
+      "depends_on": [
+        "S1"
+      ]
+    },
+    {
+      "id": "S4",
+      "description": "Crear pruebas de metadatos, endpoint, proxy, panel y renderizado con autenticación pendiente. Propiedad exclusiva: nuevos archivos tests/status-* y README.md. Documentar rutas, respuesta JSON, origen de versión, precedencia del entorno y significado de disponibilidad. Puede avanzar en paralelo con S2 y S3 usando el contrato fijado.",
+      "suggested_owner": "pruebas y documentación",
+      "depends_on": [
+        "S1"
+      ]
+    },
+    {
+      "id": "S5",
+      "description": "Integrar y verificar los criterios. Ejecutar npm run verify y revisar el flujo en navegador, incluyendo fallo y recuperación. Asignar exclusivamente a este responsable los controles, .next/ y el servidor del puerto 3000; ejecutar verificación y servidor secuencialmente.",
+      "suggested_owner": "verificador",
+      "depends_on": [
+        "S2",
+        "S3",
+        "S4"
+      ]
+    }
+  ],
+  "contracts": [
+    "AC1: GET /api/status es público y devuelve HTTP 200 con JSON {status:'ok', version:string, environment:string, checkedAt:string}. checkedAt es una fecha ISO UTC generada en cada solicitud.",
+    "AC2: version corresponde a package.json.version, actualmente 0.1.0. environment se resuelve en tiempo de ejecución: APP_ENV explícito, después VERCEL_ENV y finalmente NODE_ENV. Los valores permitidos son development, preview, production, test y unknown; una configuración explícita inválida produce unknown.",
+    "AC3: Endpoint y consulta del navegador usan Cache-Control: no-store y cache:'no-store', respectivamente. La respuesta contiene solo los campos públicos acordados.",
+    "AC4: /status muestra disponibilidad, versión y entorno tras validar la respuesta. Incluye estados de carga, éxito y fallo; errores de red, HTTP no exitoso, JSON inválido o espera superior a cinco segundos muestran disponibilidad no confirmada y permiten reintentar.",
+    "AC5: Las rutas de estado funcionan sin sesión y no esperan al refresco de autenticación. La navegación pendiente no bloquea el panel; las reglas de las rutas protegidas conservan su comportamiento.",
+    "AC6: Disponibilidad significa que la API Next.js respondió correctamente. El endpoint no usa lecturas con fallback a datos mock para determinar salud de Supabase.",
+    "Las tareas propuestas tienen archivos separados. Cualquier implementación futura requiere salir expresamente de esta etapa de planificación; la solicitud actual solo valida el plan."
+  ],
+  "risks": [
+    "El proxy actual llama a Supabase para rutas públicas, y Navbar también consulta autenticación: proxy.ts:5, lib/supabase/proxy.ts:70 y components/layout/Navbar.tsx:9. Deben cubrirse ambas dependencias.",
+    "NODE_ENV=production también puede aparecer en un despliegue preview; por eso tiene menor prioridad que la configuración del despliegue.",
+    "La revisión automática rechazó las consultas y el guardado de memoria porque requieren aprobación y la política actual es «never». No se recuperó memoria ni se obtuvo un plan_id."
+  ],
+  "tests": [
+    "Metadatos: versión, precedencia del entorno, valores ausentes o inválidos y cambios entre solicitudes.",
+    "Endpoint: contrato JSON, fecha válida, encabezados sin caché y ausencia de consultas a Supabase.",
+    "Proxy: exclusión exacta de las dos rutas y regresión de las rutas protegidas.",
+    "Panel: carga, éxito, error HTTP, fallo de red, JSON inválido, timeout, reintento y cancelación al desmontar.",
+    "Layout: el contenido de estado puede renderizarse con una consulta de Navbar pendiente.",
+    "Después de implementar: npm run verify y revisión en navegador de acceso anónimo, presentación móvil, fallo y recuperación. Ninguno se ejecutó durante esta planificación."
+  ],
+  "questions_or_unknowns": [
+    "Se asume que «backend» significa la aplicación Next.js y que su versión es la de package.json. Confirmar si se esperaba identificar otro servicio.",
+    "Se asume disponibilidad de la API de la aplicación. Si se necesita comprobar también Supabase o la base de datos, habrá que definir esas comprobaciones antes de implementar."
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "agent": "/root",
+  "summary": "Planning context received; the feature scope is still needed.",
+  "areas_affected": [],
+  "proposed_tasks": [],
+  "contracts": [],
+  "risks": [],
+  "tests": [],
+  "questions_or_unknowns": [
+    "What feature should I plan, and what requirements or acceptance criteria must it satisfy?"
+  ]
+}

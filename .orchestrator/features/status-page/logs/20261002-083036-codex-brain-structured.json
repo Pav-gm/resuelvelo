@@ -1,0 +1,175 @@
+{
+  "feature": "status-page",
+  "summary": "Planning only. Add a public status page and endpoint within the existing Next.js application. Consolidate shared types and backend logic under codex, UI under antigravity, runtime configuration review under claude, and integration tests, documentation and verification under cursor. No implementation, repository changes, plan file, branches, worktrees or commits are authorized by this validation.",
+  "architecture": "GET /api/status measures whether the Next.js API endpoint can execute successfully. It reports the package.json release version, a normalized application environment and a request-time timestamp. It does not probe Supabase or introduce degraded/mock health states. A server-rendered /status shell contains one client StatusPanel that calls the endpoint on mount and manual refresh, allowing the page to measure actual endpoint reachability. Shared wire types live in types/index.ts; deterministic metadata helpers live in lib/status.ts; environment reads and package metadata imports remain in the server route. Exact /status and /api/status paths bypass the proxy's Supabase session refresh; other paths retain existing authorization behavior. Use existing UI dependencies and documentation files. All writable paths are relative to C:/Users/HMN/resuelvelo; the nested resuelvelo/ tree is outside the implementation scope.",
+  "assignments": [
+    {
+      "agent": "claude",
+      "tasks": [
+        "INFRA-1: Validate the agreed version and environment sources against existing configuration and the installed Next.js documentation. Confirm request-time environment reads and supported dynamic-route behavior; report deployment assumptions or blockers to cursor. Perform read-only review without adding variables, infrastructure or deployment changes."
+      ],
+      "scope": [
+        "package.json: read-only",
+        ".env.example: read-only",
+        "next.config.ts: read-only",
+        "node_modules/next/dist/docs/: relevant sections, read-only",
+        "Existing deployment configuration: read-only if accessible"
+      ],
+      "depends_on": []
+    },
+    {
+      "agent": "codex",
+      "tasks": [
+        "BE-1: Define the shared StatusResponse and ApplicationEnvironment types in types/index.ts, plus deterministic resolveEnvironment and buildStatus helpers in lib/status.ts according to C-TYPES and C-METADATA.",
+        "BE-2: After BE-1, implement GET /api/status with server-side metadata resolution, dynamic execution and no-store responses. Add exact-path proxy bypasses for /status and /api/status without changing other routing or authorization logic.",
+        "BE-3: After BE-1, write helper unit tests covering environment precedence, invalid and missing values, version fallback and deterministic timestamps. Keep all tests local and independent of Supabase."
+      ],
+      "scope": [
+        "types/index.ts",
+        "lib/status.ts",
+        "app/api/status/route.ts",
+        "proxy.ts",
+        "tests/status-lib.test.ts"
+      ],
+      "depends_on": [
+        "INFRA-1"
+      ]
+    },
+    {
+      "agent": "antigravity",
+      "tasks": [
+        "FE-1: Implement the /status shell and one StatusPanel client component using the shared types and C-UI contract. Display availability, backend version, environment and last successful check time; provide manual refresh and a minimal Footer link.",
+        "FE-2: After FE-1, write component and interaction tests for initial loading, successful responses, HTTP failures, network failures, timeout, invalid payloads, refresh, recovery and accessible status text. Mock fetch rather than calling a server."
+      ],
+      "scope": [
+        "app/status/page.tsx",
+        "components/status/StatusPanel.tsx",
+        "components/layout/Footer.tsx",
+        "tests/status-page.test.tsx"
+      ],
+      "depends_on": [
+        "BE-1"
+      ]
+    },
+    {
+      "agent": "cursor",
+      "tasks": [
+        "QA-1: Write endpoint contract and proxy regression tests. Check response keys, metadata, timestamps, cache headers and independence from Supabase configuration. Verify exact status paths bypass session refresh while other paths still delegate to the existing authorization logic.",
+        "QA-2: Document page and endpoint usage, an example response, liveness limitations, metadata sources, refresh behavior and failure handling in README.md and PROJECT_GUIDE.md. Add no dedicated documentation file or environment variables.",
+        "INT-1: Review completed contributions against the frozen contracts and integrate them sequentially onto feature/status-page/integration when later authorized. Preserve unrelated changes and keep workers from merging to main.",
+        "QA-3: After integration, exclusively run npm run verify on the final integrated state. Inspect build output for a dynamic /api/status route and report failed or skipped controls accurately.",
+        "QA-4: After QA-3, exclusively perform the browser pass on port 3000, covering anonymous access, Footer navigation, responsive presentation, keyboard refresh and failure recovery. Check metadata on existing approved Preview and Production deployments when available; explicitly record any unverified deployment behavior without deploying."
+      ],
+      "scope": [
+        "tests/status-endpoint.test.ts",
+        "tests/status-routing.test.ts",
+        "README.md",
+        "docs/engineering/PROJECT_GUIDE.md",
+        "Future sequential integration onto feature/status-page/integration",
+        "Verification processes, generated verification history, .next/ and dev port 3000"
+      ],
+      "depends_on": [
+        "BE-2",
+        "BE-3",
+        "FE-2"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "C-API",
+      "description": "GET /api/status is public. Successful execution returns HTTP 200, Content-Type application/json and Cache-Control: no-store with exactly {status:'operational', version:string, environment:ApplicationEnvironment, timestamp:string}. Timestamp is a fresh UTC ISO 8601 value. Success means endpoint liveness only, regardless of Supabase configuration or mock catalog mode. Non-200 responses have no guaranteed payload contract; consumers treat them as unavailable. No Supabase probe, degraded state, latency field or mock-mode field is introduced.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-METADATA",
+      "description": "Version is the deployed artifact's package.json version, with 'unknown' for a missing or empty value; no npm_package_version, commit SHA or custom override is used. A nonempty VERCEL_ENV is authoritative: production, preview and development are accepted, while unsupported values yield unknown. When VERCEL_ENV is absent or empty, NODE_ENV accepts production, development and test; otherwise environment is unknown. Read environment values when handling the request. No new environment variables or deployment settings are required.",
+      "owner": "claude",
+      "consumers": [
+        "codex",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-TYPES",
+      "description": "codex exclusively owns StatusResponse and ApplicationEnvironment in types/index.ts. ApplicationEnvironment is 'production'|'preview'|'development'|'test'|'unknown'; StatusResponse contains the four C-API fields and status has the literal value 'operational'. lib/status.ts exposes resolveEnvironment({vercelEnv?,nodeEnv?}) and buildStatus({version?,environment,now}), using explicit inputs and performing no environment reads, network calls or database access. The route supplies server-side inputs. Frontend imports shared types with import type and validates fetched data before displaying it.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-ROUTING-SECURITY",
+      "description": "proxy.ts bypasses updateSession only when request.nextUrl.pathname equals /status or /api/status. Other paths retain existing delegation, role checks and redirects. The endpoint performs no Supabase or authentication calls. Its response contains only the approved fields, never URLs, keys, environment dumps, stack traces or raw dependency errors. Backend helper and configuration imports do not enter the browser bundle.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-UI",
+      "description": "The page shell contains no status metadata snapshot and makes no server-side HTTP request to its own API. StatusPanel fetches the same-origin /api/status endpoint on mount and manual refresh with cache:'no-store', redirect:'error' and a 5-second AbortController timeout covering fetch and body consumption. Only HTTP 200 with a valid C-API payload displays 'API disponible'; other outcomes display 'API no disponible'. Loading displays 'Comprobando'. Version, environment and server timestamp appear after success and are cleared to placeholders on failure. Use Spanish text, an accessible live status region and indicators that do not rely on color. Disable refresh while checking, cancel work on unmount and prevent overlapping requests. No automatic polling is added.",
+      "owner": "antigravity",
+      "consumers": [
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-TESTS-DOCS-INTEGRATION",
+      "description": "codex owns helper unit tests, antigravity owns UI tests, and cursor owns endpoint/proxy contract tests, documentation, integration and final verification. Tests use the existing Vitest collection patterns and installed Testing Library. Endpoint/proxy tests may use a per-file node environment pragma without changing global configuration. Restore environment stubs, mocks and timers; use module resets where import-time state requires them. No test contacts Supabase. cursor exclusively schedules and operates verification gates and dev/build/type-generation processes on the integration checkout. Documentation uses existing README.md and PROJECT_GUIDE.md, so MASTER_INDEX.md and .env.example need no changes. Future integration is sequential onto feature/status-page/integration, never main.",
+      "owner": "cursor",
+      "consumers": [
+        "claude",
+        "codex",
+        "antigravity"
+      ]
+    }
+  ],
+  "integration_order": [
+    "Keep this validation read-only. Any future implementation requires explicit authorization and approval of the scope questions; freeze C-API through C-TESTS-DOCS-INTEGRATION before implementation.",
+    "Complete INFRA-1 and resolve any configuration or installed-framework blocker before application work begins.",
+    "Prepare BE-1, then BE-2 and BE-3. Shared types must be available before frontend integration.",
+    "Prepare FE-1, then FE-2 against the frozen API contract.",
+    "Prepare QA-1 and QA-2 against the completed backend and frontend contributions.",
+    "Under INT-1, cursor integrates sequentially onto the authorized feature/status-page/integration branch: backend types/helpers, endpoint/proxy, backend tests, UI, UI tests, endpoint/proxy tests and documentation.",
+    "Run QA-3 once on the unchanged integrated state. Correct failures in the responsible owner's scope and rerun affected checks before claiming completion.",
+    "Run QA-4 after verification releases .next/. Stop the dev server before any subsequent build or type-generation process. Record live deployment checks separately from local evidence."
+  ],
+  "acceptance_criteria": [
+    "This planning validation creates no code, repository edits, plan file, branch, worktree or commit and starts no implementation.",
+    "Anonymous users can visit /status and call /api/status; a visible Footer link reaches the page.",
+    "GET /api/status returns the exact C-API success payload, HTTP 200, JSON content type and Cache-Control: no-store.",
+    "Environment resolution covers all approved values, VERCEL_ENV precedence, absent values and unsupported values; version comes from package.json with the agreed fallback.",
+    "Each successful request generates its timestamp at request time, and build output identifies /api/status as dynamic.",
+    "Endpoint and proxy tests prove that the status endpoint makes no authentication, Supabase or other network calls with missing, placeholder or configured Supabase settings.",
+    "Exact status paths bypass session refresh; neighboring paths do not inherit that bypass, and existing protected-route authorization behavior remains intact.",
+    "The UI displays checking, available and unavailable states, version, environment and a successful-check timestamp according to C-UI.",
+    "HTTP failures including 503, redirects, malformed JSON, invalid payloads, network failures and the 5-second timeout produce a handled unavailable state without raw error disclosure.",
+    "Manual refresh updates successful metadata, supports recovery and prevents overlapping requests; unmount cancels pending work.",
+    "Component tests and the browser pass confirm readable status text, keyboard-operable refresh, a non-color status indicator and usable mobile layout.",
+    "Existing carrito, mock, data-fallback and tipos suites continue to pass; the full npm run verify passes on the final integrated state without overlapping processes.",
+    "README.md and PROJECT_GUIDE.md accurately describe the endpoint, response, metadata sources and liveness limitation; docs:check passes.",
+    "No new dependencies, environment variables, database changes, monitoring infrastructure or deployment changes are introduced. Unperformed Preview or Production checks are explicitly reported as unverified."
+  ],
+  "risks": [
+    "Endpoint liveness can remain available while Supabase or marketplace operations fail; the page and documentation must state that limitation.",
+    "The page shares the existing layout and Navbar, which may still contact Supabase and delay rendering. The endpoint remains independent; an independent status service would expand scope.",
+    "package.json release versions require deliberate bumps and do not uniquely identify every deployed commit.",
+    "VERCEL_ENV availability depends on deployment configuration. Missing values fall back as specified, and local tests cannot prove actual Preview or Production configuration.",
+    "An overly broad proxy bypass could weaken authorization; exact-path matching and neighboring/protected-route regression tests are required.",
+    "Vitest module caching, environment stubs and timers can contaminate tests unless restored. Request/Response tests may require the per-file node environment.",
+    "The nested resuelvelo/ tree and unrelated working changes can affect verification despite being outside writable scope; report blockers rather than expanding the feature or reverting changes.",
+    "Builds may require network access for existing fonts. A blocked build or unavailable browser/deployment check cannot be counted as a pass."
+  ],
+  "open_questions": [
+    "Does product approve public access to /status and /api/status with the package release version and normalized environment visible in Production?",
+    "Does product approve API availability as this Next.js endpoint's liveness only? Requiring Supabase readiness or a separate backend check would require revising the contracts before implementation."
+  ]
+}

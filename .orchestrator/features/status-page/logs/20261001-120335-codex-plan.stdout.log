@@ -1,0 +1,14 @@
+{
+  "agent": "/root",
+  "summary": "Falta el alcance de la funcionalidad para elaborar mi aporte al plan.",
+  "areas_affected": [],
+  "proposed_tasks": [],
+  "contracts": [],
+  "risks": [
+    "La memoria persistente no pudo consultarse: sus herramientas requieren aprobación y esta sesión la tiene deshabilitada."
+  ],
+  "tests": [],
+  "questions_or_unknowns": [
+    "¿Qué funcionalidad se planifica, cuáles son sus criterios de aceptación y qué responsabilidad me corresponde?"
+  ]
+}

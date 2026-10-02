@@ -1,0 +1,17 @@
+{
+  "agent": "/root",
+  "summary": "Reglas del proyecto revisadas. Falta describir la funcionalidad para elaborar el plan.",
+  "areas_affected": [],
+  "proposed_tasks": [],
+  "contracts": [
+    "Asignar archivos y recursos exclusivos a cada tarea.",
+    "Ejecutar controles en serie y revisar en navegador los cambios de UI."
+  ],
+  "risks": [
+    "Memoria persistente no disponible en esta sesión."
+  ],
+  "tests": [],
+  "questions_or_unknowns": [
+    "¿Qué funcionalidad se solicita y cuáles son sus criterios de aceptación?"
+  ]
+}

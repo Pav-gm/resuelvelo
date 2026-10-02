@@ -1,0 +1,92 @@
+{
+  "agent": "codex",
+  "summary": "Backend planning contribution for status-page, identified from .orchestrator/features/status-page/request.md. Propose a public GET /api/status endpoint reporting API availability, application version and environment. Planning only: no files changed or tests executed. Persistent-memory queries were blocked by the permission policy.",
+  "areas_affected": [
+    "app/api/status/route.ts — new endpoint",
+    "lib/status.ts — metadata resolution",
+    "types/index.ts — shared response type",
+    "proxy.ts — exact status-route exemptions",
+    "tests/status-api.test.ts and tests/status-proxy.test.ts",
+    "Frontend /status integration and endpoint documentation"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "status-contract",
+      "description": "Agree on the response schema, environment mapping, version source and availability semantics before implementation. Assign types/index.ts exclusively to Codex.",
+      "suggested_owner": "codex with infrastructure and frontend",
+      "depends_on": []
+    },
+    {
+      "id": "status-backend",
+      "description": "After implementation approval, own app/api/status/route.ts, lib/status.ts and types/index.ts. Implement the minimal endpoint using package.json version, normalized server environment and explicit no-store response headers.",
+      "suggested_owner": "codex",
+      "depends_on": [
+        "status-contract"
+      ]
+    },
+    {
+      "id": "status-proxy",
+      "description": "Own proxy.ts. Bypass session refresh for the exact /api/status and /status paths before updateSession; preserve existing behavior for every other route.",
+      "suggested_owner": "codex",
+      "depends_on": [
+        "status-contract"
+      ]
+    },
+    {
+      "id": "status-backend-tests",
+      "description": "Own tests/status-api.test.ts and tests/status-proxy.test.ts. Use per-file Vitest Node environments to test the response, metadata resolution, caching headers and narrowly scoped proxy exemptions without remote services.",
+      "suggested_owner": "codex",
+      "depends_on": [
+        "status-backend",
+        "status-proxy"
+      ]
+    },
+    {
+      "id": "status-frontend",
+      "description": "Own app/status/page.tsx, components/status/StatusDashboard.tsx, components/layout/Footer.tsx and tests/status.test.tsx. Build against the agreed contract; cover loading, successful metadata display, request failure and manual retry. Can proceed alongside backend implementation after contract agreement.",
+      "suggested_owner": "antigravity",
+      "depends_on": [
+        "status-contract"
+      ]
+    },
+    {
+      "id": "status-documentation-verification",
+      "description": "Own docs/engineering/STATUS.md and its docs/index/MASTER_INDEX.md entry. Document routes, payload, metadata sources and availability limits. Coordinate serial verification and browser review after integration.",
+      "suggested_owner": "cursor",
+      "depends_on": [
+        "status-backend-tests",
+        "status-frontend"
+      ]
+    }
+  ],
+  "contracts": [
+    "AC1: Proposed success response: HTTP 200 with JSON { status: 'healthy', version: string, environment: 'production' | 'preview' | 'development' | 'test' | 'unknown', timestamp: string }. timestamp is generated per request as UTC ISO 8601.",
+    "AC2: Availability initially means the application status endpoint responds successfully. Supabase readiness, latency metrics and degraded/503 responses require a separately agreed dependency-check design.",
+    "AC3: version comes from the application package.json version through a server-side import. Do not depend on npm_package_version being present in deployed processes.",
+    "AC4: Recognized VERCEL_ENV values take precedence; otherwise normalize NODE_ENV. Unsupported or missing values become 'unknown'. Expose only the agreed response fields.",
+    "AC5: Return Cache-Control: no-store; frontend fetches with cache: 'no-store'. The installed Next.js guide states Route Handlers are uncached by default.",
+    "AC6: /api/status is accessible without authentication or Supabase configuration and does not invoke session refresh. Exact status-route exemptions must preserve authorization handling for existing protected routes.",
+    "AC7: Frontend request failures display unavailable or unknown state with retry; unavailable version/environment values must not be fabricated.",
+    "File ownership must remain disjoint. A single coordinator owns verification commands and .next/ usage. Existing untracked .orchestrator/features/ artifacts remain untouched."
+  ],
+  "risks": [
+    "lib/supabase/proxy.ts:70 calls auth.getUser before checking whether a route is protected. Adding a public endpoint alone would retain an unintended Supabase dependency.",
+    "app/layout.tsx:26 renders Navbar, whose server component calls auth.getUser at components/layout/Navbar.tsx:9. Proxy exemptions do not eliminate this page-rendering dependency; rejected calls are caught, but slow calls may delay /status.",
+    "Existing planning proposals disagree on environment values: infrastructure uses preview while frontend uses staging. The shared enum must be settled before implementation.",
+    "The status page shares the application's hosting. A complete application outage can prevent loading the page; it cannot serve as an independent uptime monitor.",
+    "package.json version identifies an application release rather than each individual deployment."
+  ],
+  "tests": [
+    "Assert HTTP 200, JSON content type, agreed payload fields, current timestamp and Cache-Control: no-store.",
+    "Test VERCEL_ENV precedence, NODE_ENV fallback, and missing or unsupported environment values with isolated environment stubs.",
+    "Verify the version matches package.json and responses exclude unrelated environment variables.",
+    "Verify exact /api/status and /status paths bypass updateSession; protected routes and similarly prefixed paths still delegate to existing authorization logic.",
+    "Frontend tests cover loading, success, network/non-200 failures and manual retry.",
+    "After approved implementation, run npm run verify serially and review /status in the browser, including anonymous access, API failure and slow authentication behavior. Direct handler tests do not replace HTTP routing checks."
+  ],
+  "questions_or_unknowns": [
+    "Confirm availability means endpoint responsiveness, or specify which Supabase dependency must be checked and its timeout/failure semantics.",
+    "Confirm the proposed package-version source and environment enum with infrastructure and frontend.",
+    "Does /status need to render promptly during a Supabase authentication outage? If required, explicitly include a bounded or independent navigation design because the shared root layout currently performs authentication work."
+  ]
+}

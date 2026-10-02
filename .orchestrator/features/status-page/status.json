@@ -1,0 +1,20 @@
+{
+  "feature": "status-page",
+  "state": "APPROVED",
+  "base_branch": "main",
+  "base_commit": "60d0e699a56e6f4347ac3a3957d52c3f8f9b4bce",
+  "integration_branch": "feature/status-page/integration",
+  "worker_branches": {
+    "claude": "agent/status-page/claude",
+    "codex": "agent/status-page/codex",
+    "antigravity": "agent/status-page/antigravity",
+    "cursor": "agent/status-page/cursor"
+  },
+  "worktrees": {
+    "integration": "C:\\Users\\HMN\\_worktrees\\resuelvelo\\status-page\\integration",
+    "claude": "C:\\Users\\HMN\\_worktrees\\resuelvelo\\status-page\\claude",
+    "codex": "C:\\Users\\HMN\\_worktrees\\resuelvelo\\status-page\\codex",
+    "antigravity": "C:\\Users\\HMN\\_worktrees\\resuelvelo\\status-page\\antigravity",
+    "cursor": "C:\\Users\\HMN\\_worktrees\\resuelvelo\\status-page\\cursor"
+  }
+}

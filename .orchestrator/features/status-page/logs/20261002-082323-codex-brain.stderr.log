@@ -1,0 +1,1682 @@
+invalid master plan: integration_order: Unknown agent 'First resolve the human approval questions and freeze these contracts. This planning step creates no branches, worktrees, commits, files or implementation.'. Expected one of: claude, codex, antigravity, cursor. stderr: OpenAI Codex v0.159.3 -------- workdir: C:\Users\HMN\resuelvelo model: gpt-6.1-sol provider: openai approval: never sandbox: read-only reasoning effort: xhigh reasoning summaries: ...
+OpenAI Codex v0.159.3
+--------
+workdir: C:\Users\HMN\resuelvelo
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 01a0fc91-bba4-7962-bb88-32f5dd545044
+--------
+user
+You are the technical lead and orchestrator.
+
+DO NOT implement code.
+DO NOT modify repository files.
+
+Synthesize the four planning reports into one coherent implementation plan.
+
+Resolve:
+- duplicate responsibilities;
+- contradictory assumptions;
+- interface mismatches;
+- dependencies;
+- ownership;
+- integration order.
+
+Prefer the smallest coherent implementation.
+
+Every task must have exactly one owner.
+
+Define explicit contracts before implementation.
+
+Return a master plan containing:
+
+1. Architecture summary
+2. Assignments
+3. Dependencies
+4. Contracts
+5. Integration order
+6. Acceptance criteria
+7. Risks
+8. Open questions requiring human approval
+
+Do not begin implementation.
+Do not write a plan file.
+Do not call ExitPlanMode.
+Your final message must be only the JSON object.
+
+Return one JSON object with these keys:
+feature, summary, architecture, assignments, contracts, integration_order, acceptance_criteria, risks, open_questions.
+
+Each assignment has agent, tasks, scope, and depends_on.
+Each contract has id, description, owner, and consumers.
+Every task id appears in exactly one assignment.
+acceptance_criteria, risks, and open_questions are arrays of strings.
+
+## Feature request
+
+# status-page
+
+Add a user-facing health/status page that displays API availability, backend version and current application environment. The backend should expose the required status endpoint. Include tests and documentation. Do not implement anything yet; this feature is only being used to validate planning.
+
+## AGENTS.md
+
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+
+# Resuélvelo: acuerdos comunes
+
+Este archivo es la entrada común para Codex, Claude Code y Cursor. Resuélvelo es un marketplace B2B con Next.js 16, React 19, TypeScript, Supabase y Vitest.
+
+## Consultar solo lo necesario
+
+- El índice es [docs/index/MASTER_INDEX.md](docs/index/MASTER_INDEX.md). Elige el documento por tema; busca sus encabezados y lee la sección relevante.
+- Para cambios de código, consulta las secciones aplicables de [la guía de ingeniería](docs/engineering/PROJECT_GUIDE.md); para ejecutar o interpretar controles, [la guía de verificación](docs/engineering/VERIFICATION.md).
+- Mantén una fuente por regla: las guías contienen el detalle y los archivos de cada asistente solo apuntan a ellas. No cargues todo `docs/`, dependencias, lockfiles o resultados de compilación en el contexto.
+- El protocolo de memoria global sigue vigente; sus namespaces son `project=resuelvelo` y `group_id=resuelvelo`. Los hooks globales de Claude siguen siendo configuración de este equipo.
+
+## Arquitectura y límites esenciales
+
+- UI y rutas: `app/` y `components/`; tipos: `types/index.ts`; lecturas de catálogo/cotizaciones: `lib/data.ts`, con fallback a `lib/mock.ts`.
+- Carrito: `lib/store/carrito.ts` (Zustand, navegador). La creación de cotizaciones resuelve proveedor y precio en el servidor; la autorización de datos es RLS en `supabase/schema.sql`.
+- Conserva los cambios ajenos. No instales dependencias nuevas ni hagas commit, push, migraciones remotas o despliegues sin autorización específica.
+- Usa subagentes solo cuando se solicite `/orchestrate`; sus tareas deben tener archivos y recursos asignados. El protocolo detallado de Cursor está [aquí](docs/engineering/CURSOR_ORCHESTRATION.md).
+
+## Verificación y recursos compartidos
+
+- `npm run verify`: documentación, pruebas de herramientas, pruebas de la app, ESLint, tipos y compilación, en serie y con historial.
+- `npm run verify -- --quick`: los mismos controles salvo compilación. `npm run verify -- --only docs,test`: selección explícita. `npm run verify -- --history`: últimas ejecuciones.
+- Controles individuales: `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build` y `npm run docs:check`.
+- Un único proceso por checkout puede usar `.next/` (dev, tipos o build) o correr un control a la vez. El servidor de desarrollo ocupa el puerto 3000; SQL y despliegues comparten Supabase y Vercel.
+- Una ejecución omitida o fallida nunca es un pase. El historial identifica el código comprobado, pero no sustituye una nueva verificación tras cambios de código o entorno. Cambios de UI requieren además revisar el flujo en el navegador.
+
+
+## Roles
+
+### claude
+
+# Role: Infrastructure Engineer
+
+Primary ownership:
+
+- Docker
+- CI/CD
+- deployment
+- configuration
+- secrets wiring
+- observability
+- infrastructure code
+- runtime concerns
+
+Do not modify application business logic unless the approved plan assigns it.
+
+### codex
+
+# Role: Backend Engineer
+
+Primary ownership:
+
+- APIs
+- business logic
+- services
+- database access
+- migrations
+- backend tests
+- domain logic
+
+Do not modify frontend UI unless explicitly assigned.
+
+### antigravity
+
+# Role: Frontend Engineer
+
+Primary ownership:
+
+- UI
+- frontend state
+- components
+- client-side integration
+- UX
+- frontend tests
+- browser behavior
+
+Respect approved API contracts.
+
+### cursor
+
+# Role: QA / Product Engineering
+
+Primary ownership:
+
+- integration tests
+- QA
+- regression analysis
+- documentation
+- prototypes when assigned
+- code review
+- acceptance criteria validation
+
+Do not redesign approved architecture unless reporting a blocker.
+
+## Planner proposals
+
+### claude
+
+{
+  "agent": "claude",
+  "summary": "Status page needs env/version values sourced from deployment platform (Vercel) env vars, not new infra. No Dockerfile, CI workflow, or vercel.json exist in this repo (deploy config lives in Vercel dashboard/project settings), so infra work is limited to defining and documenting which environment variables feed the status endpoint, ensuring they're set per environment, and deciding how 'API availability' is measured without adding new monitoring infrastructure.",
+  "areas_affected": [
+    "environment variable configuration (Vercel project envs, .env.example)",
+    "deployment/runtime environment exposure (NODE_ENV / VERCEL_ENV)",
+    "version source (package.json version, or git commit SHA via VERCEL_GIT_COMMIT_SHA)",
+    "documentation (docs/engineering)"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "infra-1",
+      "description": "Define the env/version contract: confirm backend version source (package.json 'version' field vs VERCEL_GIT_COMMIT_SHA env var) and environment source (process.env.NODE_ENV vs process.env.VERCEL_ENV, which distinguishes production/preview/development on Vercel). Document which one the status endpoint should read.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": []
+    },
+    {
+      "id": "infra-2",
+      "description": "Add any new required env vars (if a custom APP_VERSION or APP_ENV override is chosen instead of built-ins) to .env.example and document them; confirm they're set in Vercel project settings for all environments (production/preview/development). No new secrets expected since status endpoint should not expose sensitive config.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": [
+        "infra-1"
+      ]
+    },
+    {
+      "id": "infra-3",
+      "description": "Determine what 'API availability' means operationally for this app: since there is no separate backend service (Next.js API route + Supabase), availability likely means 'can this route execute and optionally reach Supabase.' Decide whether the status endpoint should perform a lightweight Supabase connectivity check (e.g. a trivial query) or just report process liveness, weighing added latency/cost against usefulness.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": []
+    },
+    {
+      "id": "infra-4",
+      "description": "Document the new endpoint and page in docs/engineering (per repo convention of single-source docs with assistant files pointing to them) — update MASTER_INDEX.md if a new doc section is created, or append to PROJECT_GUIDE.md if it fits existing structure. This is documentation, not application logic, but flagging as a dependency for whichever agent owns app/backend code to coordinate content accuracy.",
+      "suggested_owner": "backend/docs-owner",
+      "depends_on": [
+        "infra-1",
+        "infra-3"
+      ]
+    }
+  ],
+  "contracts": [
+    "Status endpoint output must only use non-sensitive, already-public-safe values: environment name (production/preview/development) and version string (semver or short commit SHA) — no internal URLs, keys, or stack traces.",
+    "If a Supabase connectivity check is added, it must have a strict timeout and must not leak Supabase error details (e.g. connection strings) to the client response."
+  ],
+  "risks": [
+    "No existing CI/CD pipeline or Dockerfile in this repo — deployment is presumably handled externally via Vercel's git integration, so 'backend version' can't rely on a build-time injected CI variable unless Vercel's automatic VERCEL_GIT_COMMIT_SHA is used.",
+    "If the status endpoint performs a live Supabase check, it could add latency/cost per request or become a vector for abuse (repeated polling causing DB load) if not rate-limited or cached — rate-limiting/caching would need backend ownership, not infra.",
+    "Env var naming must avoid colliding with existing Supabase/Vercel reserved env vars already in .env.example — needs inspection before finalizing names."
+  ],
+  "tests": [
+    "Verify status endpoint returns correct environment label across production, preview, and local dev by checking process.env.VERCEL_ENV / NODE_ENV behavior in each context (cannot fully test preview/production without an actual deploy — flag as manual verification step post-deploy).",
+    "Confirm .env.example stays in sync with any new env var introduced (docs:check script in this repo may already enforce doc/env consistency — verify)."
+  ],
+  "questions_or_unknowns": [
+    "Should backend version come from package.json (manual bump) or automatically from VERCEL_GIT_COMMIT_SHA (always accurate, no manual step)? This is a product/infra decision, not purely infra.",
+    "Is there a real 'backend' separate from this Next.js app (e.g. a Supabase Edge Function or external API) whose availability should be checked, or is 'API availability' just this Next.js deployment's own liveness?",
+    "Should the status page/endpoint be public (no auth) or restricted? If public, confirm no sensitive data exposure risk — this affects RLS/auth ownership, not infra, but infra should flag it.",
+    "No .github/workflows or Dockerfile exist — confirm deployment is 100% via Vercel's git-based auto-deploy (no custom CI needed for this feature) before assuming no CI/CD work is required."
+  ]
+}
+
+### codex
+
+{
+  "agent": "codex",
+  "summary": "Reglas del proyecto revisadas. Falta describir la funcionalidad para elaborar el plan.",
+  "areas_affected": [],
+  "proposed_tasks": [],
+  "contracts": [
+    "Asignar archivos y recursos exclusivos a cada tarea.",
+    "Ejecutar controles en serie y revisar en navegador los cambios de UI."
+  ],
+  "risks": [
+    "Memoria persistente no disponible en esta sesión."
+  ],
+  "tests": [],
+  "questions_or_unknowns": [
+    "¿Qué funcionalidad se solicita y cuáles son sus criterios de aceptación?"
+  ]
+}
+
+### antigravity
+
+{
+  "agent": "antigravity",
+  "summary": "Plan frontend implementation for the user-facing status page (/status) displaying API availability, backend version, and application environment, including state handling, UX states, tests, and documentation.",
+  "areas_affected": [
+    "app/status/page.tsx",
+    "components/status/StatusCard.tsx",
+    "components/status/HealthIndicator.tsx",
+    "types/status.ts",
+    "tests/status.test.tsx",
+    "docs/engineering/STATUS_PAGE.md"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "TASK-BE-1",
+      "description": "Backend: Implement GET /api/status endpoint returning availability status, backend version, and application environment.",
+      "suggested_owner": "Backend Engineer",
+      "depends_on": []
+    },
+    {
+      "id": "TASK-FE-1",
+      "description": "Frontend: Define TypeScript interfaces and data fetching client for status endpoint contract.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-BE-1"
+      ]
+    },
+    {
+      "id": "TASK-FE-2",
+      "description": "Frontend: Implement StatusCard and HealthIndicator visual components displaying availability status, environment badge, backend version, and last checked timestamp.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-FE-1"
+      ]
+    },
+    {
+      "id": "TASK-FE-3",
+      "description": "Frontend: Create /status route (app/status/page.tsx) with responsive layout, loading skeletons, error states, and manual refresh button.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-FE-2"
+      ]
+    },
+    {
+      "id": "TASK-FE-4",
+      "description": "Frontend: Write unit and integration tests using Vitest and React Testing Library verifying loading, operational, degraded, error states, and refresh trigger.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-FE-3"
+      ]
+    },
+    {
+      "id": "TASK-FE-5",
+      "description": "Documentation: Document the status page route, components, and frontend error-handling behavior in docs.",
+      "suggested_owner": "Frontend Engineer",
+      "depends_on": [
+        "TASK-FE-4"
+      ]
+    }
+  ],
+  "contracts": [
+    "GET /api/status -> 200 OK: { status: 'operational' | 'degraded' | 'outage', version: string, environment: string, timestamp: string }",
+    "GET /api/status -> 503 Service Unavailable: { status: 'outage', version: string, environment: string, timestamp: string, error?: string }"
+  ],
+  "risks": [
+    "Browser or CDN caching may serve stale health/status responses unless Cache-Control: no-store headers are enforced on the backend endpoint.",
+    "Network timeouts or unhandled 5xx errors from the status endpoint could trigger an uncaught frontend exception if not gracefully caught in the client-side fetcher.",
+    "Exposing excessive backend environment configuration or debug details to the frontend could lead to information disclosure.",
+    "Aggressive client-side polling could cause additional load on a degraded backend service."
+  ],
+  "tests": [
+    "Unit test for StatusCard and HealthIndicator rendering correct badges and styles for 'operational', 'degraded', and 'outage' statuses.",
+    "Component test for app/status/page.tsx displaying loading skeletons while fetching status data.",
+    "Component test verifying error boundary/fallback banner when /api/status returns a 503 or network failure.",
+    "Interaction test verifying that clicking the manual refresh button initiates a re-fetch and updates the displayed timestamp."
+  ],
+  "questions_or_unknowns": [
+    "Should the status page be publicly accessible to all users or restricted to authenticated administrators?",
+    "Should the page support automatic polling/refresh (e.g., every 30 or 60 seconds) or only manual on-demand refresh?",
+    "Where in the site navigation should the status page link be placed (e.g., Footer, Help menu, or standalone)?",
+    "What are the exact allowed strings for the application environment (e.g., 'production', 'staging', 'development')?"
+  ]
+}
+
+### cursor
+
+{
+  "agent": "cursor",
+  "summary": "This is the QA and product engineering view of the status-page feature. Nothing like it exists yet: there are no Route Handlers in the app (no app/**/route.ts), no health or status endpoint, and app code does not read VERCEL_ENV or NODE_ENV anywhere. Vitest runs in jsdom and only collects tests/**/*.test.ts(x). Existing tests force mock mode by stubbing NEXT_PUBLIC_SUPABASE_URL to the placeholder and then dynamically importing the module, as in tests/data-fallback.test.ts. proxy.ts runs on nearly every path. When Supabase is configured, it calls supabase.auth.getUser() but does not redirect /status or /api/status. QA's part of this feature is to: write testable acceptance criteria and a frozen response contract before implementation starts; write contract tests for the endpoint handler and component tests for the page; check for regressions in proxy routing, mock fallback and the existing test suite; update documentation, which docs:check enforces; and review the backend and frontend work against the criteria. The endpoint, the page UI and the choice of environment and version sources belong to other roles. They appear here only as dependencies.",
+  "areas_affected": [
+    "tests/ (new: tests/status-endpoint.test.ts, tests/status-page.test.tsx, plus optional tests/status-lib.test.ts for pure helpers)",
+    "tests/setup.ts (read only; confirm jest-dom matchers exist for the component tests)",
+    "vitest.config.ts (read only; new tests must match tests/**/*.test.ts(x))",
+    "app/api/status/route.ts (dependency, owned by backend; tested by QA)",
+    "app/status/page.tsx and any components/status/* (dependency, owned by frontend; tested by QA)",
+    "lib/ status helper, e.g. lib/status.ts (dependency, owned by backend; preferred so tests can cover pure functions without a running server)",
+    "proxy.ts and lib/supabase/proxy.ts (regression scope only; no change expected)",
+    "README.md (short mention of /status and /api/status)",
+    "docs/engineering/PROJECT_GUIDE.md (Architecture section: note the status endpoint as a transport-layer exception or confirm it reads through lib/)",
+    "docs/index/MASTER_INDEX.md (only if a new docs/*.md file is added; docs:check requires every docs Markdown file to be indexed)",
+    ".env.example (documentation only, if a new env var such as APP_ENV or APP_VERSION is approved)"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "QA-1",
+      "description": "Write the acceptance criteria and freeze the response contract with the backend and frontend owners before any implementation: field names, types, allowed enum values, HTTP status codes in healthy, degraded and mock mode, caching headers, and the rule that no secrets or env values outside the agreed fields are exposed.",
+      "suggested_owner": "qa-product-engineering",
+      "depends_on": [
+        "DEP-BE-1",
+        "DEP-INFRA-1"
+      ]
+    },
+    {
+      "id": "DEP-INFRA-1",
+      "description": "DEPENDENCY: decide the source of truth for 'environment' (VERCEL_ENV taking precedence over a normalized NODE_ENV, or a new APP_ENV) and for 'backend version' (package.json version imported on the server, VERCEL_GIT_COMMIT_SHA, or both). QA needs this to write deterministic tests.",
+      "suggested_owner": "infrastructure / backend",
+      "depends_on": []
+    },
+    {
+      "id": "DEP-BE-1",
+      "description": "DEPENDENCY: implement GET /api/status as a Next 16 Route Handler that is dynamic and not cached. Put the logic in a pure helper (for example lib/status.ts exporting getStatus() and resolveEnvironment()) so Vitest can test it without .next or a dev server. The availability check must follow the lib/data.ts pattern: report 'mock' or 'not configured' when NEXT_PUBLIC_SUPABASE_URL is missing or still the placeholder, and must never make network calls in tests.",
+      "suggested_owner": "backend",
+      "depends_on": [
+        "DEP-INFRA-1"
+      ]
+    },
+    {
+      "id": "DEP-FE-1",
+      "description": "DEPENDENCY: implement the user-facing /status page. It should be a server component that calls the shared helper directly rather than fetching its own API over HTTP. It needs accessible states for available, degraded, unavailable and mock, plus version and environment labels. It can optionally be linked from components/layout/Footer.tsx.",
+      "suggested_owner": "frontend",
+      "depends_on": [
+        "QA-1",
+        "DEP-BE-1"
+      ]
+    },
+    {
+      "id": "QA-2",
+      "description": "Write unit tests for the pure helpers. Environment resolution: VERCEL_ENV precedence, NODE_ENV fallback, missing or unsupported values mapping to 'unknown'. Version resolution, including the fallback when the source is missing. Availability resolution in mock mode and with a stubbed Supabase client that succeeds, fails or times out. Use vi.stubEnv and vi.unstubAllEnvs, with dynamic imports after stubbing, to avoid leaking state between tests.",
+      "suggested_owner": "qa-product-engineering",
+      "depends_on": [
+        "QA-1",
+        "DEP-BE-1"
+      ]
+    },
+    {
+      "id": "QA-3",
+      "description": "Write contract tests for the GET handler, imported from app/api/status/route.ts and called directly. Assert the status code, Content-Type application/json, Cache-Control no-store (or whatever was agreed), the exact set of response keys with no extra env or secret fields, and the enum values. Cover mock mode and simulated outage mode. If importing a Route Handler under jsdom proves unreliable, add a `// @vitest-environment node` file pragma rather than changing the global config.",
+      "suggested_owner": "qa-product-engineering",
+      "depends_on": [
+        "QA-1",
+        "DEP-BE-1"
+      ]
+    },
+    {
+      "id": "QA-4",
+      "description": "Write component tests with @testing-library/react for the status UI pieces. Each state (available, degraded, unavailable, mock) should render the correct label, version and environment text, with a non-color indicator for accessibility. If the page is an async server component, test the presentational child components with fixture data.",
+      "suggested_owner": "qa-product-engineering",
+      "depends_on": [
+        "DEP-FE-1"
+      ]
+    },
+    {
+      "id": "QA-5",
+      "description": "Run the regression analysis. Confirm that proxy.ts does not redirect /status or /api/status for anonymous users. Confirm that all existing tests still pass (carrito, mock, data-fallback, tipos). Confirm that typecheck passes with the generated route types for the new route. Confirm that build marks /api/status as dynamic, not statically prerendered with a frozen environment or version. Then run npm run verify once on the single checkout, without parallel gates.",
+      "suggested_owner": "qa-product-engineering",
+      "depends_on": [
+        "QA-2",
+        "QA-3",
+        "QA-4"
+      ]
+    },
+    {
+      "id": "QA-6",
+      "description": "Do a browser pass of /status in mock mode on dev server port 3000. Then do a manual or post-deploy check that Preview and Production report the correct environment and version, since those cannot be reproduced locally. Record anything that could not be verified.",
+      "suggested_owner": "qa-product-engineering",
+      "depends_on": [
+        "DEP-FE-1",
+        "QA-5"
+      ]
+    },
+    {
+      "id": "QA-7",
+      "description": "Update the documentation. README gets a short description of /status and /api/status with an example response. PROJECT_GUIDE Architecture gets one line placing the status helper and route. .env.example documents any new variable. If a dedicated doc is added, it must be linked from docs/index/MASTER_INDEX.md. Finish with npm run docs:check.",
+      "suggested_owner": "qa-product-engineering",
+      "depends_on": [
+        "QA-1",
+        "DEP-INFRA-1"
+      ]
+    },
+    {
+      "id": "QA-8",
+      "description": "Review the backend and frontend changes against the frozen acceptance criteria. Check for no Supabase queries from components, no secret exposure, no new npm dependencies, a dynamic or no-store response, and server-only reads of non-public env vars.",
+      "suggested_owner": "qa-product-engineering",
+      "depends_on": [
+        "DEP-BE-1",
+        "DEP-FE-1"
+      ]
+    }
+  ],
+  "contracts": [
+    "Proposed for QA-1, to be confirmed by backend: GET /api/status returns application/json { status: 'ok' | 'degraded' | 'down', api: { available: boolean, mode: 'supabase' | 'mock', latencyMs?: number }, version: string, environment: 'production' | 'preview' | 'development' | 'test' | 'unknown', timestamp: string (ISO 8601) }.",
+    "HTTP semantics, proposed: 200 when status is 'ok' or 'degraded', including mock mode. 503 only when the backing API was configured but the check failed. The page must render all three states either way.",
+    "Caching: the response must not be cached or prerendered. Use Cache-Control: no-store and make the route dynamic under Next 16 conventions; check node_modules/next/dist/docs before implementing.",
+    "Security: only the agreed fields are returned. No Supabase URL or key, no raw process.env dump, no stack traces. Non-NEXT_PUBLIC env vars are read on the server only.",
+    "Testability: availability, environment and version logic lives in a pure helper importable by Vitest. Mock mode never makes network calls. In tests the Supabase client is injected or mocked.",
+    "Mock mode detection reuses the existing rule: NEXT_PUBLIC_SUPABASE_URL missing or equal to 'https://<project-ref>.supabase.co'.",
+    "Routing: /status and /api/status stay public and are not added to rutaProtegida in lib/supabase/proxy.ts."
+  ],
+  "risks": [
+    "Environment and version may be frozen at build time if the route or page is statically prerendered. Deployments would then show stale values. This must be checked in build output.",
+    "There are no existing Route Handler tests in the repo. The jsdom default environment may not fit Request/Response usage, so a per-file node environment pragma may be needed.",
+    "Env stubs can leak between tests because modules cache values at import time (lib/supabase/proxy.ts evaluates SUPABASE_DISPONIBLE at module load). Tests need vi.resetModules and dynamic imports.",
+    "An availability check that calls Supabase on every request adds latency and load. proxy.ts already calls auth.getUser() on each request, so the status route pays that cost twice. A timeout and a cheap probe are needed.",
+    "Reporting the version through process.env.npm_package_version is unreliable on Vercel. Prefer importing package.json on the server or using VERCEL_GIT_COMMIT_SHA.",
+    "Preview and Production behavior (VERCEL_ENV) cannot be fully verified locally and needs a manual post-deploy check.",
+    "The workspace contains a nested duplicate tree under resuelvelo/ (app, tests, vitest.config.ts, proxy.ts). Workers could edit the wrong copy, and lint or typecheck could pick it up. The orchestrator should state that only root paths are in scope.",
+    "Exposing the environment and version publicly gives minor fingerprinting information. Product should confirm this is acceptable for a public page.",
+    "Only one process may use .next/ (dev, typecheck, build) at a time. QA's verify run must not overlap with other workers' builds."
+  ],
+  "tests": [
+    "Unit: resolveEnvironment(). VERCEL_ENV 'production', 'preview' and 'development' map to themselves. Without VERCEL_ENV, NODE_ENV 'production', 'development' and 'test' are normalized. Missing or unsupported values give 'unknown'.",
+    "Unit: version resolution. It returns the package.json version (currently 0.1.0) or the agreed SHA format, and falls back to 'unknown' when the source is missing.",
+    "Unit: availability in mock mode. With NEXT_PUBLIC_SUPABASE_URL stubbed to the placeholder, the result is { available: true, mode: 'mock' } or the agreed equivalent, with no network call (assert the mocked client or fetch was not called).",
+    "Unit: availability with a mocked Supabase client. Success gives available, error gives unavailable, and timeout gives unavailable within the agreed limit.",
+    "Contract: GET handler in mock mode returns 200, JSON content type, a Cache-Control no-store header, and exactly the agreed keys.",
+    "Contract: GET handler with a simulated backend failure returns the agreed status code (503 proposed) and status 'down'.",
+    "Contract/security: the response body does not contain the Supabase URL, the anon key, or any other env var names or values.",
+    "Contract: timestamp is valid ISO 8601 and close to the current time.",
+    "Component: the status view renders the available, degraded, unavailable and mock states with text labels, version and environment, and an accessible status indicator that does not rely only on color.",
+    "Regression: the existing suites carrito.test.ts, mock.test.ts, data-fallback.test.ts and tipos.test.ts still pass unchanged.",
+    "Regression: anonymous requests to /status and /api/status are not redirected by updateSession, while /admin, /proveedor and /mis-cotizaciones keep their redirects. This can be a unit test of lib/supabase/proxy.ts with a mocked createServerClient, if approved.",
+    "Gates: npm run verify passes once in full (docs, tooling, test, lint, typecheck, build), and the build output shows /api/status as dynamic.",
+    "Manual: browser pass of /status in mock mode, plus a post-deploy check of the environment and version values on Preview and Production."
+  ],
+  "questions_or_unknowns": [
+    "What does 'API availability' mean: the app's own route responding, a Supabase connectivity probe, or both? And what counts as 'degraded'?",
+    "Should 'backend version' be package.json version, the git commit SHA (VERCEL_GIT_COMMIT_SHA), or both?",
+    "Which environment source is authoritative: VERCEL_ENV, NODE_ENV, or a new APP_ENV variable? And what should local dev and mock mode show?",
+    "Should mock mode (no Supabase configured) report as available, degraded or a separate 'mock' state? And with which HTTP code?",
+    "Should the endpoint return 503 on outage, or always 200 with a status field? External uptime monitors usually prefer 503.",
+    "What are the route paths? /status and /api/status are assumed. Should the page be linked from the Footer or Navbar?",
+    "Is the page fully public, or should version and environment details be hidden in production?",
+    "Should the page auto-refresh or offer a manual refresh? That decides whether client-side tests with fake timers are needed.",
+    "Should the docs live in the existing README and PROJECT_GUIDE, or in a new indexed doc under docs/?",
+    "Is the nested resuelvelo/ directory intentional? Confirm it is out of scope for all workers."
+  ]
+}
+
+## Repository structure
+
+.codex/config.toml
+.cursor/agents/debugger.md
+.cursor/agents/verifier.md
+.cursor/agents/worker-primary.md
+.cursor/agents/worker-secondary.md
+.cursor/mcp.json
+.cursor/rules/orchestration.mdc
+.cursor/rules/project-engineering.mdc
+.env.example
+.gitignore
+.mcp.json
+.orchestrator/config.yaml
+AGENTS.md
+CLAUDE.md
+LICENSE
+README.md
+app/(auth)/actions.ts
+app/(auth)/actualizar-password/page.tsx
+app/(auth)/login/page.tsx
+app/(auth)/recuperar/page.tsx
+app/(auth)/register/page.tsx
+app/(marketplace)/admin/ToggleActivoButton.tsx
+app/(marketplace)/admin/actions.ts
+app/(marketplace)/admin/page.tsx
+app/(marketplace)/catalogo/page.tsx
+app/(marketplace)/cotizaciones/actions.ts
+app/(marketplace)/mis-cotizaciones/page.tsx
+app/(marketplace)/proveedor/actions.ts
+app/(marketplace)/proveedor/page.tsx
+app/(marketplace)/proveedor/pedidos/page.tsx
+app/(marketplace)/proveedor/productos/[id]/editar/page.tsx
+app/(marketplace)/proveedor/productos/nuevo/page.tsx
+app/(marketplace)/proveedores/page.tsx
+app/apple-icon.png
+app/como-funciona/page.tsx
+app/favicon.ico
+app/globals.css
+app/icon.png
+app/layout.tsx
+app/not-found.tsx
+app/page.tsx
+app/privacidad/page.tsx
+app/terminos/page.tsx
+components.json
+components/layout/Footer.tsx
+components/layout/Logo.tsx
+components/layout/Navbar.tsx
+components/layout/NavbarClient.tsx
+components/marketplace/CarritoDrawer.tsx
+components/marketplace/CatalogoFiltros.tsx
+components/marketplace/EliminarProductoButton.tsx
+components/marketplace/LimpiarCarritoEnEnviada.tsx
+components/marketplace/ProductoCard.tsx
+components/marketplace/ProductoForm.tsx
+components/marketplace/ResponderCotizacionButton.tsx
+components/marketplace/ToggleProductoButton.tsx
+components/ui/button.tsx
+docs/DOCUMENTO-FINAL.md
+docs/EVIDENCIAS-IMPLEMENTACION.md
+docs/PROYECTO-FINAL.md
+docs/ROADMAP.md
+docs/SEMINARIO-II-GESTION-PROYECTOS.md
+docs/engineering/CURSOR_ORCHESTRATION.md
+docs/engineering/PROJECT_GUIDE.md
+docs/engineering/VERIFICATION.md
+docs/history/.gitignore
+docs/history/README.md
+docs/history/verification.jsonl
+docs/implementation-plans/.gitkeep
+docs/implementation-plans/2026-09-26-version-final-seminario-ii.md
+docs/implementation-plans/2026-10-01-herramientas-compartidas.md
+docs/index/MASTER_INDEX.md
+docs/screenshots/01-home.png
+docs/screenshots/02-catalogo.png
+docs/screenshots/03-carrito.png
+docs/screenshots/04-mis-cotizaciones.png
+docs/screenshots/05-proveedor-pedidos.png
+docs/screenshots/06-proveedor-dashboard.png
+eslint.config.mjs
+lib/data.ts
+lib/mock.ts
+lib/store/carrito.ts
+lib/supabase/client.ts
+lib/supabase/proxy.ts
+lib/supabase/server.ts
+lib/utils.ts
+next.config.ts
+package-lock.json
+package.json
+postcss.config.mjs
+proxy.ts
+public/file.svg
+public/globe.svg
+public/logo.png
+public/next.svg
+public/vercel.svg
+public/window.svg
+resuelvelo
+scripts/check-docs.mjs
+scripts/tests/tooling.test.mjs
+scripts/verify.mjs
+supabase/schema.sql
+supabase/seed.sql
+tests/carrito.test.ts
+tests/data-fallback.test.ts
+tests/mock.test.ts
+tests/setup.ts
+tests/tipos.test.ts
+tsconfig.json
+types/index.ts
+vitest.config.ts
+
+## Integration rules
+
+Workers do not merge to main. Later integration is sequential onto feature/status-page/integration. This planning step must not create branches, worktrees, or commits.
+
+2026-10-02T12:23:25.907376Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer error=\"invalid_request\", error_description=\"No access token was provided in this request\", resource_metadata=\"https://mcp.supabase.com/.well-known/oauth-protected-resource/mcp?project_ref=aczxxribccodovuosuqe&features=docs%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions\"" })
+hook: SessionStart
+hook: SessionStart Completed
+codex
+I’ll reconcile the reports into a minimal plan with one owner per task and explicit contracts. I’ll first check memory and the relevant repository guidance; this step will stay read-only.
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content docs/index/MASTER_INDEX.md' in C:\Users\HMN\resuelvelo
+ succeeded in 153ms:
+# �?ndice de documentaci��n
+
+Elige el tema y consulta solo su secci��n relevante. Las gu��as de trabajo son la referencia operativa; los documentos acadǸmicos y planes anteriores conservan su contexto hist��rico.
+
+## Entradas de los asistentes
+
+| Documento | Cuǭndo consultarlo |
+|---|---|
+| [AGENTS.md](../../AGENTS.md) | Acuerdos comunes, l��mites de arquitectura y controles. |
+| [CLAUDE.md](../../CLAUDE.md) | Entrada de Claude Code; importa AGENTS.md. |
+| [Regla de ingenier��a de Cursor](../../.cursor/rules/project-engineering.mdc) | Adaptador hacia las mismas gu��as. |
+| [Regla de orquestaci��n de Cursor](../../.cursor/rules/orchestration.mdc) | Entrada al protocolo existente del agente principal. |
+
+## Desarrollo y verificaci��n
+
+| Documento | Cuǭndo consultarlo |
+|---|---|
+| [README](../../README.md) | Producto, instalaci��n y comandos de puesta en marcha. |
+| [Gu��a de ingenier��a](../engineering/PROJECT_GUIDE.md) | Arquitectura, seguridad, recursos compartidos y Git. |
+| [Verificaci��n con historial](../engineering/VERIFICATION.md) | Controles, selecci��n, resultados, registros y l��mites de la evidencia. |
+| [Protocolo de Cursor](../engineering/CURSOR_ORCHESTRATION.md) | Detalle preservado del flujo existente de desarrollo con Cursor. |
+| [Historial de verificaciones](../history/README.md) | Ubicaci��n y formato de los registros. |
+
+## Producto y entregas acadǸmicas
+
+| Documento | Cuǭndo consultarlo |
+|---|---|
+| [Roadmap](../ROADMAP.md) | Fases, backlog y decisiones de producto. |
+| [Checklist de entrega](../PROYECTO-FINAL.md) | Requisitos de la entrega de Seminario I. |
+| [Documento final](../DOCUMENTO-FINAL.md) | Informe acadǸmico extenso; buscar por encabezado. |
+| [Gesti��n de proyectos](../SEMINARIO-II-GESTION-PROYECTOS.md) | Entrega de gesti��n de proyectos de Seminario II. |
+| [Evidencias de implementaci��n](../EVIDENCIAS-IMPLEMENTACION.md) | Verificaciones hist��ricas de la entrega. |
+
+## Planes de implementaci��n
+
+| Plan | Alcance |
+|---|---|
+| [Versi��n final de Seminario II](../implementation-plans/2026-09-26-version-final-seminario-ii.md) | Alcance aprobado de la entrega anterior. |
+| [Herramientas compartidas](../implementation-plans/2026-10-01-herramientas-compartidas.md) | Gu��as comunes, ��ndice y verificaci��n con historial. |
+
+Al a��adir un documento Markdown bajo `docs/`, a��ade su enlace aqu��. `npm run docs:check` comprueba cobertura, enlaces locales de estas entradas y el tama��o de las instrucciones cargadas siempre.
+
+2026-10-02T12:23:46.536378Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (http://100.94.56.57:8765/mcp)")))
+2026-10-02T12:23:46.536573Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (http://100.94.56.57:8100/mcp/)")))
+codex
+The memory tools are unavailable, so I’ll continue without persistent memory. The main conflicts are whether availability includes Supabase, whether the page calls the endpoint, and which version source to use. I’ll resolve these with explicit contracts and separate test ownership.
+
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg --files node_modules/next/dist/docs | rg 'route-handlers|fetching|server-and-client|caching|proxy|route-segment-config'" in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short; Get-Item -LiteralPath resuelvelo | Select-Object FullName, Mode, LinkType, Target' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -Encoding UTF8 package.json, lib/supabase/proxy.ts, proxy.ts, vitest.config.ts, tests/setup.ts, .env.example' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n '"'^#{1,4} |Route Handler|server-only|lib/|entorno|prueba|API|proxy|Git|recursos|variable'"' docs/engineering/PROJECT_GUIDE.md docs/engineering/VERIFICATION.md" in C:\Users\HMN\resuelvelo
+ succeeded in 265ms:
+docs/engineering/PROJECT_GUIDE.md:1:# Guía de ingeniería
+docs/engineering/PROJECT_GUIDE.md:5:## Architecture
+docs/engineering/PROJECT_GUIDE.md:9:- The data boundary is `lib/data.ts`: catalog and quote reads go through Supabase, with an automatic fallback to `lib/mock.ts` when `NEXT_PUBLIC_SUPABASE_URL` is missing or still the example placeholder. Do not query Supabase from components.
+docs/engineering/PROJECT_GUIDE.md:10:- `lib/supabase/client.ts`, `lib/supabase/server.ts`, and `lib/supabase/proxy.ts` are clients only.
+docs/engineering/PROJECT_GUIDE.md:11:- The cart is client-only Zustand in `lib/store/carrito.ts`, persisted in `localStorage`.
+docs/engineering/PROJECT_GUIDE.md:16:## Gate commands
+docs/engineering/PROJECT_GUIDE.md:28:## Shared resources
+docs/engineering/PROJECT_GUIDE.md:43:## Git
+docs/engineering/VERIFICATION.md:1:# Verificación con historial
+docs/engineering/VERIFICATION.md:3:## Ejecutar controles
+docs/engineering/VERIFICATION.md:25:También puedes ejecutar esos comandos individualmente; solo el ejecutor `verify` añade su resultado al historial. No reemplaza pruebas de navegador para cambios de interfaz ni valida RLS contra una base remota.
+docs/engineering/VERIFICATION.md:27:## Resultados y evidencia
+docs/engineering/VERIFICATION.md:29:Cada ejecución terminada añade una línea JSON a `docs/history/verification.jsonl`: identificador, fecha UTC, equipo, versión de Node/npm, commit, estado de Git, huella SHA-256 de los archivos de entrada, selección, duración y resultado de cada control. Los logs completos quedan en `docs/history/logs/<id>/` y se excluyen de Git; el resumen versionable no incluye su contenido.
+docs/engineering/VERIFICATION.md:36:La huella cubre fuentes, activos públicos, pruebas, scripts, guías e instrucciones comunes y configuraciones públicas del proyecto, también en carpetas adicionales que los patrones de TypeScript puedan incluir. Excluye `.next/`, el propio historial, dependencias instaladas, archivos generados y credenciales. El commit por sí solo no identifica cambios sin commit; la huella de contenido sí distingue dos ediciones del mismo archivo. No se reutilizan pases automáticamente y no se leen variables ni archivos de secretos para construir el registro.
+docs/engineering/VERIFICATION.md:38:## Exclusión y recuperación
+docs/engineering/VERIFICATION.md:44:## Mantener la documentación ligera
+
+ succeeded in 390ms:
+node_modules/next/dist/docs\02-pages\04-api-reference\02-file-conventions\proxy.md
+node_modules/next/dist/docs\02-pages\02-guides\ci-build-caching.md
+node_modules/next/dist/docs\01-app\02-guides\ci-build-caching.md
+node_modules/next/dist/docs\01-app\02-guides\cdn-caching.md
+node_modules/next/dist/docs\01-app\02-guides\caching-without-cache-components.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\proxy.md
+node_modules/next/dist/docs\02-pages\04-api-reference\04-config\01-next-config-js\proxyClientMaxBodySize.md
+node_modules/next/dist/docs\01-app\02-guides\prefetching.md
+node_modules/next/dist/docs\01-app\01-getting-started\06-fetching-data.md
+node_modules/next/dist/docs\01-app\01-getting-started\05-server-and-client-components.md
+node_modules/next/dist/docs\01-app\01-getting-started\08-caching.md
+node_modules/next/dist/docs\01-app\01-getting-started\15-route-handlers.md
+node_modules/next/dist/docs\01-app\01-getting-started\16-proxy.md
+node_modules/next/dist/docs\02-pages\03-building-your-application\03-data-fetching\index.md
+node_modules/next/dist/docs\02-pages\03-building-your-application\03-data-fetching\05-client-side.md
+node_modules/next/dist/docs\02-pages\03-building-your-application\03-data-fetching\03-get-server-side-props.md
+node_modules/next/dist/docs\02-pages\03-building-your-application\03-data-fetching\02-get-static-paths.md
+node_modules/next/dist/docs\02-pages\03-building-your-application\03-data-fetching\01-get-static-props.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\instant.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\index.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\dynamicParams.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\maxDuration.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\preferredRegion.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\runtime.md
+node_modules/next/dist/docs\01-app\03-api-reference\05-config\01-next-config-js\proxyClientMaxBodySize.md
+
+ succeeded in 397ms:
+{
+  "name": "resuelvelo_app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "next typegen && tsc --noEmit",
+    "docs:check": "node scripts/check-docs.mjs",
+    "test:tooling": "node --test scripts/tests",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.5.0",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.107.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.17.0",
+    "next": "^16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "shadcn": "^4.10.0",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16.2.9",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.9"
+  }
+}
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+const SUPABASE_DISPONIBLE =
+  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://<project-ref>.supabase.co'
+
+function coincidePrefijo(pathname: string, prefijo: string) {
+  return pathname === prefijo || pathname.startsWith(`${prefijo}/`)
+}
+
+function rutaProtegida(pathname: string) {
+  return (
+    coincidePrefijo(pathname, '/admin') ||
+    coincidePrefijo(pathname, '/proveedor') ||
+    coincidePrefijo(pathname, '/mis-cotizaciones')
+  )
+}
+
+type CookieToSet = {
+  name: string
+  value: string
+  options?: Parameters<NextResponse['cookies']['set']>[2]
+}
+
+function redirigirConCookies(
+  request: NextRequest,
+  cookiesToSet: CookieToSet[],
+  destino: '/login' | '/catalogo'
+) {
+  const redirectResponse = NextResponse.redirect(new URL(destino, request.url))
+  cookiesToSet.forEach(({ name, value, options }) =>
+    redirectResponse.cookies.set(name, value, options)
+  )
+  return redirectResponse
+}
+
+export async function updateSession(request: NextRequest) {
+  if (!SUPABASE_DISPONIBLE) {
+    return NextResponse.next({ request })
+  }
+
+  let supabaseResponse = NextResponse.next({ request })
+  let cookiesRefrescadas: CookieToSet[] = []
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesRefrescadas = cookiesToSet
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+
+  if (!rutaProtegida(pathname)) {
+    return supabaseResponse
+  }
+
+  if (!user) {
+    return redirigirConCookies(request, cookiesRefrescadas, '/login')
+  }
+
+  if (coincidePrefijo(pathname, '/mis-cotizaciones')) {
+    return supabaseResponse
+  }
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('rol')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const rol = error || !profile?.rol ? null : profile.rol
+
+  if (coincidePrefijo(pathname, '/admin') && rol !== 'admin') {
+    return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
+  }
+
+  if (coincidePrefijo(pathname, '/proveedor') && rol !== 'proveedor') {
+    return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
+  }
+
+  return supabaseResponse
+}
+import { type NextRequest } from 'next/server'
+import { updateSession } from '@/lib/supabase/proxy'
+
+export async function proxy(request: NextRequest) {
+  return await updateSession(request)
+}
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}
+import { defineConfig } from 'vitest/config'
+import path from 'path'
+
+export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./tests/setup.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+    },
+  },
+})
+import '@testing-library/jest-dom'
+# Resu�lvelo - Variables de entorno
+# Copiar este archivo como .env.local y completar con los valores reales.
+# Obtener en: https://supabase.com  Project Settings  API
+#
+# Local y Vercel Preview  proyecto Supabase de DESARROLLO
+# Vercel Production       proyecto Supabase de PRODUCCI�N
+# Los nombres son los mismos; en Vercel se separan por entorno
+# (Settings  Environment Variables  Production / Preview).
+# NUNCA commitear valores reales ni cadenas de conexi�n con contrase�a.
+
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-key>
+
+# URL p�blica de la app (sin slash final)
+# Local:      http://localhost:3000
+# Preview:    https://resuelvelo-dev.vercel.app
+# Production: https://resuelvelo.vercel.app
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Solo para la CLI de Supabase (migraciones). Va en .env.local, nunca en Vercel.
+# DIRECT_CONN_STRING=postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres
+
+ succeeded in 452ms:
+?? .orchestrator/features/
+
+FullName                           Mode   LinkType Target
+--------                           ----   -------- ------
+C:\Users\HMN\resuelvelo\resuelvelo d-----          {}    
+
+
+
+2026-10-02T12:23:55.497950Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (http://100.94.56.57:8765/mcp)")))
+2026-10-02T12:23:55.497967Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when Client(HttpRequest(HttpRequest("http/request failed: error sending request for url (http://100.94.56.57:8100/mcp/)")))
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+2026-10-02T12:24:03.782942Z ERROR codex_core::tools::router: error=Command blocked by PreToolUse hook: [hook diet_guard] El comando recorre node_modules, .next o un lockfile sin acotar la salida. Usa Grep/Glob o añade head/Select-Object -First. Si de verdad necesitas el archivo entero, repite la misma llamada.. Command: Get-Content -Encoding UTF8 node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md; rg -n -C 4 'not cached|dynamic|Date|process.env|Request|matcher|NextResponse.next|server-only|cache' node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Blocked
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -Encoding UTF8 docs/engineering/PROJECT_GUIDE.md, docs/engineering/VERIFICATION.md' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -Encoding UTF8 app/layout.tsx, components/layout/Navbar.tsx, components/layout/Footer.tsx, next.config.ts, types/index.ts, tsconfig.json' in C:\Users\HMN\resuelvelo
+ succeeded in 177ms:
+# Gu�a de ingenier�a
+
+Resu�lvelo is a B2B marketplace (Next.js 16 App Router, React 19, TypeScript, Tailwind v4, shadcn/ui, Supabase, Zustand, Vitest). This Next.js version differs from training data. Before writing Next.js code, read the relevant guide in `node_modules/next/dist/docs/` and heed deprecation notices.
+
+## Architecture
+
+- Transport and UI live in `app/` (routes, layouts, Server Actions) and `components/` (`layout/`, `marketplace/`, `ui/`).
+- Domain types live in `types/index.ts`.
+- The data boundary is `lib/data.ts`: catalog and quote reads go through Supabase, with an automatic fallback to `lib/mock.ts` when `NEXT_PUBLIC_SUPABASE_URL` is missing or still the example placeholder. Do not query Supabase from components.
+- `lib/supabase/client.ts`, `lib/supabase/server.ts`, and `lib/supabase/proxy.ts` are clients only.
+- The cart is client-only Zustand in `lib/store/carrito.ts`, persisted in `localStorage`.
+- Quote creation resolves provider and price on the server. Never trust prices or provider ids sent by the client.
+- Authorization is Postgres Row Level Security in `supabase/schema.sql`. UI checks are not the authorization layer.
+- Buyer flows: `app/(marketplace)/` catalog, cart, quotes. Provider flows: `app/(marketplace)/proveedor/`. Auth: `app/(auth)/`.
+
+## Gate commands
+
+| Command | What it checks | Shared state |
+|---|---|---|
+| `npm run test` | Vitest unit tests (`tests/`). Local only; no Supabase. | Does not mutate shared remote state. |
+| `npm run lint` | ESLint. | Local. |
+| `npm run typecheck` | Generates Next.js route types and checks TypeScript. | Writes `*.tsbuildinfo` (gitignored). |
+| `npm run build` | Production Next.js build. | Writes `.next/`. |
+| `npm run dev` | Dev server on port 3000. | Binds port 3000. |
+
+A skipped test is not a pass. Do not claim a command passed unless you ran it and saw it pass.
+
+## Shared resources
+
+Parallel workers share this checkout. In one fan-out, assign each of these to at most one worker:
+
+- `npm run dev` (port 3000)
+- `npm run build` and `npm run typecheck` (they write compiler output)
+- Applying `supabase/schema.sql` or `supabase/seed.sql` (one shared Supabase project)
+- `npx vercel deploy` (production)
+
+`npm run test` and `npm run lint` do not touch Supabase. Still do not run two copies of the same gate at once on this checkout.
+
+Do not add npm dependencies unless the approved plan includes them. Do not commit `.env`, `.env.local`, or any secret. `.env.example` is the only env file that belongs in git.
+
+UI, layout, routing, client state, or rendered-data changes need a browser pass of the affected flow before the work is called complete. If no browser is available, use the closest substitute (`npm run test`, or a request against the dev server) and say what was not verified.
+
+## Git
+
+Do not commit, push, or amend unless the user explicitly asks.
+
+While the tree has uncommitted work, these commands are forbidden: `git reset --hard`, `git checkout --`, `git clean`, `git rebase`, and `git push --force`.
+
+An isolated worktree is built from committed history. Uncommitted files are not in that history.
+# Verificaci�n con historial
+
+## Ejecutar controles
+
+Desde la ra�z del repositorio:
+
+```sh
+npm run verify
+npm run verify -- --quick
+npm run verify -- --only docs,test
+npm run verify -- --history
+```
+
+La ejecuci�n completa corre `docs`, `tooling`, `test`, `lint`, `typecheck` y `build`, en ese orden. La r�pida omite `build`; `--only` permite elegir controles por esos nombres, manteniendo el orden del inventario. La selecci�n queda registrada: una ejecuci�n parcial no equivale a la completa.
+
+| Control | Comando | L�mite de tiempo |
+|---|---|---|
+| docs | `npm run docs:check` | 30 segundos |
+| tooling | `npm run test:tooling` | 60 segundos |
+| test | `npm run test` | 120 segundos |
+| lint | `npm run lint` | 120 segundos |
+| typecheck | `npm run typecheck` | 180 segundos |
+| build | `npm run build` | 300 segundos |
+
+Tambi�n puedes ejecutar esos comandos individualmente; solo el ejecutor `verify` a�ade su resultado al historial. No reemplaza pruebas de navegador para cambios de interfaz ni valida RLS contra una base remota.
+
+## Resultados y evidencia
+
+Cada ejecuci�n terminada a�ade una l�nea JSON a `docs/history/verification.jsonl`: identificador, fecha UTC, equipo, versi�n de Node/npm, commit, estado de Git, huella SHA-256 de los archivos de entrada, selecci�n, duraci�n y resultado de cada control. Los logs completos quedan en `docs/history/logs/<id>/` y se excluyen de Git; el resumen versionable no incluye su contenido.
+
+- `PASS`: todos los controles seleccionados terminaron con salida cero y las entradas no cambiaron durante la ejecuci�n.
+- `FAIL`: un control fall�, no pudo iniciarse o agot� su tiempo. Los controles posteriores figuran como `SKIPPED`, nunca como pases.
+- `INVALIDATED`: los archivos de entrada cambiaron durante una ejecuci�n que habr�a pasado; vuelve a ejecutar los controles sobre el estado final.
+- Una invocaci�n inv�lida o bloqueada por otro ejecutor termina con salida no cero antes de empezar; no genera un resultado de controles.
+
+La huella cubre fuentes, activos p�blicos, pruebas, scripts, gu�as e instrucciones comunes y configuraciones p�blicas del proyecto, tambi�n en carpetas adicionales que los patrones de TypeScript puedan incluir. Excluye `.next/`, el propio historial, dependencias instaladas, archivos generados y credenciales. El commit por s� solo no identifica cambios sin commit; la huella de contenido s� distingue dos ediciones del mismo archivo. No se reutilizan pases autom�ticamente y no se leen variables ni archivos de secretos para construir el registro.
+
+## Exclusi�n y recuperaci�n
+
+El ejecutor usa `docs/history/verify.lock` para impedir dos ejecuciones simult�neas y libera su propio bloqueo al terminar. Esta exclusi�n solo cubre `verify`: coordina tambi�n los comandos individuales, servidores y builds de otros asistentes. Si un proceso se interrumpe abruptamente y deja el bloqueo, confirma que el PID indicado ya no corre antes de retirar ese archivo exacto.
+
+Los controles fallidos imprimen un extracto breve; consulta el log indicado para el detalle. Ning�n control de este inventario aplica SQL remoto, crea commits, hace push o despliega. Next.js puede necesitar red para descargar fuentes durante el build; una restricci�n de red se registra como fallo, no como un pase.
+
+## Mantener la documentaci�n ligera
+
+`npm run docs:check` valida los enlaces de las entradas, las gu�as operativas y el �ndice; exige que todos los documentos Markdown bajo `docs/` est�n indexados (excepto el �ndice mismo y logs). Sus presupuestos locales son 120 l�neas/8 KB para `AGENTS.md`, 512 bytes para `CLAUDE.md` y 1.5 KB por adaptador de Cursor. Son l�mites de mantenimiento del proyecto, no una estimaci�n de tokens ni un l�mite del producto.
+
+Ver tambi�n: [gu�a de ingenier�a](PROJECT_GUIDE.md), [�ndice](../index/MASTER_INDEX.md), [historial](../history/README.md).
+
+ succeeded in 245ms:
+import type { Metadata } from 'next'
+import { Geist } from 'next/font/google'
+import './globals.css'
+import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
+
+const geist = Geist({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'Resu�lvelo - Marketplace de Proveedores',
+  description: 'Conectamos compradores profesionales con proveedores de materiales e insumos en Rep�blica Dominicana.',
+  applicationName: 'Resu�lvelo',
+  icons: {
+    icon: [{ url: '/logo.png', type: 'image/png' }],
+    apple: [{ url: '/logo.png', type: 'image/png' }],
+  },
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="es">
+      <body
+        suppressHydrationWarning
+        className={`${geist.className} flex min-h-screen flex-col bg-gray-50 antialiased`}
+      >
+        <Navbar />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </body>
+    </html>
+  )
+}
+import { createClient } from '@/lib/supabase/server'
+import NavbarClient from './NavbarClient'
+
+export default async function Navbar() {
+  let usuario: { nombre: string; rol: string } | null = null
+
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nombre, rol')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        usuario = { nombre: profile.nombre, rol: profile.rol }
+      }
+    }
+  } catch {
+    // Sin credenciales de Supabase - modo mock
+  }
+
+  return <NavbarClient usuario={usuario} />
+}
+import Link from 'next/link'
+import Logo from '@/components/layout/Logo'
+
+export default function Footer() {
+  return (
+    <footer className="border-t bg-gray-50 mt-auto">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+          {/* Brand */}
+          <div className="col-span-2 md:col-span-1">
+            <Link href="/" className="flex items-center gap-2">
+              <Logo size={28} />
+              <span className="font-bold text-gray-900">
+                Resu�l<span className="text-orange-500">velo</span>
+              </span>
+            </Link>
+            <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+              El marketplace B2B que conecta compradores con proveedores de materiales e insumos en Rep�blica Dominicana.
+            </p>
+          </div>
+
+          {/* Compradores */}
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-700">Compradores</h3>
+            <ul className="mt-3 space-y-2 text-sm text-gray-500">
+              <li><Link href="/catalogo" className="hover:text-orange-500">Cat�logo</Link></li>
+              <li><Link href="/proveedores" className="hover:text-orange-500">Proveedores</Link></li>
+              <li><Link href="/como-funciona" className="hover:text-orange-500">�C�mo funciona?</Link></li>
+            </ul>
+          </div>
+
+          {/* Proveedores */}
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-700">Proveedores</h3>
+            <ul className="mt-3 space-y-2 text-sm text-gray-500">
+              <li><Link href="/register?rol=proveedor" className="hover:text-orange-500">Publicar productos</Link></li>
+              <li><Link href="/proveedor" className="hover:text-orange-500">Panel de gesti�n</Link></li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-700">Legal</h3>
+            <ul className="mt-3 space-y-2 text-sm text-gray-500">
+              <li><Link href="/terminos" className="hover:text-orange-500">T�rminos de uso</Link></li>
+              <li><Link href="/privacidad" className="hover:text-orange-500">Privacidad</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className="mt-8 border-t pt-6 text-center text-xs text-gray-400">
+          � {new Date().getFullYear()} Resu�lvelo. Todos los derechos reservados.
+        </div>
+      </div>
+    </footer>
+  )
+}
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    // Force project root to avoid incorrect root inference in nested/workspace setups.
+    root: process.cwd(),
+  },
+};
+
+export default nextConfig;
+export type UserRole = 'comprador' | 'proveedor' | 'admin'
+
+export interface Profile {
+  id: string
+  email: string
+  nombre: string
+  rol: UserRole
+  telefono?: string
+  avatar_url?: string
+  created_at: string
+}
+
+export interface Proveedor {
+  id: string
+  user_id: string
+  nombre_empresa: string
+  descripcion?: string
+  direccion?: string
+  ciudad?: string
+  logo_url?: string
+  verificado: boolean
+  created_at: string
+}
+
+export interface Categoria {
+  id: string
+  nombre: string
+  slug: string
+  icono?: string
+}
+
+export interface Producto {
+  id: string
+  proveedor_id: string
+  categoria_id: string
+  nombre: string
+  descripcion?: string
+  precio: number
+  unidad: string
+  stock: number
+  imagen_url?: string
+  activo: boolean
+  created_at: string
+  proveedor?: Proveedor
+  categoria?: Categoria
+}
+
+export interface ItemCarrito {
+  producto: Producto
+  cantidad: number
+}
+
+export interface Cotizacion {
+  id: string
+  comprador_id: string
+  proveedor_id: string
+  estado: 'pendiente' | 'respondida' | 'aceptada' | 'rechazada'
+  mensaje?: string
+  total_estimado?: number
+  created_at: string
+  items?: ItemCotizacion[]
+}
+
+export interface ItemCotizacion {
+  id: string
+  cotizacion_id: string
+  producto_id: string
+  cantidad: number
+  precio_unitario?: number
+  producto?: Producto
+}
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n -m 12 -C 3 'Caching|cached|dynamic|Date|request|process.env|server-only|matcher|NextResponse.next' node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md | Select-Object -First 190" in C:\Users\HMN\resuelvelo
+ succeeded in 342ms:
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-4-related:
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-5-  title: Learn more about Proxy
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-6-  links:
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:7:    - app/api-reference/functions/next-request
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-8-    - app/api-reference/functions/next-response
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-9----
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-10-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-11-> **Note**: The `middleware` file convention is deprecated and has been renamed to `proxy`. See [Migration to Proxy](#migration-to-proxy) for more details.
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-12-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:13:The `proxy.js|ts` file is used to write [Proxy](/docs/app/getting-started/proxy) and run code on the server before a request is completed. Then, based on the incoming request, you can modify the response by rewriting, redirecting, modifying the request or response headers, or responding directly.
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-14-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-15-Proxy executes before routes are rendered. It's particularly useful for implementing custom server-side logic like authentication, logging, or handling redirects.
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-16-
+--
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-29-import type { NextRequest } from 'next/server'
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-30-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-31-// This function can be marked `async` if using `await` inside
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:32:export function proxy(request: NextRequest) {
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:33:  return NextResponse.redirect(new URL('/home', request.url))
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-34-}
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-35-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-36-export const config = {
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:37:  matcher: '/about/:path*',
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-38-}
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-39-```
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-40-
+--
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-42-import { NextResponse } from 'next/server'
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-43-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-44-// This function can be marked `async` if using `await` inside
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:45:export function proxy(request) {
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:46:  return NextResponse.redirect(new URL('/home', request.url))
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-47-}
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-48-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-49-export const config = {
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:50:  matcher: '/about/:path*',
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-51-}
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-52-```
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-53-
+--
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-59-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-60-```js filename="proxy.js"
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-61-// Example of default export
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:62:export default function proxy(request) {
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-63-  // Proxy logic
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-64-}
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-65-```
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-66-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-67-### Config object (optional)
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-68-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:69:Optionally, a config object can be exported alongside the Proxy function. This object includes the [matcher](#matcher) to specify paths where the Proxy applies.
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-70-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-71-### Matcher
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-72-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:73:The `matcher` option allows you to target specific paths for the Proxy to run on.
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-74-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md:75:Without a `matcher`, Proxy runs on **every request**, including static files (`_next/static`), image optimizations (`_next/image`), and assets in the `public/` folder. Consider using a [negative match pattern](#negative-matching) to exclude these paths, otherwise auth logic or redirects can unintentionally block CSS, JS, or images from loading.
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-76-
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-77-You can specify paths in several ways:
+node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md-78-
+--
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-12-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-13-## Route Handlers
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-14-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:15:Route Handlers allow you to create custom request handlers for a given route using the Web [Request](https://developer.mozilla.org/docs/Web/API/Request) and [Response](https://developer.mozilla.org/docs/Web/API/Response) APIs.
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-16-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-17-<Image
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-18-  alt="Route.js Special File"
+--
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-29-Route Handlers are defined in a [`route.js|ts` file](/docs/app/api-reference/file-conventions/route) inside the `app` directory:
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-30-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-31-```ts filename="app/api/route.ts" switcher
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:32:export async function GET(request: Request) {}
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-33-```
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-34-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-35-```js filename="app/api/route.js" switcher
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:36:export async function GET(request) {}
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-37-```
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-38-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-39-Route Handlers can be nested anywhere inside the `app` directory, similar to `page.js` and `layout.js`. But there **cannot** be a `route.js` file at the same route segment level as `page.js`.
+--
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-44-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-45-### Extended `NextRequest` and `NextResponse` APIs
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-46-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:47:In addition to supporting the native [Request](https://developer.mozilla.org/docs/Web/API/Request) and [Response](https://developer.mozilla.org/docs/Web/API/Response) APIs, Next.js extends them with [`NextRequest`](/docs/app/api-reference/functions/next-request) and [`NextResponse`](/docs/app/api-reference/functions/next-response) to provide convenient helpers for advanced use cases.
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-48-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:49:### Caching
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-50-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:51:Route Handlers are not cached by default. You can, however, opt into caching for `GET` methods. Other supported HTTP methods are **not** cached. To cache a `GET` method, use a [route config option](/docs/app/guides/caching-without-cache-components#dynamic) such as `export const dynamic = 'force-static'` in your Route Handler file.
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-52-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-53-```ts filename="app/items/route.ts" switcher
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:54:export const dynamic = 'force-static'
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-55-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-56-export async function GET() {
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-57-  const res = await fetch('https://data.mongodb-api.com/...', {
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-58-    headers: {
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-59-      'Content-Type': 'application/json',
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:60:      'API-Key': process.env.DATA_API_KEY,
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-61-    },
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-62-  })
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-63-  const data = await res.json()
+--
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-67-```
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-68-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-69-```js filename="app/items/route.js" switcher
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:70:export const dynamic = 'force-static'
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-71-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-72-export async function GET() {
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-73-  const res = await fetch('https://data.mongodb-api.com/...', {
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-74-    headers: {
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-75-      'Content-Type': 'application/json',
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:76:      'API-Key': process.env.DATA_API_KEY,
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-77-    },
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-78-  })
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-79-  const data = await res.json()
+--
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-82-}
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-83-```
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-84-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:85:> **Good to know**: Other supported HTTP methods are **not** cached, even if they are placed alongside a `GET` method that is cached, in the same file.
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-86-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-87-#### With Cache Components
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-88-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:89:When [Cache Components](/docs/app/getting-started/caching) is enabled, `GET` Route Handlers follow the same model as normal UI routes in your application. They run at request time by default, can be prerendered when they don't access uncached or runtime data, and you can use `use cache` to include uncached data in the static response.
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-90-
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md:91:**Static example** - doesn't access uncached or runtime data, so it will be prerendered at build time:
+node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md-92-
+--
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-128-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-129-On subsequent navigations:
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-130-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:131:- The **RSC Payload** is prefetched and cached for instant navigation.
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-132-- **Client Components** are rendered entirely on the client, without the server-rendered HTML.
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-133-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-134-## Examples
+--
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-520-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-521-### Preventing environment poisoning
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-522-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:523:JavaScript modules can be shared between both Server and Client Components modules. This means it's possible to accidentally import server-only code into the client. For example, consider the following function:
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-524-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-525-```ts filename="lib/data.ts" switcher
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-526-export async function getData() {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-527-  const res = await fetch('https://external-service.com/data', {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-528-    headers: {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:529:      authorization: process.env.API_KEY,
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-530-    },
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-531-  })
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-532-
+--
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-538-export async function getData() {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-539-  const res = await fetch('https://external-service.com/data', {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-540-    headers: {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:541:      authorization: process.env.API_KEY,
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-542-    },
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-543-  })
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-544-
+--
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-552-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-553-As a result, even though `getData()` can be imported and executed on the client, it won't work as expected.
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-554-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:555:To prevent accidental usage in Client Components, you can use the [`server-only` package](https://www.npmjs.com/package/server-only).
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-556-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:557:Then, import the package into a file that contains server-only code:
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-558-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-559-```js filename="lib/data.js"
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:560:import 'server-only'
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-561-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-562-export async function getData() {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-563-  const res = await fetch('https://external-service.com/data', {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-564-    headers: {
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:565:      authorization: process.env.API_KEY,
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-566-    },
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-567-  })
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-568-
+--
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-574-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-575-The corresponding [`client-only` package](https://www.npmjs.com/package/client-only) can be used to mark modules that contain client-only logic like code that accesses the `window` object.
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-576-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:577:In Next.js, installing `server-only` or `client-only` is **optional**. However, if your linting rules flag extraneous dependencies, you may install them to avoid issues.
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-578-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-579-```bash package="npm"
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:580:npm install server-only
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-581-```
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-582-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-583-```bash package="yarn"
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md:584:yarn add server-only
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-585-```
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-586-
+node_modules/next/dist/docs/01-app/01-getting-started/05-server-and-client-components.md-587-```bash package="pnpm"
+
+codex
+I recommend API liveness, a client fetch to `/api/status`, and `package.json` as the release version. The proxy currently calls Supabase auth before public routes, so the endpoint needs a narrow bypass. The page will use the existing layout, with its auth dependency noted as a risk.
+
+codex
+{
+  "feature": "status-page",
+  "summary": "Planning-only synthesis. Add a public API liveness endpoint and a status page using existing Next.js, React and Vitest facilities. Backend responsibilities are supplied here because the codex report contained no feature proposal. Implementation remains conditional on the approvals listed below.",
+  "architecture": "Use the existing Next.js application as the backend. GET /api/status reports whether its handler can execute, plus the package.json release version, normalized application environment and request timestamp. Availability does not include Supabase readiness; configured and mock deployments use the same liveness contract. /status consists of a server-rendered shell and one client StatusPanel that requests the actual endpoint on mount and on manual refresh. This resolves the server-helper versus client-fetch disagreement in favor of observing the API transport. Shared response types belong in types/index.ts, metadata construction in lib/status.ts, and runtime environment reads in the route handler. A narrow proxy bypass prevents /api/status and /status from invoking updateSession; the page retains the existing layout and Navbar. Add one footer link. Reuse existing documentation instead of creating another document. No separate backend service, Supabase probe, degraded state, polling, custom environment variables, migrations, dependencies or infrastructure are needed for this scope.",
+  "assignments": [
+    {
+      "agent": "claude",
+      "tasks": [
+        "INFRA-1: Review the metadata contract against existing deployment conventions and provide a runtime configuration checklist, identifying whether VERCEL_ENV is available in each intended environment. Report configuration gaps for approval."
+      ],
+      "scope": [
+        "Read-only: package.json",
+        "Read-only: .env.example",
+        "Read-only: existing deployment configuration evidence",
+        "Owns runtime metadata requirements; repository documentation is owned by cursor"
+      ],
+      "depends_on": []
+    },
+    {
+      "agent": "codex",
+      "tasks": [
+        "BE-1: Add the shared response and environment types to types/index.ts and implement pure environment resolution and response construction helpers in lib/status.ts.",
+        "BE-2: Implement GET /api/status with request-time metadata and no-store headers. Add an exact-path bypass for /status and /api/status in proxy.ts before updateSession, preserving all other routing.",
+        "BE-3: Write helper and endpoint tests covering metadata precedence, fallbacks, response shape, headers, timestamps and independence from Supabase configuration."
+      ],
+      "scope": [
+        "types/index.ts: status-related exports only",
+        "lib/status.ts",
+        "app/api/status/route.ts",
+        "proxy.ts: exact status-route bypass only",
+        "tests/status-lib.test.ts",
+        "tests/status-endpoint.test.ts"
+      ],
+      "depends_on": [
+        "INFRA-1"
+      ]
+    },
+    {
+      "agent": "antigravity",
+      "tasks": [
+        "FE-1: Implement /status and one client StatusPanel with initial loading, available and unavailable states, bounded requests and manual refresh. Add one footer link.",
+        "FE-2: Write component tests covering successful display, loading, refresh, HTTP failures, malformed responses, network failures, timeout and request cleanup."
+      ],
+      "scope": [
+        "app/status/page.tsx",
+        "components/status/StatusPanel.tsx",
+        "components/layout/Footer.tsx: status link only",
+        "tests/status-page.test.tsx"
+      ],
+      "depends_on": [
+        "BE-1"
+      ]
+    },
+    {
+      "agent": "cursor",
+      "tasks": [
+        "QA-1: Update README.md and the relevant PROJECT_GUIDE.md sections with routes, an example response, metadata sources, liveness limitations and refresh behavior.",
+        "QA-2: Write integration tests connecting the real endpoint response to the status panel through an in-process fetch adapter. Write routing regression tests for status-path bypasses and existing protected-path authorization.",
+        "QA-3: Integrate approved changes sequentially onto feature/status-page/integration and review the assembled implementation against the frozen contracts. Return defects to the responsible owner.",
+        "QA-4: Run the full verification suite serially, inspect endpoint build behavior and perform browser validation. Perform read-only Preview and Production checks when an authorized deployment containing the change is available; record pending checks explicitly."
+      ],
+      "scope": [
+        "README.md",
+        "docs/engineering/PROJECT_GUIDE.md",
+        "tests/status-integration.test.tsx",
+        "tests/status-routing.test.ts",
+        "Future integration branch: feature/status-page/integration",
+        "Exclusive verification resources: .next/, verification runner, history outputs and development port 3000",
+        "Read-only acceptance review of backend and frontend files"
+      ],
+      "depends_on": [
+        "INFRA-1",
+        "BE-3",
+        "FE-2"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "C-AVAILABILITY",
+      "description": "Availability means Next.js API liveness. A successful status request reports operational even when Supabase is absent or using mock configuration. Neither the handler nor its proxy path performs authentication, database queries or outbound probes. No degraded, mock or database-readiness state is defined.",
+      "owner": "codex",
+      "consumers": [
+        "claude",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-RESPONSE",
+      "description": "GET /api/status succeeds with HTTP 200 and application/json containing exactly { status: 'operational', version: string, environment: 'production' | 'preview' | 'development' | 'test' | 'unknown', timestamp: string }. Version is nonempty; timestamp is ISO 8601 UTC for that request. Non-2xx responses and transport failures indicate unavailability to the client; their bodies have no status-response contract. The endpoint does not manufacture a 503 outage response for an unmeasured dependency.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-METADATA",
+      "description": "Version is the trimmed root package.json version, falling back to 'unknown' when empty or missing; it denotes a release version. Environment inputs are trimmed and lowercased. Recognized nonempty VERCEL_ENV values production, preview and development take precedence; an unsupported nonempty value produces unknown. Otherwise NODE_ENV production, development or test is used, with missing or unsupported values producing unknown. Environment values are read on the server at request time. No custom variables or deployment-setting changes are part of this plan.",
+      "owner": "claude",
+      "consumers": [
+        "codex",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-SHARED-INTERFACES",
+      "description": "codex owns StatusEnvironment and StatusResponse in types/index.ts. lib/status.ts exports resolveEnvironment({ vercelEnv?, nodeEnv? }): StatusEnvironment and createStatus({ version?, environment, now: Date }): StatusResponse. These helpers receive inputs rather than reading globals, package metadata or network resources. The handler supplies runtime inputs. Frontend imports the shared types and validates received JSON without importing server configuration.",
+      "owner": "codex",
+      "consumers": [
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-TRANSPORT-SECURITY",
+      "description": "The endpoint is public, evaluated at request time and returns Cache-Control: no-store. The client also requests with cache: 'no-store'. Use conventions supported by the installed Next.js 16 documentation and confirm dynamic endpoint behavior in build output. Exact status paths bypass updateSession; other paths retain their existing handling. Only the four response fields are exposed, with no keys, URLs, environment dumps or diagnostic errors.",
+      "owner": "codex",
+      "consumers": [
+        "claude",
+        "antigravity",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-UI",
+      "description": "StatusPanel requests the same-origin endpoint on mount and manual refresh, with a 5000 ms timeout and at most one active request. It aborts on timeout or unmount and ignores stale completions. HTTP 200 with a valid C-RESPONSE body shows availability, version, environment and last checked time. Non-2xx, malformed JSON, invalid fields, timeout or network failure shows unavailability and unavailable metadata instead of presenting previous data as current. Refresh remains available for recovery. Labels are Spanish, availability has a textual indicator, loading changes are accessible and the layout works on mobile. No automatic polling is added.",
+      "owner": "antigravity",
+      "consumers": [
+        "codex",
+        "cursor"
+      ]
+    },
+    {
+      "id": "C-VALIDATION-INTEGRATION",
+      "description": "All implementation paths are relative to C:/Users/HMN/resuelvelo; the nested resuelvelo/ tree is outside implementation scope. Tests use existing Vitest and Testing Library facilities and make no live Supabase calls. Endpoint tests may use a per-file Node environment; UI tests retain jsdom. Backend tests belong to codex, frontend tests to antigravity, and integration/routing regression tests and documentation to cursor. cursor exclusively coordinates gates, .next/ and port 3000; gates run serially. Later integration is sequential onto feature/status-page/integration, preserving unrelated changes and avoiding merges to main. Deployment and remote configuration mutations require separate authorization.",
+      "owner": "cursor",
+      "consumers": [
+        "claude",
+        "codex",
+        "antigravity"
+      ]
+    }
+  ],
+  "integration_order": [
+    "First resolve the human approval questions and freeze these contracts. This planning step creates no branches, worktrees, commits, files or implementation.",
+    "Complete INFRA-1. Any metadata or availability change requires updating the contracts before implementation.",
+    "Complete and integrate BE-1 so the shared interfaces are available to both backend and frontend.",
+    "Complete and integrate BE-2 and BE-3, followed by FE-1 and FE-2. Implementation may proceed independently after BE-1, while shared gates remain serialized.",
+    "Complete QA-1 and QA-2 against the assembled backend and frontend.",
+    "Complete QA-3 by integrating documentation and QA tests in sequence and reviewing the final branch. Corrections go to the owner of the affected files.",
+    "Complete QA-4: run npm run verify without concurrent dev or gate processes, then start the browser-validation server on port 3000. Live deployment checks remain pending until an authorized deployment is available."
+  ],
+  "acceptance_criteria": [
+    "The plan remains an implementation proposal; this planning session modifies no repository files and performs no implementation.",
+    "An anonymous GET /api/status returns HTTP 200, JSON content type, Cache-Control: no-store and exactly the C-RESPONSE fields.",
+    "The endpoint runs at request time and produces a fresh timestamp rather than a prerendered response.",
+    "Environment precedence and all supported, missing and unsupported values match C-METADATA; version matches package.json or the agreed unknown fallback.",
+    "Status endpoint requests make no Supabase authentication or database calls, regardless of configured, missing or placeholder credentials.",
+    "Exact status-route bypasses preserve handling of unrelated paths; anonymous protected routes and role restrictions retain existing behavior.",
+    "The public /status page and footer link work, with accessible Spanish labels for availability, backend release version, environment and last checked time.",
+    "Loading, successful refresh, non-2xx responses including a simulated 503, malformed payloads, network failures and timeout render the agreed UI states. Refresh can recover after failure.",
+    "A timed-out or superseded request cannot overwrite newer results; no periodic polling or client-side server configuration reads occur.",
+    "Backend, frontend, integration and routing regression tests pass without live Supabase access, and existing application tests continue to pass.",
+    "README.md and PROJECT_GUIDE.md describe the exact response, metadata sources and liveness limitations, with no new documentation file required.",
+    "The final integrated code passes one full npm run verify and browser validation. Skipped, failed or invalidated checks are recorded as such.",
+    "Preview and Production metadata are checked when authorized deployments are available; unperformed deployment checks remain explicitly pending."
+  ],
+  "risks": [
+    "API liveness can remain operational while Supabase or marketplace operations are failing; documentation and product approval must establish this meaning.",
+    "package.json versions may remain unchanged across deployments, so this contract does not uniquely identify a deployed commit.",
+    "If VERCEL_ENV is unavailable in a Preview runtime, the NODE_ENV fallback may report production. INFRA-1 and deployment checks must identify this configuration gap.",
+    "The existing root Navbar still awaits Supabase authentication. It may delay the status page during a Supabase incident even though the endpoint bypasses authentication.",
+    "The page shares the Next.js deployment it observes and cannot render during a complete deployment outage.",
+    "Public version and environment metadata provide limited deployment fingerprinting and require approval.",
+    "The nested repository tree may affect existing lint or TypeScript checks despite being outside edit scope; unrelated failures must be reported rather than repaired under this feature.",
+    "Concurrent use of .next/, verification gates or port 3000 can invalidate evidence. Builds may also fail if required font downloads are blocked."
+  ],
+  "open_questions": [
+    "Approve API availability as Next.js liveness only, with the same operational response in mock mode? Measuring Supabase readiness would require a revised probe, timeout and response contract.",
+    "Approve public anonymous access to /status and /api/status, including release version and environment exposure in Production?",
+    "Approve package.json as the backend release-version source? If a deployment identifier is required, revise the version contract before implementation.",
+    "Approve keeping the existing shared page layout and its Navbar authentication dependency? Independent rendering during Supabase incidents would require additional layout work."
+  ]
+}
+hook: Stop
+hook: Stop Completed
+tokens used
+53,392

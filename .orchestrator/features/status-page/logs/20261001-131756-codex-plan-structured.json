@@ -1,0 +1,94 @@
+{
+  "agent": "codex",
+  "summary": "Planning proposal for status-page, identified in .orchestrator/features/status-page/request.md:3. Add a public /status page and GET /api/status endpoint using the existing Next.js backend. Display API availability, backend version and deployment environment. No implementation or tests were performed.",
+  "areas_affected": [
+    "types/index.ts",
+    "lib/status.ts",
+    "app/api/status/route.ts",
+    "proxy.ts",
+    "app/status/page.tsx",
+    "components/status/StatusPanel.tsx",
+    "components/layout/Footer.tsx",
+    "app/layout.tsx",
+    "tests/",
+    "README.md",
+    ".env.example"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "status-contract",
+      "description": "Agree on availability semantics, response shape, version source, environment precedence and acceptance criteria before scheduling implementation.",
+      "suggested_owner": "orchestrator",
+      "depends_on": []
+    },
+    {
+      "id": "status-backend",
+      "description": "Own types/index.ts, lib/status.ts, app/api/status/route.ts and proxy.ts. Define the shared response type, derive version from package.json, normalize environment values at request time, and return uncached JSON. Bypass session refresh only for the exact /status and /api/status paths so Supabase authentication cannot block these routes.",
+      "suggested_owner": "codex",
+      "depends_on": [
+        "status-contract"
+      ]
+    },
+    {
+      "id": "status-frontend",
+      "description": "Own app/status/page.tsx, components/status/StatusPanel.tsx, components/layout/Footer.tsx and app/layout.tsx. Provide Spanish labels, loading and failure states, manual refresh, a five-second request timeout and request cancellation. Validate response fields before displaying them. Add a footer link and place the asynchronous Navbar inside Suspense so its session lookup does not delay status content.",
+      "suggested_owner": "antigravity",
+      "depends_on": [
+        "status-contract"
+      ]
+    },
+    {
+      "id": "status-tests",
+      "description": "Own tests/status-api.test.ts, tests/status-proxy.test.ts and tests/status-panel.test.tsx. Cover the agreed response contract, metadata resolution, exact proxy bypass, successful display, failed checks, timeout, malformed responses and recovery. Use Node environment annotations for server tests and the existing jsdom setup for component tests.",
+      "suggested_owner": "cursor",
+      "depends_on": [
+        "status-backend",
+        "status-frontend"
+      ]
+    },
+    {
+      "id": "status-documentation",
+      "description": "Own README.md and .env.example. Document both routes, response examples, version and environment sources, availability semantics, refresh behavior and verification commands. Document any optional APP_ENV override without adding infrastructure or dependencies.",
+      "suggested_owner": "claude",
+      "depends_on": [
+        "status-contract"
+      ]
+    },
+    {
+      "id": "status-verification",
+      "description": "After implementation is separately authorized, review the integrated change, run npm run verify serially, and inspect the browser flow with successful and failed API requests. Check that delayed navigation authentication does not block the status panel. Reserve compiler output, port 3000 and verification execution for one owner at a time.",
+      "suggested_owner": "orchestrator / independent verifier",
+      "depends_on": [
+        "status-tests",
+        "status-documentation"
+      ]
+    }
+  ],
+  "contracts": [
+    "Proposed wire contract: GET /api/status returns HTTP 200 with { status: 'available', version: string, environment: 'development' | 'preview' | 'staging' | 'production' | 'test' | 'unknown' }. Include Content-Type: application/json and Cache-Control: no-store; force request-time execution.",
+    "Proposed availability meaning: a successful response demonstrates that the Next.js API handler is reachable. Supabase readiness requires a separately agreed check; client initialization and mock catalog data do not establish downstream health.",
+    "Proposed metadata resolution: version comes from the deployed application's package.json. Resolve environment from recognized APP_ENV, then VERCEL_ENV, then NODE_ENV values, otherwise 'unknown'. Expose only the normalized value.",
+    "AC1: Visitors can open /status without signing in and discover it through the footer.",
+    "AC2: A valid successful check displays availability, backend version and environment using the shared response type.",
+    "AC3: Network failure, non-success HTTP responses, malformed JSON or timeout produce an accessible 'No se pudo comprobar la API' state with retry. Previous metadata must not appear as currently verified.",
+    "AC4: Session refresh is bypassed only for the agreed status routes. Existing protected routes retain their authorization behavior.",
+    "AC5: Tests, documentation, serial verification and browser review cover the final approved behavior. Backend and frontend tasks may proceed independently after contract agreement because their owned files are disjoint."
+  ],
+  "risks": [
+    "proxy.ts:5 currently invokes session refresh for matched requests, and lib/supabase/proxy.ts:70 calls Supabase authentication before checking whether a route is public. Testing the handler alone would miss this dependency.",
+    "components/layout/Navbar.tsx:9 also awaits Supabase authentication. The proposed Suspense boundary changes shared navigation rendering and requires browser regression checks.",
+    "Existing planning artifacts propose different response shapes, including database checks and service breakdowns. Freeze one contract before implementation to prevent incompatible frontend and backend assumptions.",
+    "Memory tools could not be accessed: their calls require approval, which this session's policy forbids. This proposal relies on local repository evidence."
+  ],
+  "tests": [
+    "Endpoint: exact response fields, package version, environment precedence and invalid-value fallback, no-store header, and operation without Supabase credentials.",
+    "Proxy: status routes skip updateSession; protected routes and similar path prefixes continue through it.",
+    "UI: loading, successful metadata display, HTTP failure, network rejection, malformed payload, timeout, cancellation and successful retry.",
+    "Browser: footer discovery, anonymous access, mobile layout, keyboard operation and status content rendering while Navbar authentication is delayed.",
+    "Future integrated checks: npm run verify, followed by browser review with exclusive ownership of shared resources. No checks were run during planning."
+  ],
+  "questions_or_unknowns": [
+    "Should API availability cover only the Next.js backend, as proposed, or include Supabase Auth/database readiness?",
+    "Should backend version identify the package release, as proposed, or the deployed commit?"
+  ]
+}

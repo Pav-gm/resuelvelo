@@ -1,0 +1,60 @@
+{
+  "agent": "claude",
+  "summary": "Status page needs env/version values sourced from deployment platform (Vercel) env vars, not new infra. No Dockerfile, CI workflow, or vercel.json exist in this repo (deploy config lives in Vercel dashboard/project settings), so infra work is limited to defining and documenting which environment variables feed the status endpoint, ensuring they're set per environment, and deciding how 'API availability' is measured without adding new monitoring infrastructure.",
+  "areas_affected": [
+    "environment variable configuration (Vercel project envs, .env.example)",
+    "deployment/runtime environment exposure (NODE_ENV / VERCEL_ENV)",
+    "version source (package.json version, or git commit SHA via VERCEL_GIT_COMMIT_SHA)",
+    "documentation (docs/engineering)"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "infra-1",
+      "description": "Define the env/version contract: confirm backend version source (package.json 'version' field vs VERCEL_GIT_COMMIT_SHA env var) and environment source (process.env.NODE_ENV vs process.env.VERCEL_ENV, which distinguishes production/preview/development on Vercel). Document which one the status endpoint should read.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": []
+    },
+    {
+      "id": "infra-2",
+      "description": "Add any new required env vars (if a custom APP_VERSION or APP_ENV override is chosen instead of built-ins) to .env.example and document them; confirm they're set in Vercel project settings for all environments (production/preview/development). No new secrets expected since status endpoint should not expose sensitive config.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": [
+        "infra-1"
+      ]
+    },
+    {
+      "id": "infra-3",
+      "description": "Determine what 'API availability' means operationally for this app: since there is no separate backend service (Next.js API route + Supabase), availability likely means 'can this route execute and optionally reach Supabase.' Decide whether the status endpoint should perform a lightweight Supabase connectivity check (e.g. a trivial query) or just report process liveness, weighing added latency/cost against usefulness.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": []
+    },
+    {
+      "id": "infra-4",
+      "description": "Document the new endpoint and page in docs/engineering (per repo convention of single-source docs with assistant files pointing to them) — update MASTER_INDEX.md if a new doc section is created, or append to PROJECT_GUIDE.md if it fits existing structure. This is documentation, not application logic, but flagging as a dependency for whichever agent owns app/backend code to coordinate content accuracy.",
+      "suggested_owner": "backend/docs-owner",
+      "depends_on": [
+        "infra-1",
+        "infra-3"
+      ]
+    }
+  ],
+  "contracts": [
+    "Status endpoint output must only use non-sensitive, already-public-safe values: environment name (production/preview/development) and version string (semver or short commit SHA) — no internal URLs, keys, or stack traces.",
+    "If a Supabase connectivity check is added, it must have a strict timeout and must not leak Supabase error details (e.g. connection strings) to the client response."
+  ],
+  "risks": [
+    "No existing CI/CD pipeline or Dockerfile in this repo — deployment is presumably handled externally via Vercel's git integration, so 'backend version' can't rely on a build-time injected CI variable unless Vercel's automatic VERCEL_GIT_COMMIT_SHA is used.",
+    "If the status endpoint performs a live Supabase check, it could add latency/cost per request or become a vector for abuse (repeated polling causing DB load) if not rate-limited or cached — rate-limiting/caching would need backend ownership, not infra.",
+    "Env var naming must avoid colliding with existing Supabase/Vercel reserved env vars already in .env.example — needs inspection before finalizing names."
+  ],
+  "tests": [
+    "Verify status endpoint returns correct environment label across production, preview, and local dev by checking process.env.VERCEL_ENV / NODE_ENV behavior in each context (cannot fully test preview/production without an actual deploy — flag as manual verification step post-deploy).",
+    "Confirm .env.example stays in sync with any new env var introduced (docs:check script in this repo may already enforce doc/env consistency — verify)."
+  ],
+  "questions_or_unknowns": [
+    "Should backend version come from package.json (manual bump) or automatically from VERCEL_GIT_COMMIT_SHA (always accurate, no manual step)? This is a product/infra decision, not purely infra.",
+    "Is there a real 'backend' separate from this Next.js app (e.g. a Supabase Edge Function or external API) whose availability should be checked, or is 'API availability' just this Next.js deployment's own liveness?",
+    "Should the status page/endpoint be public (no auth) or restricted? If public, confirm no sensitive data exposure risk — this affects RLS/auth ownership, not infra, but infra should flag it.",
+    "No .github/workflows or Dockerfile exist — confirm deployment is 100% via Vercel's git-based auto-deploy (no custom CI needed for this feature) before assuming no CI/CD work is required."
+  ]
+}
