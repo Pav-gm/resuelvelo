@@ -1,0 +1,71 @@
+{
+  "agent": "codex",
+  "summary": "Plan for the active health-endpoint request: add GET /api/health with application liveness, package version, and environment. Include an exact proxy bypass, automated tests, and brief API documentation. Planning only; no files changed or tests run.",
+  "areas_affected": [
+    "app/api/health/route.ts",
+    "proxy.ts",
+    "tests/health.test.ts",
+    "tests/health-proxy.test.ts",
+    "docs/api/health.md",
+    "docs/index/MASTER_INDEX.md"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "H1",
+      "description": "Own app/api/health/route.ts. Implement the public GET handler using Next.js Route Handler conventions, package.json.version, NODE_ENV, and Cache-Control: no-store. Avoid database, authentication, and external service calls.",
+      "suggested_owner": "codex",
+      "depends_on": []
+    },
+    {
+      "id": "H2",
+      "description": "Own proxy.ts. Return NextResponse.next() for the exact pathname /api/health before calling updateSession. Preserve existing delegation and matcher behavior for every other pathname.",
+      "suggested_owner": "claude",
+      "depends_on": []
+    },
+    {
+      "id": "H3",
+      "description": "Own both test files, docs/api/health.md, and its index entry. Draft tests and documentation against the frozen contract in parallel with H1/H2. Use the Node environment per test file without changing global Vitest configuration.",
+      "suggested_owner": "cursor",
+      "depends_on": []
+    },
+    {
+      "id": "H4",
+      "description": "After integration, independently review the acceptance criteria, run npm run verify, and perform HTTP checks against one local server. Reserve all verification commands, .next output, and port 3000 for this task; run controls sequentially.",
+      "suggested_owner": "independent verifier",
+      "depends_on": [
+        "H1",
+        "H2",
+        "H3"
+      ]
+    }
+  ],
+  "contracts": [
+    "C1: GET /api/health requires no credentials and returns HTTP 200 with application/json and exactly {status: 'ok', version: string, environment: string}.",
+    "C2: version comes from the root package.json.version; environment comes from NODE_ENV with 'unknown' when missing or empty.",
+    "C3: status indicates application process liveness. Respond with Cache-Control: no-store and do not opt into Next.js route caching.",
+    "C4: The complete request path performs no Supabase session refresh or database/network checks. The proxy bypass matches only /api/health, including requests with query parameters.",
+    "C5: Other routes retain existing session handling. Leave framework method handling intact; POST /api/health returns HTTP 405.",
+    "C6: Documentation explains fields, status semantics, environment source, caching, and an example request/response, and appears in MASTER_INDEX.md.",
+    "C7: Preserve unrelated changes. Introduce no frontend changes, database changes, dependencies, commits, pushes, or deployments."
+  ],
+  "risks": [
+    "proxy.ts:5 currently delegates every matched request to updateSession; lib/supabase/proxy.ts:70 calls Supabase Auth before checking whether a route is protected. Omitting H2 would leave health requests dependent on Supabase.",
+    "A broad proxy exemption could bypass session handling for unintended routes; require exact-path regression tests.",
+    "NODE_ENV describes runtime mode and does not distinguish preview from production deployments.",
+    "Package version identifies the declared application release, not a commit or deployment.",
+    "Persistent-memory calls were blocked because they require approval and this session's policy forbids approvals; planning used repository evidence."
+  ],
+  "tests": [
+    "Planned: assert GET status, JSON content type, exact response keys, no-store header, and version equality with package.json.",
+    "Planned: exercise development, production, test, and missing/empty NODE_ENV values; restore environment stubs after each test.",
+    "Planned: make mocked updateSession reject and verify /api/health still passes through without calling it, including query parameters.",
+    "Planned: verify /api/healthcheck, /api/health/child, /admin, /proveedor, and /mis-cotizaciones still delegate to updateSession.",
+    "Planned: run npm run verify after integration; document failures or skipped controls accurately.",
+    "Planned: check the actual HTTP endpoint anonymously and verify POST returns 405. Direct handler tests alone do not validate routing or method dispatch."
+  ],
+  "questions_or_unknowns": [
+    "The active request was identified in .orchestrator/features/health-endpoint/request.md:3. Confirm this is the intended feature if another planning packet applies.",
+    "Proposed interpretation: status means process liveness. Dependency readiness would require a different contract.",
+    "Proposed interpretation: environment means NODE_ENV. Deployment-tier reporting would need an explicitly selected source."
+  ]
+}

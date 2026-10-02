@@ -1,0 +1,121 @@
+{
+  "agent": "cursor",
+  "summary": "QA plan for GET /api/health. The repository has no existing API conventions to follow: there is no app/api directory and no route.ts anywhere. The server-side code consists only of Server Actions (app/**/actions.ts), and the proxy at proxy.ts:4-6 sends every matched path to updateSession. updateSession calls supabase.auth.getUser() whenever Supabase is configured (lib/supabase/proxy.ts:69-70). The 'existing conventions' therefore have to be set out in the contract. My area covers: (1) freezing testable acceptance criteria, (2) handler unit tests and proxy regression tests under tests/ in the Node environment, (3) a short API doc linked from MASTER_INDEX.md so docs:check passes, and (4) independent review and verification after integration. The route handler and the proxy change are dependencies owned by other agents. Nothing was modified and no commands were run.",
+  "areas_affected": [
+    "tests/health.test.ts (new, QA-owned)",
+    "tests/health-proxy.test.ts (new, QA-owned)",
+    "docs/api/health.md (new, QA-owned)",
+    "docs/index/MASTER_INDEX.md (one added row, QA-owned)",
+    "app/api/health/route.ts (new; dependency, backend owner)",
+    "proxy.ts (exact-path bypass; dependency, backend/security owner)"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "QA1",
+      "description": "Freeze the acceptance criteria before implementation starts. Cover: the response shape and types, the HTTP status, Content-Type, Cache-Control: no-store, access without credentials, no Supabase or database calls on the full request path, the environment source and its fallback, the version source, POST returning 405, and no frontend or schema changes. Publish them as the contract that the handler, proxy, tests and docs all follow.",
+      "suggested_owner": "cursor (QA)",
+      "depends_on": []
+    },
+    {
+      "id": "DEP-BE1",
+      "description": "DEPENDENCY (not QA-owned): create app/api/health/route.ts with a GET Route Handler, following the Next 16 docs in node_modules/next/dist/docs/. Read NODE_ENV when the request arrives, not at module load, so tests can change it. Take version from package.json. Do not import lib/supabase, lib/data or any client-only module.",
+      "suggested_owner": "backend worker (worker-primary)",
+      "depends_on": [
+        "QA1"
+      ]
+    },
+    {
+      "id": "DEP-BE2",
+      "description": "DEPENDENCY (not QA-owned): in proxy.ts, return NextResponse.next() for the exact pathname /api/health before calling updateSession. Leave the matcher and every other path unchanged.",
+      "suggested_owner": "backend/security worker",
+      "depends_on": [
+        "QA1"
+      ]
+    },
+    {
+      "id": "QA2",
+      "description": "Write tests/health.test.ts with a '// @vitest-environment node' header, because the global environment is jsdom (vitest.config.ts:6). Import GET from '@/app/api/health/route' and assert: status 200, a JSON content type, exactly the keys {status, version, environment}, status === 'ok', version equal to package.json.version, and the no-store header. Cover NODE_ENV values development, production, test, and empty or missing, which falls back to the documented value. Use vi.stubEnv in each test and vi.unstubAllEnvs plus vi.resetModules in afterEach. Assert that the body contains no Supabase URLs or keys and no other environment values.",
+      "suggested_owner": "cursor (QA) / worker-secondary",
+      "depends_on": [
+        "QA1"
+      ]
+    },
+    {
+      "id": "QA3",
+      "description": "Write tests/health-proxy.test.ts (Node environment) and mock '@/lib/supabase/proxy' so that updateSession rejects or records its calls. Assert that /api/health and /api/health?x=1 pass through without calling it. Assert that /api/healthcheck, /api/health/child, /admin, /proveedor, /mis-cotizaciones and /catalogo still call updateSession. Also assert that the exported config.matcher is unchanged.",
+      "suggested_owner": "cursor (QA) / worker-secondary",
+      "depends_on": [
+        "QA1"
+      ]
+    },
+    {
+      "id": "QA4",
+      "description": "Write docs/api/health.md covering: purpose (liveness, not readiness), method and path, authentication (none), the response schema with an example, where each field comes from, caching, the 405 response for other methods, and a curl example. Add a row to docs/index/MASTER_INDEX.md. Without that row, docs:check fails with 'Sin indexar' (scripts/check-docs.mjs:62-63).",
+      "suggested_owner": "cursor (QA)",
+      "depends_on": [
+        "QA1"
+      ]
+    },
+    {
+      "id": "QA5",
+      "description": "Code review of DEP-BE1 and DEP-BE2 against QA1. Check: no frontend files touched, no changes to supabase/ or package.json dependencies, no secrets exposed, the bypass matches the exact path only, and all edits are in the root tree, not the nested duplicate resuelvelo/ directory.",
+      "suggested_owner": "cursor (QA) / verifier",
+      "depends_on": [
+        "DEP-BE1",
+        "DEP-BE2",
+        "QA2",
+        "QA3",
+        "QA4"
+      ]
+    },
+    {
+      "id": "QA6",
+      "description": "Run `npm run verify` once, serially, as the sole user of .next/ and port 3000. Then start one local server and make anonymous HTTP checks: GET /api/health returns 200 with the documented body and headers, and POST returns 405. Check this both with Supabase env set to the placeholder and with real Supabase env if it is available. Record any failed or skipped controls as not passed.",
+      "suggested_owner": "verifier",
+      "depends_on": [
+        "QA5"
+      ]
+    }
+  ],
+  "contracts": [
+    "C1: GET /api/health needs no credentials and returns 200 with application/json and exactly {\"status\":\"ok\",\"version\":string,\"environment\":string}. There are no extra keys.",
+    "C2: version is package.json `version` (currently \"0.1.0\"). environment is process.env.NODE_ENV, read on each request, with \"unknown\" when it is missing or empty. VERCEL_ENV is not used unless the product owner chooses it.",
+    "C3: status means the process is alive. The endpoint makes no Supabase, database or network calls, either in the handler or in the proxy.",
+    "C4: The response carries Cache-Control: no-store, and the route is never statically cached at build time.",
+    "C5: Methods other than GET (and HEAD, if the framework adds it) return 405 through Next's default method handling.",
+    "C6: The proxy bypass matches pathname === '/api/health' only. Every other path behaves exactly as before.",
+    "C7: No frontend, schema (supabase/*.sql), dependency, env file or deployment changes.",
+    "C8: docs/api/health.md exists, is linked from docs/index/MASTER_INDEX.md, and npm run docs:check passes."
+  ],
+  "risks": [
+    "The repository has no prior API route convention (no app/api, no route.ts), so 'existing API conventions' cannot be inherited. If C1-C5 are not frozen up front, the handler, tests and docs can diverge.",
+    "proxy.ts runs on every non-static path, and lib/supabase/proxy.ts:70 calls Supabase Auth before checking whether the route is protected. Without DEP-BE2, the health check depends on Supabase, adds latency, and fails when Supabase is down.",
+    "Vitest defaults to jsdom (vitest.config.ts:6). Route-handler and NextRequest tests may behave differently or break unless each new file opts into the Node environment.",
+    "Vitest sets NODE_ENV=test. If the handler reads NODE_ENV at module scope, the per-environment tests will see a cached value. The handler must read it per request, or the tests must call vi.resetModules().",
+    "There is an untracked-looking duplicate tree at ./resuelvelo/ containing app/, tests/, proxy.ts and vitest.config.ts. tsconfig includes **/*.ts. Workers could edit or import the wrong copy, and that copy could affect typecheck or lint.",
+    "An overly broad bypass, such as a startsWith('/api/health') prefix, would skip session refresh on unintended paths. QA3 covers this.",
+    "NODE_ENV is 'production' on both Vercel Preview and Production, so environment will not tell them apart. The docs must say so, or the product owner can choose VERCEL_ENV instead.",
+    "Importing package.json into a server bundle is supported (resolveJsonModule is on), but only the version field may be returned, to avoid leaking metadata.",
+    "Direct handler tests do not exercise routing, the proxy or method dispatch. The HTTP check in QA6 is required for full evidence."
+  ],
+  "tests": [
+    "Unit (tests/health.test.ts, Node env): 200, JSON content type, exact key set, status 'ok', version equal to package.json.version, Cache-Control includes no-store.",
+    "Unit: environment equals the stubbed NODE_ENV for development, production and test, and the fallback value when NODE_ENV is empty or deleted. Env stubs are restored after each test.",
+    "Unit: the response body contains no NEXT_PUBLIC_SUPABASE_URL, anon key or other env values.",
+    "Unit: the handler module does not import lib/supabase/* (mock it to throw on import or call and confirm GET still succeeds).",
+    "Regression (tests/health-proxy.test.ts): /api/health and /api/health?x=1 skip updateSession, even when updateSession is mocked to reject.",
+    "Regression: /api/healthcheck, /api/health/child, /admin, /proveedor, /mis-cotizaciones and /catalogo still call updateSession. config.matcher is unchanged.",
+    "Existing suites (tipos, mock, carrito, data-fallback) still pass.",
+    "Docs: npm run docs:check passes with the new doc indexed.",
+    "Full gate: npm run verify (docs, tooling, test, lint, typecheck, build), run serially.",
+    "Manual HTTP: anonymous GET returns 200 with the expected body and headers, and POST returns 405. Run with Supabase env at the placeholder and, if available, with real env, confirming no auth redirect or Supabase dependency."
+  ],
+  "questions_or_unknowns": [
+    "Should environment be NODE_ENV (runtime mode) or VERCEL_ENV (deployment tier: preview vs production)? NODE_ENV is assumed.",
+    "Is status strictly liveness ('ok' only), or should a degraded/readiness state be reported? Readiness would conflict with 'no database changes' and the no-Supabase-call contract.",
+    "Should version also include a commit SHA (for example VERCEL_GIT_COMMIT_SHA)? package.json version alone is assumed.",
+    "Is the nested ./resuelvelo/ directory an intentional copy or a stray artifact? It should be confirmed out of scope so workers and verification target the root tree only.",
+    "Is the docs location docs/api/ acceptable, or should the API doc live under docs/engineering/? This affects which docs:check link rules apply.",
+    "Persistent memory (ask_project / recall) was not consulted in this read-only planning pass. Any prior decisions about API conventions are unknown."
+  ]
+}

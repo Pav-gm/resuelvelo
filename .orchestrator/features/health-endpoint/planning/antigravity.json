@@ -1,0 +1,76 @@
+{
+  "agent": "antigravity",
+  "summary": "From the Frontend Engineer role, no frontend modifications (UI, components, client-side state) are required or permitted as the feature request explicitly specifies 'Do not modify the frontend'. The feature is strictly a backend health endpoint (GET /api/health) with automated tests and API documentation. Frontend responsibilities are limited to ensuring zero regressions to existing frontend functionality and verifying that the existing test suite (including Zustand cart tests) continues to pass.",
+  "areas_affected": [
+    "No frontend files affected (UI/components explicitly out of scope)",
+    "app/api/health/route.ts (backend dependency: new route handler)",
+    "tests/api/health.test.ts (backend dependency: new automated tests)",
+    "tests/carrito.test.ts (frontend verification: ensure existing tests pass)",
+    "docs/ (backend/docs dependency: API documentation)"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "task-1",
+      "description": "Define the backend health check API contract specifying GET /api/health response format with status, version, environment, and cache headers.",
+      "suggested_owner": "backend_engineer",
+      "depends_on": []
+    },
+    {
+      "id": "task-2",
+      "description": "Implement the Next.js App Router route handler at app/api/health/route.ts returning { status: 'ok', version, environment } without database access.",
+      "suggested_owner": "backend_engineer",
+      "depends_on": [
+        "task-1"
+      ]
+    },
+    {
+      "id": "task-3",
+      "description": "Write automated Vitest tests in tests/api/health.test.ts verifying 200 OK status, headers, and expected JSON structure.",
+      "suggested_owner": "backend_engineer",
+      "depends_on": [
+        "task-2"
+      ]
+    },
+    {
+      "id": "task-4",
+      "description": "Document the GET /api/health endpoint in project API documentation and update docs/index/MASTER_INDEX.md if necessary.",
+      "suggested_owner": "backend_engineer",
+      "depends_on": [
+        "task-1"
+      ]
+    },
+    {
+      "id": "task-5",
+      "description": "Verify zero frontend changes and ensure that existing frontend tests (tests/carrito.test.ts) and gate commands pass without regression.",
+      "suggested_owner": "frontend_engineer",
+      "depends_on": [
+        "task-2",
+        "task-3"
+      ]
+    }
+  ],
+  "contracts": [
+    "GET /api/health -> 200 OK, Content-Type: application/json",
+    "Response Body JSON: { status: 'ok', version: string, environment: string, timestamp?: string }",
+    "Headers: Cache-Control: no-cache, no-store, must-revalidate",
+    "No client authentication or cookie required (public unauthenticated endpoint)",
+    "Zero database or Supabase queries during health check resolution"
+  ],
+  "risks": [
+    "Unintentional leakage of sensitive environment variables if process.env is exposed indiscriminately instead of strictly NODE_ENV",
+    "Default Next.js Route Handler caching serving stale health status if dynamic export (export const dynamic = 'force-dynamic') is omitted",
+    "Scope creep altering frontend code or adding unnecessary frontend health polling widgets against instructions"
+  ],
+  "tests": [
+    "Automated Vitest test: GET /api/health returns status 200 and Content-Type: application/json",
+    "Automated Vitest test: Validate response JSON fields (status equals 'ok', version matches package.json, environment matches NODE_ENV)",
+    "Automated Vitest test: Confirm no database queries or external network requests are made during health check invocation",
+    "Frontend regression check: Run existing frontend test suite (npm run test) to verify tests/carrito.test.ts and components continue passing",
+    "Gate checks: Execute npm run lint and npm run typecheck to ensure repository health remains green"
+  ],
+  "questions_or_unknowns": [
+    "Should the version be imported directly from package.json or provided via an environment variable / build argument?",
+    "Is an ISO timestamp or server uptime metric desired in the health payload for monitoring tools?",
+    "Are specific status values expected by downstream uptime monitoring systems (e.g. 'ok' vs 'healthy')?"
+  ]
+}

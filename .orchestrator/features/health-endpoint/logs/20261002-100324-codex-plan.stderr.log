@@ -1,0 +1,1836 @@
+Reading additional input from stdin...
+OpenAI Codex v0.159.3
+--------
+workdir: C:\Users\HMN\resuelvelo
+model: gpt-6.1-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 01a0fced-4b1d-7343-a0c2-9b23860af010
+--------
+user
+You are participating in the planning stage of a multi-agent feature.
+2026-10-02T14:03:26.892269Z ERROR rmcp::transport::worker: worker quit with fatal: Transport channel closed, when AuthRequired(AuthRequiredError { www_authenticate_header: "Bearer error=\"invalid_request\", error_description=\"No access token was provided in this request\", resource_metadata=\"https://mcp.supabase.com/.well-known/oauth-protected-resource/mcp?project_ref=aczxxribccodovuosuqe&features=docs%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions\"" })
+hook: SessionStart
+hook: SessionStart Completed
+codex
+Voy a revisar el contexto del proyecto y la memoria disponible para preparar mi aporte de planificación. Falta la descripción de la funcionalidad; avanzaré con el contexto que pueda comprobar.
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command Get-Location in C:\Users\HMN\resuelvelo
+ succeeded in 148ms:
+
+Path                   
+----                   
+C:\Users\HMN\resuelvelo
+
+
+
+codex
+¿Qué funcionalidad debemos planificar y qué alcance me corresponde? Incluye el comportamiento esperado y los criterios de aceptación disponibles.
+mcp: cursor-memory/ask_project started
+mcp: cursor-memory/ask_project (failed)
+MCP tool call requires approval, but approval policy is never
+mcp: cursor-memory/recall started
+mcp: cursor-memory/recall (failed)
+MCP tool call requires approval, but approval policy is never
+mcp: graphiti-memory/search_nodes started
+mcp: graphiti-memory/search_nodes (failed)
+MCP tool call requires approval, but approval policy is never
+mcp: graphiti-memory/search_memory_facts started
+mcp: graphiti-memory/search_memory_facts (failed)
+MCP tool call requires approval, but approval policy is never
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n '"'^#{1,4} |orchestrat|planifica|subagent|subagente|criterio|recurso'"' docs/index/MASTER_INDEX.md docs/engineering/CURSOR_ORCHESTRATION.md" in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath AGENTS.md' in C:\Users\HMN\resuelvelo
+ succeeded in 110ms:
+docs/index/MASTER_INDEX.md:1:# Índice de documentación
+docs/index/MASTER_INDEX.md:5:## Entradas de los asistentes
+docs/index/MASTER_INDEX.md:12:| [Regla de orquestación de Cursor](../../.cursor/rules/orchestration.mdc) | Entrada al protocolo existente del agente principal. |
+docs/index/MASTER_INDEX.md:14:## Desarrollo y verificación
+docs/index/MASTER_INDEX.md:19:| [Guía de ingeniería](../engineering/PROJECT_GUIDE.md) | Arquitectura, seguridad, recursos compartidos y Git. |
+docs/index/MASTER_INDEX.md:24:## Producto y entregas académicas
+docs/index/MASTER_INDEX.md:34:## Planes de implementación
+docs/engineering/CURSOR_ORCHESTRATION.md:1:# DEVELOPMENT ORCHESTRATION PROTOCOL
+docs/engineering/CURSOR_ORCHESTRATION.md:3:This protocol applies to the main Cursor Agent conversation. If you were launched as a subagent, it does not apply to you: follow your agent instructions and your task packet.
+docs/engineering/CURSOR_ORCHESTRATION.md:11:## Agents
+docs/engineering/CURSOR_ORCHESTRATION.md:13:- `worker-primary` (`cursor-grok-4.6-xhigh-fast`): difficult implementation, business logic, architecture-sensitive changes, core behavior. Grok 4.7 cannot be pinned: `grok-4.7-xhigh-fast` is accepted and then replaced by Composer, and `grok-4.7-xhigh` is not in the subagent allow list.
+docs/engineering/CURSOR_ORCHESTRATION.md:18:Launch them with the Task tool by `subagent_type`. Do not pass a `model` override. Subagents start with a clean context and cannot see this conversation.
+docs/engineering/CURSOR_ORCHESTRATION.md:20:# PHASE 0 — CLASSIFY THE REQUEST
+docs/engineering/CURSOR_ORCHESTRATION.md:23:- B. trivial change: you may implement it directly unless the user asks for orchestration.
+docs/engineering/CURSOR_ORCHESTRATION.md:28:# PHASE 1 — DISCOVERY
+docs/engineering/CURSOR_ORCHESTRATION.md:32:# PHASE 2 — PLAN
+docs/engineering/CURSOR_ORCHESTRATION.md:36:# PHASE 3 — APPROVAL GATE
+docs/engineering/CURSOR_ORCHESTRATION.md:40:# PHASE 4 — FREEZE THE SPECIFICATION
+docs/engineering/CURSOR_ORCHESTRATION.md:46:# PHASE 5 — DECOMPOSE WORK
+docs/engineering/CURSOR_ORCHESTRATION.md:50:# PHASE 6 — MINIMIZE WORKER OVERLAP
+docs/engineering/CURSOR_ORCHESTRATION.md:54:# PHASE 7 — DELEGATE WITH COMPLETE TASK PACKETS
+docs/engineering/CURSOR_ORCHESTRATION.md:58:# PHASE 8 — PARALLEL EXECUTION
+docs/engineering/CURSOR_ORCHESTRATION.md:64:# PHASE 9 — COLLECT WORKER RESULTS
+docs/engineering/CURSOR_ORCHESTRATION.md:68:# PHASE 10 — INDEPENDENT VERIFICATION
+docs/engineering/CURSOR_ORCHESTRATION.md:72:# PHASE 11 — ORCHESTRATOR REVIEW
+docs/engineering/CURSOR_ORCHESTRATION.md:74:Compare the approved specification, the diff, the worker reports, and the verifier report. For every criterion decide PASS, FAIL, PARTIAL, or NOT VERIFIED. Do not declare the feature complete unless every required criterion is PASS.
+docs/engineering/CURSOR_ORCHESTRATION.md:76:# PHASE 12 — CORRECTION LOOP
+docs/engineering/CURSOR_ORCHESTRATION.md:78:Send the smallest corrective task: failed criterion, observed behavior, expected behavior, evidence, affected area, required correction, out of scope, and validation. Resume the worker that made the change. Then verify all criteria again.
+docs/engineering/CURSOR_ORCHESTRATION.md:80:# PHASE 13 — LOOP LIMIT
+docs/engineering/CURSOR_ORCHESTRATION.md:84:# PHASE 14 — COMPLETION GATE
+docs/engineering/CURSOR_ORCHESTRATION.md:88:# PHASE 15 — FINAL REPORT
+docs/engineering/CURSOR_ORCHESTRATION.md:92:# GLOBAL RULES
+docs/engineering/CURSOR_ORCHESTRATION.md:99:- Do not put `grok-4.7-xhigh` or `grok-4.7-xhigh-fast` in subagent frontmatter on this Cursor build. The first slug is not allowlisted. The second is replaced by Composer.
+
+ succeeded in 154ms:
+?? .orchestrator/features/health-endpoint/
+
+ succeeded in 159ms:
+<!-- BEGIN:nextjs-agent-rules -->
+# This is NOT the Next.js you know
+
+This version has breaking changes �?" APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+<!-- END:nextjs-agent-rules -->
+
+# ResuǸlvelo: acuerdos comunes
+
+Este archivo es la entrada comǧn para Codex, Claude Code y Cursor. ResuǸlvelo es un marketplace B2B con Next.js 16, React 19, TypeScript, Supabase y Vitest.
+
+## Consultar solo lo necesario
+
+- El ��ndice es [docs/index/MASTER_INDEX.md](docs/index/MASTER_INDEX.md). Elige el documento por tema; busca sus encabezados y lee la secci��n relevante.
+- Para cambios de c��digo, consulta las secciones aplicables de [la gu��a de ingenier��a](docs/engineering/PROJECT_GUIDE.md); para ejecutar o interpretar controles, [la gu��a de verificaci��n](docs/engineering/VERIFICATION.md).
+- MantǸn una fuente por regla: las gu��as contienen el detalle y los archivos de cada asistente solo apuntan a ellas. No cargues todo `docs/`, dependencias, lockfiles o resultados de compilaci��n en el contexto.
+- El protocolo de memoria global sigue vigente; sus namespaces son `project=resuelvelo` y `group_id=resuelvelo`. Los hooks globales de Claude siguen siendo configuraci��n de este equipo.
+
+## Arquitectura y l��mites esenciales
+
+- UI y rutas: `app/` y `components/`; tipos: `types/index.ts`; lecturas de catǭlogo/cotizaciones: `lib/data.ts`, con fallback a `lib/mock.ts`.
+- Carrito: `lib/store/carrito.ts` (Zustand, navegador). La creaci��n de cotizaciones resuelve proveedor y precio en el servidor; la autorizaci��n de datos es RLS en `supabase/schema.sql`.
+- Conserva los cambios ajenos. No instales dependencias nuevas ni hagas commit, push, migraciones remotas o despliegues sin autorizaci��n espec��fica.
+- Usa subagentes solo cuando se solicite `/orchestrate`; sus tareas deben tener archivos y recursos asignados. El protocolo detallado de Cursor estǭ [aqu��](docs/engineering/CURSOR_ORCHESTRATION.md).
+
+## Verificaci��n y recursos compartidos
+
+- `npm run verify`: documentaci��n, pruebas de herramientas, pruebas de la app, ESLint, tipos y compilaci��n, en serie y con historial.
+- `npm run verify -- --quick`: los mismos controles salvo compilaci��n. `npm run verify -- --only docs,test`: selecci��n expl��cita. `npm run verify -- --history`: ǧltimas ejecuciones.
+- Controles individuales: `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build` y `npm run docs:check`.
+- Un ǧnico proceso por checkout puede usar `.next/` (dev, tipos o build) o correr un control a la vez. El servidor de desarrollo ocupa el puerto 3000; SQL y despliegues comparten Supabase y Vercel.
+- Una ejecuci��n omitida o fallida nunca es un pase. El historial identifica el c��digo comprobado, pero no sustituye una nueva verificaci��n tras cambios de c��digo o entorno. Cambios de UI requieren ademǭs revisar el flujo en el navegador.
+
+codex
+No pude consultar la memoria: las llamadas MCP requieren aprobación y la política de esta sesión la impide. El repositorio contiene una carpeta de planificación `health-endpoint`; revisaré si incluye la descripción de la tarea.
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg --files --hidden .orchestrator/features/health-endpoint' in C:\Users\HMN\resuelvelo
+ succeeded in 104ms:
+.orchestrator/features/health-endpoint\status.json
+.orchestrator/features/health-endpoint\request.md
+.orchestrator/features/health-endpoint\planning\claude.json
+.orchestrator/features/health-endpoint\logs\20261002-095920-claude-plan.stdout.log
+.orchestrator/features/health-endpoint\logs\20261002-095920-claude-plan.stderr.log
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath docs/engineering/CURSOR_ORCHESTRATION.md -Encoding UTF8 | Select-Object -First 62' in C:\Users\HMN\resuelvelo
+ succeeded in 196ms:
+# DEVELOPMENT ORCHESTRATION PROTOCOL
+
+This protocol applies to the main Cursor Agent conversation. If you were launched as a subagent, it does not apply to you: follow your agent instructions and your task packet.
+
+When acting as the main Cursor Agent, you are the DEVELOPMENT ORCHESTRATOR and the only control plane. The user runs this conversation on Grok 4.7 Extra High, or on Composer 2.5 for a smaller change. That choice stays in the model picker. You own understanding the request, investigation, architecture, planning, task decomposition, worker assignment, scope control, acceptance criteria, implementation review, verification, and the final report.
+
+Workers implement. The verifier validates. You decide.
+
+Repository conventions, gate commands, shared local resources, and git safety rules are in `docs/engineering/PROJECT_GUIDE.md`.
+
+## Agents
+
+- `worker-primary` (`cursor-grok-4.6-xhigh-fast`): difficult implementation, business logic, architecture-sensitive changes, core behavior. Grok 4.7 cannot be pinned: `grok-4.7-xhigh-fast` is accepted and then replaced by Composer, and `grok-4.7-xhigh` is not in the subagent allow list.
+- `worker-secondary` (`composer-2.5-fast`): tests, schemas, migrations, adapters, mechanical work, localized refactors, documentation tied to the change.
+- `verifier` (`composer-2.5`): independent validation only. Read-only. Different model from both implementation workers.
+- `debugger` (`cursor-grok-4.6-xhigh-fast`): escalation only, after three failed correction cycles.
+
+Launch them with the Task tool by `subagent_type`. Do not pass a `model` override. Subagents start with a clean context and cannot see this conversation.
+
+# PHASE 0 - CLASSIFY THE REQUEST
+
+- A. explanation or research: answer normally.
+- B. trivial change: you may implement it directly unless the user asks for orchestration.
+- C or D. non-trivial or architectural work: use the workflow below.
+
+When unsure between B and C, treat it as C.
+
+# PHASE 1 - DISCOVERY
+
+Inspect the relevant code, patterns, constraints, regression surfaces, and gate commands. Check `git status` for unrelated uncommitted work. Do not modify production code and do not spawn implementation workers.
+
+# PHASE 2 - PLAN
+
+Produce a plan with goal, current state, proposed design, affected files, bounded tasks, dependencies, parallelizable work, risks, numbered acceptance criteria, a verification strategy, and preconditions. Each task names an owner, the files it owns, and the criteria it covers.
+
+# PHASE 3 - APPROVAL GATE
+
+After presenting the plan, stop. Do not edit implementation files, spawn workers, code, migrate, or install dependencies. Wait for an explicit approval such as "Approved", "Go ahead", or "Implement it".
+
+# PHASE 4 - FREEZE THE SPECIFICATION
+
+After approval, behavior, architecture, task boundaries, constraints, and acceptance criteria are frozen. Save the plan to `docs/implementation-plans/<YYYY-MM-DD>-<short-slug>.md` and reference that path in every worker and verifier packet.
+
+If the plan cannot work, stop the affected work, explain the constraint, and ask for approval before changing behavior or architecture.
+
+# PHASE 5 - DECOMPOSE WORK
+
+Assign each task to the agent whose role fits it.
+
+# PHASE 6 - MINIMIZE WORKER OVERLAP
+
+Parallel workers must own disjoint files. They share the checkout unless you request an isolated worktree, and an isolated worktree is built from committed history. If two workers must touch the same file, run them sequentially.
+
+# PHASE 7 - DELEGATE WITH COMPLETE TASK PACKETS
+
+Every packet includes objective, approved design, exact file scope, relevant files, the acceptance criteria verbatim, constraints, dependencies, out of scope, and the exact validation commands, including which shared-resource gates that worker may run.
+
+# PHASE 8 - PARALLEL EXECUTION
+
+Launch independent workers together. Do not use parallelism merely because it is available. In one fan-out, assign gates that share a database, a dev server, or a test image to at most one worker. Name those resources in `project-engineering.mdc`.
+
+Workers run in the background. After launching them, end your turn with a short status. Do not poll.
+
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath .orchestrator/features/health-endpoint/request.md -Encoding UTF8' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg --files --hidden .orchestrator | Select-Object -First 35' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath .orchestrator/features/health-endpoint/status.json -Encoding UTF8' in C:\Users\HMN\resuelvelo
+ succeeded in 156ms:
+# health-endpoint
+
+Add a backend health endpoint that exposes the current application status, version, and environment. The endpoint should follow the project's existing API conventions, require no database changes, include automated tests, and include brief API documentation. Do not modify the frontend.
+health-endpoint
+
+ succeeded in 156ms:
+{
+  "feature": "health-endpoint",
+  "state": "PLANNING"
+}
+
+ succeeded in 296ms:
+.orchestrator\features\status-page\status.json
+.orchestrator\features\status-page\request.md
+.orchestrator\features\status-page\planning\cursor.json
+.orchestrator\features\status-page\planning\codex.json
+.orchestrator\features\status-page\planning\claude.json
+.orchestrator\features\status-page\planning\antigravity.json
+.orchestrator\features\status-page\master-plan.md
+.orchestrator\features\status-page\master-plan.json
+.orchestrator\features\health-endpoint\status.json
+.orchestrator\features\health-endpoint\request.md
+.orchestrator\config.yaml
+.orchestrator\features\status-page\logs\20261001-115116-antigravity-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-113611-antigravity-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-114703-claude-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-114703-claude-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-115116-antigravity-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-113608-codex-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-115059-codex-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-114530-cursor-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-113608-codex-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-114530-cursor-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-115059-codex-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-113100-claude-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-114520-antigravity-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-115059-codex-plan-structured.json
+.orchestrator\features\status-page\logs\20261001-114154-codex-plan-structured.json
+.orchestrator\features\status-page\logs\20261001-113100-claude-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-114520-antigravity-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-115058-claude-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-115058-claude-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-114154-codex-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-112105-antigravity-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-114703-codex-plan.stdout.log
+.orchestrator\features\status-page\logs\20261001-112105-antigravity-plan.stderr.log
+.orchestrator\features\status-page\logs\20261001-114154-codex-plan.stderr.log
+
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n '"'^#{1,4} |API|api/|route|Vitest|vitest|test|cach|version|entorno|environment'"' docs/engineering/PROJECT_GUIDE.md docs/engineering/VERIFICATION.md docs/index/MASTER_INDEX.md .orchestrator/config.yaml" in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg --files app lib types tests docs | rg '(route\\.(ts|tsx)"'$|'"\\.test\\.|api|PROJECT_GUIDE|VERIFICATION|MASTER_INDEX)'" in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath package.json -Encoding UTF8' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg --files -g '*vitest*' -g '*test*' -g '*config*' -g 'AGENTS.md' -g '.env*' -g '"'!package-lock.json'"' -g '"'!node_modules/**'"' -g '"'!.git/**'"' -g '"'!.next/**'"'" in C:\Users\HMN\resuelvelo
+ succeeded in 127ms:
+.orchestrator/config.yaml:31:    - "npm test"
+.orchestrator/config.yaml:36:    - "npm test"
+docs/index/MASTER_INDEX.md:1:# Índice de documentación
+docs/index/MASTER_INDEX.md:5:## Entradas de los asistentes
+docs/index/MASTER_INDEX.md:14:## Desarrollo y verificación
+docs/index/MASTER_INDEX.md:24:## Producto y entregas académicas
+docs/index/MASTER_INDEX.md:34:## Planes de implementación
+docs/index/MASTER_INDEX.md:38:| [Versión final de Seminario II](../implementation-plans/2026-09-26-version-final-seminario-ii.md) | Alcance aprobado de la entrega anterior. |
+docs/engineering/VERIFICATION.md:1:# Verificación con historial
+docs/engineering/VERIFICATION.md:3:## Ejecutar controles
+docs/engineering/VERIFICATION.md:10:npm run verify -- --only docs,test
+docs/engineering/VERIFICATION.md:14:La ejecución completa corre `docs`, `tooling`, `test`, `lint`, `typecheck` y `build`, en ese orden. La rápida omite `build`; `--only` permite elegir controles por esos nombres, manteniendo el orden del inventario. La selección queda registrada: una ejecución parcial no equivale a la completa.
+docs/engineering/VERIFICATION.md:19:| tooling | `npm run test:tooling` | 60 segundos |
+docs/engineering/VERIFICATION.md:20:| test | `npm run test` | 120 segundos |
+docs/engineering/VERIFICATION.md:27:## Resultados y evidencia
+docs/engineering/VERIFICATION.md:29:Cada ejecución terminada añade una línea JSON a `docs/history/verification.jsonl`: identificador, fecha UTC, equipo, versión de Node/npm, commit, estado de Git, huella SHA-256 de los archivos de entrada, selección, duración y resultado de cada control. Los logs completos quedan en `docs/history/logs/<id>/` y se excluyen de Git; el resumen versionable no incluye su contenido.
+docs/engineering/VERIFICATION.md:38:## Exclusión y recuperación
+docs/engineering/VERIFICATION.md:44:## Mantener la documentación ligera
+docs/engineering/PROJECT_GUIDE.md:1:# Guía de ingeniería
+docs/engineering/PROJECT_GUIDE.md:3:Resuélvelo is a B2B marketplace (Next.js 16 App Router, React 19, TypeScript, Tailwind v4, shadcn/ui, Supabase, Zustand, Vitest). This Next.js version differs from training data. Before writing Next.js code, read the relevant guide in `node_modules/next/dist/docs/` and heed deprecation notices.
+docs/engineering/PROJECT_GUIDE.md:5:## Architecture
+docs/engineering/PROJECT_GUIDE.md:7:- Transport and UI live in `app/` (routes, layouts, Server Actions) and `components/` (`layout/`, `marketplace/`, `ui/`).
+docs/engineering/PROJECT_GUIDE.md:16:## Gate commands
+docs/engineering/PROJECT_GUIDE.md:20:| `npm run test` | Vitest unit tests (`tests/`). Local only; no Supabase. | Does not mutate shared remote state. |
+docs/engineering/PROJECT_GUIDE.md:22:| `npm run typecheck` | Generates Next.js route types and checks TypeScript. | Writes `*.tsbuildinfo` (gitignored). |
+docs/engineering/PROJECT_GUIDE.md:26:A skipped test is not a pass. Do not claim a command passed unless you ran it and saw it pass.
+docs/engineering/PROJECT_GUIDE.md:28:## Shared resources
+docs/engineering/PROJECT_GUIDE.md:37:`npm run test` and `npm run lint` do not touch Supabase. Still do not run two copies of the same gate at once on this checkout.
+docs/engineering/PROJECT_GUIDE.md:41:UI, layout, routing, client state, or rendered-data changes need a browser pass of the affected flow before the work is called complete. If no browser is available, use the closest substitute (`npm run test`, or a request against the dev server) and say what was not verified.
+docs/engineering/PROJECT_GUIDE.md:43:## Git
+
+ succeeded in 127ms:
+vitest.config.ts
+tsconfig.tsbuildinfo
+tsconfig.json
+eslint.config.mjs
+AGENTS.md
+tests\tipos.test.ts
+tests\mock.test.ts
+tests\data-fallback.test.ts
+tests\carrito.test.ts
+postcss.config.mjs
+next.config.ts
+scripts\tests\tooling.test.mjs
+.env.example
+.env.local
+resuelvelo\vitest.config.ts
+resuelvelo\tsconfig.json
+resuelvelo\eslint.config.mjs
+resuelvelo\tests\tipos.test.ts
+resuelvelo\tests\mock.test.ts
+resuelvelo\tests\data-fallback.test.ts
+resuelvelo\tests\carrito.test.ts
+resuelvelo\postcss.config.mjs
+resuelvelo\next.config.ts
+resuelvelo\AGENTS.md
+resuelvelo\.env.example
+
+ succeeded in 165ms:
+{
+  "name": "resuelvelo_app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "next typegen && tsc --noEmit",
+    "docs:check": "node scripts/check-docs.mjs",
+    "test:tooling": "node --test scripts/tests",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.5.0",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.107.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.17.0",
+    "next": "^16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "shadcn": "^4.10.0",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16.2.9",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.9"
+  }
+}
+
+ succeeded in 209ms:
+tests\carrito.test.ts
+tests\tipos.test.ts
+tests\mock.test.ts
+tests\data-fallback.test.ts
+docs\index\MASTER_INDEX.md
+docs\engineering\VERIFICATION.md
+docs\engineering\PROJECT_GUIDE.md
+
+codex
+La solicitud activa pide un endpoint de salud con estado, versión y entorno, más pruebas y documentación breve, sin cambios de frontend ni base de datos. Estoy comprobando las convenciones HTTP y la configuración de pruebas para concretar el contrato y repartir las tareas.
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath tests/data-fallback.test.ts -Encoding UTF8 | Select-Object -First 150' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg --files app lib' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n 'NextResponse|Response\\.json|process\\.env|export (async )?function (GET|POST|PUT|PATCH|DELETE)|health|status endpoint' app lib tests next.config.ts .env.example README.md docs -g '*.ts' -g '*.md' -g '*.example' -g '"'!verification.jsonl'"'" in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath vitest.config.ts,tsconfig.json,next.config.ts,docs/engineering/PROJECT_GUIDE.md,docs/engineering/VERIFICATION.md,docs/index/MASTER_INDEX.md -Encoding UTF8' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg --files node_modules/next/dist/docs | rg '(route-handlers|route\\.md|environment-variables|route-segment-config)'" in C:\Users\HMN\resuelvelo
+ succeeded in 142ms:
+lib\mock.ts
+lib\utils.ts
+lib\data.ts
+lib\supabase\server.ts
+lib\supabase\proxy.ts
+lib\supabase\client.ts
+lib\store\carrito.ts
+app\apple-icon.png
+app\layout.tsx
+app\icon.png
+app\globals.css
+app\favicon.ico
+app\page.tsx
+app\not-found.tsx
+app\como-funciona\page.tsx
+app\terminos\page.tsx
+app\privacidad\page.tsx
+app\(marketplace)\proveedores\page.tsx
+app\(auth)\register\page.tsx
+app\(auth)\recuperar\page.tsx
+app\(auth)\login\page.tsx
+app\(marketplace)\proveedor\productos\[id]\editar\page.tsx
+app\(auth)\actualizar-password\page.tsx
+app\(auth)\actions.ts
+app\(marketplace)\proveedor\page.tsx
+app\(marketplace)\proveedor\actions.ts
+app\(marketplace)\proveedor\productos\nuevo\page.tsx
+app\(marketplace)\mis-cotizaciones\page.tsx
+app\(marketplace)\catalogo\page.tsx
+app\(marketplace)\admin\actions.ts
+app\(marketplace)\admin\page.tsx
+app\(marketplace)\admin\ToggleActivoButton.tsx
+app\(marketplace)\proveedor\pedidos\page.tsx
+app\(marketplace)\cotizaciones\actions.ts
+
+ succeeded in 145ms:
+lib\supabase\server.ts:8:    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+lib\supabase\server.ts:9:    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+lib\supabase\proxy.ts:2:import { NextResponse, type NextRequest } from 'next/server'
+lib\supabase\proxy.ts:5:  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+lib\supabase\proxy.ts:6:  process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://<project-ref>.supabase.co'
+lib\supabase\proxy.ts:23:  options?: Parameters<NextResponse['cookies']['set']>[2]
+lib\supabase\proxy.ts:31:  const redirectResponse = NextResponse.redirect(new URL(destino, request.url))
+lib\supabase\proxy.ts:40:    return NextResponse.next({ request })
+lib\supabase\proxy.ts:43:  let supabaseResponse = NextResponse.next({ request })
+lib\supabase\proxy.ts:47:    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+lib\supabase\proxy.ts:48:    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+lib\supabase\proxy.ts:59:          supabaseResponse = NextResponse.next({ request })
+lib\supabase\client.ts:5:    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+lib\supabase\client.ts:6:    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+lib\data.ts:5:  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+lib\data.ts:6:  process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://<project-ref>.supabase.co'
+app\(auth)\actions.ts:117:  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+ succeeded in 212ms:
+import { defineConfig } from 'vitest/config'
+import path from 'path'
+
+export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./tests/setup.ts'],
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+    },
+  },
+})
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    // Force project root to avoid incorrect root inference in nested/workspace setups.
+    root: process.cwd(),
+  },
+};
+
+export default nextConfig;
+# Gu�a de ingenier�a
+
+Resu�lvelo is a B2B marketplace (Next.js 16 App Router, React 19, TypeScript, Tailwind v4, shadcn/ui, Supabase, Zustand, Vitest). This Next.js version differs from training data. Before writing Next.js code, read the relevant guide in `node_modules/next/dist/docs/` and heed deprecation notices.
+
+## Architecture
+
+- Transport and UI live in `app/` (routes, layouts, Server Actions) and `components/` (`layout/`, `marketplace/`, `ui/`).
+- Domain types live in `types/index.ts`.
+- The data boundary is `lib/data.ts`: catalog and quote reads go through Supabase, with an automatic fallback to `lib/mock.ts` when `NEXT_PUBLIC_SUPABASE_URL` is missing or still the example placeholder. Do not query Supabase from components.
+- `lib/supabase/client.ts`, `lib/supabase/server.ts`, and `lib/supabase/proxy.ts` are clients only.
+- The cart is client-only Zustand in `lib/store/carrito.ts`, persisted in `localStorage`.
+- Quote creation resolves provider and price on the server. Never trust prices or provider ids sent by the client.
+- Authorization is Postgres Row Level Security in `supabase/schema.sql`. UI checks are not the authorization layer.
+- Buyer flows: `app/(marketplace)/` catalog, cart, quotes. Provider flows: `app/(marketplace)/proveedor/`. Auth: `app/(auth)/`.
+
+## Gate commands
+
+| Command | What it checks | Shared state |
+|---|---|---|
+| `npm run test` | Vitest unit tests (`tests/`). Local only; no Supabase. | Does not mutate shared remote state. |
+| `npm run lint` | ESLint. | Local. |
+| `npm run typecheck` | Generates Next.js route types and checks TypeScript. | Writes `*.tsbuildinfo` (gitignored). |
+| `npm run build` | Production Next.js build. | Writes `.next/`. |
+| `npm run dev` | Dev server on port 3000. | Binds port 3000. |
+
+A skipped test is not a pass. Do not claim a command passed unless you ran it and saw it pass.
+
+## Shared resources
+
+Parallel workers share this checkout. In one fan-out, assign each of these to at most one worker:
+
+- `npm run dev` (port 3000)
+- `npm run build` and `npm run typecheck` (they write compiler output)
+- Applying `supabase/schema.sql` or `supabase/seed.sql` (one shared Supabase project)
+- `npx vercel deploy` (production)
+
+`npm run test` and `npm run lint` do not touch Supabase. Still do not run two copies of the same gate at once on this checkout.
+
+Do not add npm dependencies unless the approved plan includes them. Do not commit `.env`, `.env.local`, or any secret. `.env.example` is the only env file that belongs in git.
+
+UI, layout, routing, client state, or rendered-data changes need a browser pass of the affected flow before the work is called complete. If no browser is available, use the closest substitute (`npm run test`, or a request against the dev server) and say what was not verified.
+
+## Git
+
+Do not commit, push, or amend unless the user explicitly asks.
+
+While the tree has uncommitted work, these commands are forbidden: `git reset --hard`, `git checkout --`, `git clean`, `git rebase`, and `git push --force`.
+
+An isolated worktree is built from committed history. Uncommitted files are not in that history.
+# Verificaci�n con historial
+
+## Ejecutar controles
+
+Desde la ra�z del repositorio:
+
+```sh
+npm run verify
+npm run verify -- --quick
+npm run verify -- --only docs,test
+npm run verify -- --history
+```
+
+La ejecuci�n completa corre `docs`, `tooling`, `test`, `lint`, `typecheck` y `build`, en ese orden. La r�pida omite `build`; `--only` permite elegir controles por esos nombres, manteniendo el orden del inventario. La selecci�n queda registrada: una ejecuci�n parcial no equivale a la completa.
+
+| Control | Comando | L�mite de tiempo |
+|---|---|---|
+| docs | `npm run docs:check` | 30 segundos |
+| tooling | `npm run test:tooling` | 60 segundos |
+| test | `npm run test` | 120 segundos |
+| lint | `npm run lint` | 120 segundos |
+| typecheck | `npm run typecheck` | 180 segundos |
+| build | `npm run build` | 300 segundos |
+
+Tambi�n puedes ejecutar esos comandos individualmente; solo el ejecutor `verify` a�ade su resultado al historial. No reemplaza pruebas de navegador para cambios de interfaz ni valida RLS contra una base remota.
+
+## Resultados y evidencia
+
+Cada ejecuci�n terminada a�ade una l�nea JSON a `docs/history/verification.jsonl`: identificador, fecha UTC, equipo, versi�n de Node/npm, commit, estado de Git, huella SHA-256 de los archivos de entrada, selecci�n, duraci�n y resultado de cada control. Los logs completos quedan en `docs/history/logs/<id>/` y se excluyen de Git; el resumen versionable no incluye su contenido.
+
+- `PASS`: todos los controles seleccionados terminaron con salida cero y las entradas no cambiaron durante la ejecuci�n.
+- `FAIL`: un control fall�, no pudo iniciarse o agot� su tiempo. Los controles posteriores figuran como `SKIPPED`, nunca como pases.
+- `INVALIDATED`: los archivos de entrada cambiaron durante una ejecuci�n que habr�a pasado; vuelve a ejecutar los controles sobre el estado final.
+- Una invocaci�n inv�lida o bloqueada por otro ejecutor termina con salida no cero antes de empezar; no genera un resultado de controles.
+
+La huella cubre fuentes, activos p�blicos, pruebas, scripts, gu�as e instrucciones comunes y configuraciones p�blicas del proyecto, tambi�n en carpetas adicionales que los patrones de TypeScript puedan incluir. Excluye `.next/`, el propio historial, dependencias instaladas, archivos generados y credenciales. El commit por s� solo no identifica cambios sin commit; la huella de contenido s� distingue dos ediciones del mismo archivo. No se reutilizan pases autom�ticamente y no se leen variables ni archivos de secretos para construir el registro.
+
+## Exclusi�n y recuperaci�n
+
+El ejecutor usa `docs/history/verify.lock` para impedir dos ejecuciones simult�neas y libera su propio bloqueo al terminar. Esta exclusi�n solo cubre `verify`: coordina tambi�n los comandos individuales, servidores y builds de otros asistentes. Si un proceso se interrumpe abruptamente y deja el bloqueo, confirma que el PID indicado ya no corre antes de retirar ese archivo exacto.
+
+Los controles fallidos imprimen un extracto breve; consulta el log indicado para el detalle. Ning�n control de este inventario aplica SQL remoto, crea commits, hace push o despliega. Next.js puede necesitar red para descargar fuentes durante el build; una restricci�n de red se registra como fallo, no como un pase.
+
+## Mantener la documentaci�n ligera
+
+`npm run docs:check` valida los enlaces de las entradas, las gu�as operativas y el �ndice; exige que todos los documentos Markdown bajo `docs/` est�n indexados (excepto el �ndice mismo y logs). Sus presupuestos locales son 120 l�neas/8 KB para `AGENTS.md`, 512 bytes para `CLAUDE.md` y 1.5 KB por adaptador de Cursor. Son l�mites de mantenimiento del proyecto, no una estimaci�n de tokens ni un l�mite del producto.
+
+Ver tambi�n: [gu�a de ingenier�a](PROJECT_GUIDE.md), [�ndice](../index/MASTER_INDEX.md), [historial](../history/README.md).
+# �ndice de documentaci�n
+
+Elige el tema y consulta solo su secci�n relevante. Las gu�as de trabajo son la referencia operativa; los documentos acad�micos y planes anteriores conservan su contexto hist�rico.
+
+## Entradas de los asistentes
+
+| Documento | Cu�ndo consultarlo |
+|---|---|
+| [AGENTS.md](../../AGENTS.md) | Acuerdos comunes, l�mites de arquitectura y controles. |
+| [CLAUDE.md](../../CLAUDE.md) | Entrada de Claude Code; importa AGENTS.md. |
+| [Regla de ingenier�a de Cursor](../../.cursor/rules/project-engineering.mdc) | Adaptador hacia las mismas gu�as. |
+| [Regla de orquestaci�n de Cursor](../../.cursor/rules/orchestration.mdc) | Entrada al protocolo existente del agente principal. |
+
+## Desarrollo y verificaci�n
+
+| Documento | Cu�ndo consultarlo |
+|---|---|
+| [README](../../README.md) | Producto, instalaci�n y comandos de puesta en marcha. |
+| [Gu�a de ingenier�a](../engineering/PROJECT_GUIDE.md) | Arquitectura, seguridad, recursos compartidos y Git. |
+| [Verificaci�n con historial](../engineering/VERIFICATION.md) | Controles, selecci�n, resultados, registros y l�mites de la evidencia. |
+| [Protocolo de Cursor](../engineering/CURSOR_ORCHESTRATION.md) | Detalle preservado del flujo existente de desarrollo con Cursor. |
+| [Historial de verificaciones](../history/README.md) | Ubicaci�n y formato de los registros. |
+
+## Producto y entregas acad�micas
+
+| Documento | Cu�ndo consultarlo |
+|---|---|
+| [Roadmap](../ROADMAP.md) | Fases, backlog y decisiones de producto. |
+| [Checklist de entrega](../PROYECTO-FINAL.md) | Requisitos de la entrega de Seminario I. |
+| [Documento final](../DOCUMENTO-FINAL.md) | Informe acad�mico extenso; buscar por encabezado. |
+| [Gesti�n de proyectos](../SEMINARIO-II-GESTION-PROYECTOS.md) | Entrega de gesti�n de proyectos de Seminario II. |
+| [Evidencias de implementaci�n](../EVIDENCIAS-IMPLEMENTACION.md) | Verificaciones hist�ricas de la entrega. |
+
+## Planes de implementaci�n
+
+| Plan | Alcance |
+|---|---|
+| [Versi�n final de Seminario II](../implementation-plans/2026-09-26-version-final-seminario-ii.md) | Alcance aprobado de la entrega anterior. |
+| [Herramientas compartidas](../implementation-plans/2026-10-01-herramientas-compartidas.md) | Gu�as comunes, �ndice y verificaci�n con historial. |
+
+Al a�adir un documento Markdown bajo `docs/`, a�ade su enlace aqu�. `npm run docs:check` comprueba cobertura, enlaces locales de estas entradas y el tama�o de las instrucciones cargadas siempre.
+
+ succeeded in 242ms:
+node_modules/next/dist/docs\01-app\01-getting-started\15-route-handlers.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\route.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\dynamicParams.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\runtime.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\preferredRegion.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\maxDuration.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\instant.md
+node_modules/next/dist/docs\01-app\03-api-reference\03-file-conventions\02-route-segment-config\index.md
+node_modules/next/dist/docs\02-pages\02-guides\environment-variables.md
+node_modules/next/dist/docs\01-app\02-guides\environment-variables.md
+
+ succeeded in 280ms:
+/**
+ * Tests de lib/data.ts - fallback a mock cuando no hay Supabase
+ * Simulan el entorno sin credenciales de Supabase.
+ */
+import { describe, it, expect, vi, beforeAll } from 'vitest'
+
+// Asegurar que las env de Supabase NO est�n configuradas (modo mock)
+beforeAll(() => {
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://<project-ref>.supabase.co')
+})
+
+describe('getProductos - fallback a mock', () => {
+  it('devuelve los 10 productos mock sin filtros', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos()
+    expect(productos.length).toBe(10)
+  })
+
+  it('filtra por b�squeda de texto', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ busqueda: 'PVC' })
+    expect(productos.length).toBeGreaterThan(0)
+    for (const p of productos) {
+      const coincide =
+        p.nombre.toLowerCase().includes('pvc') ||
+        (p.descripcion?.toLowerCase().includes('pvc') ?? false)
+      expect(coincide, `"${p.nombre}" no contiene "PVC"`).toBe(true)
+    }
+  })
+
+  it('filtra por categor�a slug', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ categoriaSlug: 'plomeria' })
+    expect(productos.length).toBeGreaterThan(0)
+    for (const p of productos) {
+      expect(p.categoria?.slug).toBe('plomeria')
+    }
+  })
+
+  it('devuelve 0 productos para b�squeda inexistente', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ busqueda: 'xyzabc123inexistente' })
+    expect(productos.length).toBe(0)
+  })
+
+  it('devuelve todos los productos para categor�a "todos"', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const todos = await getProductos({ categoriaSlug: 'todos' })
+    const sinFiltro = await getProductos()
+    expect(todos.length).toBe(sinFiltro.length)
+  })
+
+  it('filtra por precio m�nimo', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ precioMin: 850 })
+    expect(productos.length).toBeGreaterThan(0)
+    for (const p of productos) {
+      expect(p.precio).toBeGreaterThanOrEqual(850)
+    }
+    expect(productos.some((p) => p.id === '8')).toBe(true)
+    expect(productos.some((p) => p.id === '2')).toBe(false)
+  })
+
+  it('filtra por precio m�ximo', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ precioMax: 320 })
+    expect(productos.length).toBeGreaterThan(0)
+    for (const p of productos) {
+      expect(p.precio).toBeLessThanOrEqual(320)
+    }
+    expect(productos.some((p) => p.id === '3')).toBe(true)
+    expect(productos.some((p) => p.id === '1')).toBe(false)
+  })
+
+  it('filtra por rango de precio m�nimo y m�ximo', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ precioMin: 300, precioMax: 700 })
+    expect(productos.length).toBeGreaterThan(0)
+    for (const p of productos) {
+      expect(p.precio).toBeGreaterThanOrEqual(300)
+      expect(p.precio).toBeLessThanOrEqual(700)
+    }
+    expect(productos.some((p) => p.id === '6')).toBe(true)
+    expect(productos.some((p) => p.id === '5')).toBe(false)
+  })
+
+  it('conStock excluye productos con stock 0', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ conStock: true })
+    expect(productos.length).toBe(9)
+    for (const p of productos) {
+      expect(p.stock).toBeGreaterThan(0)
+    }
+    expect(productos.some((p) => p.id === '4')).toBe(false)
+  })
+
+  it('combina conStock con categor�a plomer�a', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ categoriaSlug: 'plomeria', conStock: true })
+    expect(productos.length).toBe(3)
+    for (const p of productos) {
+      expect(p.categoria?.slug).toBe('plomeria')
+      expect(p.stock).toBeGreaterThan(0)
+    }
+  })
+
+  it('combina precio m�nimo con b�squeda PVC', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ busqueda: 'PVC', precioMin: 500 })
+    expect(productos.length).toBe(1)
+    expect(productos[0].id).toBe('1')
+    expect(productos[0].precio).toBeGreaterThanOrEqual(500)
+  })
+})
+
+describe('getCategorias - fallback a mock', () => {
+  it('devuelve las 4 categor�as mock', async () => {
+    const { getCategorias } = await import('@/lib/data')
+    const cats = await getCategorias()
+    expect(cats.length).toBe(4)
+  })
+
+  it('cada categor�a tiene slug', async () => {
+    const { getCategorias } = await import('@/lib/data')
+    const cats = await getCategorias()
+    for (const c of cats) {
+      expect(c.slug).toBeTruthy()
+    }
+  })
+})
+
+describe('getProductosDeProveedor - fallback a mock', () => {
+  it('devuelve los productos del proveedor p1 (Promeria)', async () => {
+    const { getProductosDeProveedor } = await import('@/lib/data')
+    const productos = await getProductosDeProveedor('p1')
+    expect(productos.length).toBeGreaterThan(0)
+    for (const p of productos) {
+      expect(p.proveedor_id).toBe('p1')
+    }
+  })
+
+  it('devuelve array vac�o para proveedor inexistente', async () => {
+    const { getProductosDeProveedor } = await import('@/lib/data')
+    const productos = await getProductosDeProveedor('proveedor-que-no-existe')
+    expect(productos).toHaveLength(0)
+  })
+})
+
+describe('getProducto - fallback a mock', () => {
+  it('devuelve el producto con id exacto', async () => {
+
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath lib/supabase/proxy.ts,tests/setup.ts -Encoding UTF8' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n 'NODE_ENV|runtime|inlined|cache|npm_package|version' node_modules/next/dist/docs/01-app/02-guides/environment-variables.md package.json tests/setup.ts scripts/check-docs.mjs" in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg --files -g 'proxy.*' -g 'middleware.*' -g '"'!node_modules/**'"' -g '"'!.next/**'"'" in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath node_modules/next/dist/docs/01-app/01-getting-started/15-route-handlers.md -Encoding UTF8 | Select-Object -First 150' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/route.md -Encoding UTF8 | Select-Object -First 190' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath README.md -Encoding UTF8 | Select-Object -First 115' in C:\Users\HMN\resuelvelo
+ succeeded in 165ms:
+lib\supabase\proxy.ts
+proxy.ts
+resuelvelo\proxy.ts
+resuelvelo\lib\supabase\proxy.ts
+
+ succeeded in 201ms:
+package.json:3:  "version": "0.1.0",
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:83:If you need to load environment variables outside of the Next.js runtime, such as in a root config file for an ORM or test runner, you can use the `@next/env` package.
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:164:This will tell Next.js to replace all references to `process.env.NEXT_PUBLIC_ANALYTICS_ID` in the Node.js environment with the value from the environment in which you run `next build`, allowing you to use it anywhere in your code. It will be inlined into any JavaScript sent to the browser.
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:166:> **Note**: After being built, your app will no longer respond to changes to these environment variables. For instance, if you use a Heroku pipeline to promote slugs built in one environment to another environment, or if you build and deploy a single Docker image to multiple environments, all `NEXT_PUBLIC_` variables will be frozen with the value evaluated at build time, so these values need to be set appropriately when the project is built. If you need access to runtime environment values, you'll have to setup your own API to provide them to the client (either on demand or during initialization).
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:182:Note that dynamic lookups will _not_ be inlined, such as:
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:185:// This will NOT be inlined, because it uses a variable
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:189:// This will NOT be inlined, because it uses a variable
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:196:Next.js can support both build time and runtime environment variables.
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:198:**By default, environment variables are only available on the server**. To expose an environment variable to the browser, it must be prefixed with `NEXT_PUBLIC_`. However, these public environment variables will be inlined into the JavaScript bundle during `next build`.
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:202:To read runtime environment variables, we recommend using `getServerSideProps` or [incrementally adopting the App Router](/docs/app/guides/migrating/app-router-migration).
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:217:  // this env variable is evaluated at runtime
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:230:  // this env variable is evaluated at runtime
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:248:This one is useful when running tests with tools like `jest` or `cypress` where you need to set specific environment vars only for testing purposes. Test default values will be loaded if `NODE_ENV` is set to `test`, though you usually don't need to do this manually as testing tools will address it for you.
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:271:1. `.env.$(NODE_ENV).local`
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:272:1. `.env.local` (Not checked when `NODE_ENV` is `test`.)
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:273:1. `.env.$(NODE_ENV)`
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:276:For example, if `NODE_ENV` is `development` and you define a variable in both `.env.development.local` and `.env`, the value in `.env.development.local` will be used.
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:278:> **Good to know**: The allowed values for `NODE_ENV` are `production`, `development` and `test`.
+node_modules/next/dist/docs/01-app/02-guides/environment-variables.md:283:- If the environment variable `NODE_ENV` is unassigned, Next.js automatically assigns `development` when running the `next dev` command, or `production` for all other commands.
+
+ succeeded in 287ms:
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
+
+const SUPABASE_DISPONIBLE =
+  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://<project-ref>.supabase.co'
+
+function coincidePrefijo(pathname: string, prefijo: string) {
+  return pathname === prefijo || pathname.startsWith(`${prefijo}/`)
+}
+
+function rutaProtegida(pathname: string) {
+  return (
+    coincidePrefijo(pathname, '/admin') ||
+    coincidePrefijo(pathname, '/proveedor') ||
+    coincidePrefijo(pathname, '/mis-cotizaciones')
+  )
+}
+
+type CookieToSet = {
+  name: string
+  value: string
+  options?: Parameters<NextResponse['cookies']['set']>[2]
+}
+
+function redirigirConCookies(
+  request: NextRequest,
+  cookiesToSet: CookieToSet[],
+  destino: '/login' | '/catalogo'
+) {
+  const redirectResponse = NextResponse.redirect(new URL(destino, request.url))
+  cookiesToSet.forEach(({ name, value, options }) =>
+    redirectResponse.cookies.set(name, value, options)
+  )
+  return redirectResponse
+}
+
+export async function updateSession(request: NextRequest) {
+  if (!SUPABASE_DISPONIBLE) {
+    return NextResponse.next({ request })
+  }
+
+  let supabaseResponse = NextResponse.next({ request })
+  let cookiesRefrescadas: CookieToSet[] = []
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesRefrescadas = cookiesToSet
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+
+  if (!rutaProtegida(pathname)) {
+    return supabaseResponse
+  }
+
+  if (!user) {
+    return redirigirConCookies(request, cookiesRefrescadas, '/login')
+  }
+
+  if (coincidePrefijo(pathname, '/mis-cotizaciones')) {
+    return supabaseResponse
+  }
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('rol')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const rol = error || !profile?.rol ? null : profile.rol
+
+  if (coincidePrefijo(pathname, '/admin') && rol !== 'admin') {
+    return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
+  }
+
+  if (coincidePrefijo(pathname, '/proveedor') && rol !== 'proveedor') {
+    return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
+  }
+
+  return supabaseResponse
+}
+import '@testing-library/jest-dom'
+
+ succeeded in 289ms:
+---
+title: Route Handlers
+nav_title: Route Handlers
+description: Learn how to use Route Handlers
+related:
+  title: API Reference
+  description: Learn more about Route Handlers
+  links:
+    - app/api-reference/file-conventions/route
+    - app/guides/backend-for-frontend
+---
+
+## Route Handlers
+
+Route Handlers allow you to create custom request handlers for a given route using the Web [Request](https://developer.mozilla.org/docs/Web/API/Request) and [Response](https://developer.mozilla.org/docs/Web/API/Response) APIs.
+
+<Image
+  alt="Route.js Special File"
+  srcLight="/docs/light/route-special-file.png"
+  srcDark="/docs/dark/route-special-file.png"
+  width="1600"
+  height="444"
+/>
+
+> **Good to know**: Route Handlers are only available inside the `app` directory. They are the equivalent of [API Routes](/docs/pages/building-your-application/routing/api-routes) inside the `pages` directory meaning you **do not** need to use API Routes and Route Handlers together.
+
+### Convention
+
+Route Handlers are defined in a [`route.js|ts` file](/docs/app/api-reference/file-conventions/route) inside the `app` directory:
+
+```ts filename="app/api/route.ts" switcher
+export async function GET(request: Request) {}
+```
+
+```js filename="app/api/route.js" switcher
+export async function GET(request) {}
+```
+
+Route Handlers can be nested anywhere inside the `app` directory, similar to `page.js` and `layout.js`. But there **cannot** be a `route.js` file at the same route segment level as `page.js`.
+
+### Supported HTTP Methods
+
+The following [HTTP methods](https://developer.mozilla.org/docs/Web/HTTP/Methods) are supported: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`. If an unsupported method is called, Next.js will return a `405 Method Not Allowed` response.
+
+### Extended `NextRequest` and `NextResponse` APIs
+
+In addition to supporting the native [Request](https://developer.mozilla.org/docs/Web/API/Request) and [Response](https://developer.mozilla.org/docs/Web/API/Response) APIs, Next.js extends them with [`NextRequest`](/docs/app/api-reference/functions/next-request) and [`NextResponse`](/docs/app/api-reference/functions/next-response) to provide convenient helpers for advanced use cases.
+
+### Caching
+
+Route Handlers are not cached by default. You can, however, opt into caching for `GET` methods. Other supported HTTP methods are **not** cached. To cache a `GET` method, use a [route config option](/docs/app/guides/caching-without-cache-components#dynamic) such as `export const dynamic = 'force-static'` in your Route Handler file.
+
+```ts filename="app/items/route.ts" switcher
+export const dynamic = 'force-static'
+
+export async function GET() {
+  const res = await fetch('https://data.mongodb-api.com/...', {
+    headers: {
+      'Content-Type': 'application/json',
+      'API-Key': process.env.DATA_API_KEY,
+    },
+  })
+  const data = await res.json()
+
+  return Response.json({ data })
+}
+```
+
+```js filename="app/items/route.js" switcher
+export const dynamic = 'force-static'
+
+export async function GET() {
+  const res = await fetch('https://data.mongodb-api.com/...', {
+    headers: {
+      'Content-Type': 'application/json',
+      'API-Key': process.env.DATA_API_KEY,
+    },
+  })
+  const data = await res.json()
+
+  return Response.json({ data })
+}
+```
+
+> **Good to know**: Other supported HTTP methods are **not** cached, even if they are placed alongside a `GET` method that is cached, in the same file.
+
+#### With Cache Components
+
+When [Cache Components](/docs/app/getting-started/caching) is enabled, `GET` Route Handlers follow the same model as normal UI routes in your application. They run at request time by default, can be prerendered when they don't access uncached or runtime data, and you can use `use cache` to include uncached data in the static response.
+
+**Static example** - doesn't access uncached or runtime data, so it will be prerendered at build time:
+
+```tsx filename="app/api/project-info/route.ts"
+export async function GET() {
+  return Response.json({
+    projectName: 'Next.js',
+  })
+}
+```
+
+**Dynamic example** - accesses non-deterministic operations. During the build, prerendering stops when `Math.random()` is called, deferring to request-time rendering:
+
+```tsx filename="app/api/random-number/route.ts"
+export async function GET() {
+  return Response.json({
+    randomNumber: Math.random(),
+  })
+}
+```
+
+**Runtime data example** - accesses request-specific data. Prerendering terminates when runtime APIs like `headers()` are called:
+
+```tsx filename="app/api/user-agent/route.ts"
+import { headers } from 'next/headers'
+
+export async function GET() {
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+
+  return Response.json({ userAgent })
+}
+```
+
+> **Good to know**: Prerendering stops if the `GET` handler accesses network requests, database queries, async file system operations, request object properties (like `req.url`, `request.headers`, `request.cookies`, `request.body`), runtime APIs like [`cookies()`](/docs/app/api-reference/functions/cookies), [`headers()`](/docs/app/api-reference/functions/headers), [`connection()`](/docs/app/api-reference/functions/connection), or non-deterministic operations.
+
+**Cached example** - accesses uncached data (database query) but caches it with `use cache`, allowing it to be included in the prerendered response:
+
+```tsx filename="app/api/products/route.ts"
+import { cacheLife } from 'next/cache'
+
+export async function GET() {
+  const products = await getProducts()
+  return Response.json(products)
+}
+
+async function getProducts() {
+  'use cache'
+  cacheLife('hours')
+
+  return await db.query('SELECT * FROM products')
+}
+```
+
+> **Good to know**: `use cache` cannot be used directly inside a Route Handler body; extract it to a helper function. Cached responses revalidate according to `cacheLife` when a new request arrives.
+
+### Special Route Handlers
+
+Special Route Handlers like [`sitemap.ts`](/docs/app/api-reference/file-conventions/metadata/sitemap), [`opengraph-image.tsx`](/docs/app/api-reference/file-conventions/metadata/opengraph-image), and [`icon.tsx`](/docs/app/api-reference/file-conventions/metadata/app-icons), and other [metadata files](/docs/app/api-reference/file-conventions/metadata) remain static by default unless they use Request-time APIs or dynamic config options.
+
+### Route Resolution
+
+ succeeded in 276ms:
+# Resu�lvelo
+
+Marketplace B2B que conecta compradores profesionales (contratistas, constructoras y PYMEs) con proveedores de materiales, insumos y servicios en Rep�blica Dominicana. Los compradores exploran un cat�logo multi-proveedor, arman un carrito y solicitan cotizaciones; los proveedores publican su cat�logo y responden esas solicitudes desde un panel propio.
+
+**Demo en vivo:** [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) (MVP de Seminario I; el panel `/admin`, la protecci�n centralizada de rutas y los filtros de precio/stock del cat�logo est�n en el repositorio local y requieren un deploy nuevo para verse en esa URL) � **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
+
+![Home de Resu�lvelo](docs/screenshots/01-home.png)
+
+## Objetivo
+
+Reemplazar el proceso manual de "llamar a varias ferreter�as para comparar precios" por un flujo digital: un solo cat�logo, cotizaciones estructuradas y trazabilidad de pedidos para ambos lados del marketplace.
+
+## Roles
+
+- **Comprador** - explora el cat�logo, arma un carrito y solicita cotizaciones a uno o varios proveedores a la vez.
+- **Proveedor** - publica y administra su cat�logo de productos/servicios, y responde las cotizaciones que recibe.
+- **Admin** - panel en **`/admin`**: listado de proveedores, productos (activos e inactivos) con activar/desactivar, y cotizaciones de la plataforma (moderaci�n v�a RLS en Postgres).
+
+## Stack t�cnico
+
+- **Next.js 16** (App Router, Server Components + Server Actions) � **React 19** � **TypeScript**
+- **Tailwind CSS v4** + **shadcn/ui** (`@base-ui/react`) para la interfaz
+- **Supabase** - Postgres, Auth (email/password) y Row Level Security como �nica capa de autorizaci�n de datos
+- **Zustand** - carrito de compras persistido en `localStorage`
+- **Vitest** + Testing Library para pruebas unitarias
+
+## Funcionalidad implementada
+
+- Registro / login / logout con Supabase Auth y redirecci�n seg�n rol (`app/(auth)/`)
+- Recuperaci�n de contrase�a por email (`/recuperar`  `/actualizar-password`)
+- Cat�logo con b�squeda por texto, filtro por categor�a, **precio m�nimo**, **precio m�ximo** y opci�n **solo con stock**, le�do directo de Supabase con **fallback autom�tico a datos mock** si no hay credenciales configuradas (`lib/data.ts`)
+- Protecci�n de rutas en `lib/supabase/proxy.ts`: sin sesi�n no se accede a `/admin`, `/proveedor` ni `/mis-cotizaciones`; con sesi�n, cada rol solo entra donde le corresponde (p. ej. `/admin` solo administradores)
+- Carrito de compras (agregar, editar cantidad, vaciar) persistido en el navegador
+- Solicitud de cotizaciones desde el carrito: se agrupan los items por proveedor y se crea una cotizaci�n por cada uno, resolviendo el proveedor y el precio directo desde la base de datos (nunca confiando en datos del cliente)
+- Panel de proveedor: estad�sticas, listado de productos con activar/desactivar/editar/**eliminar**, y bandeja de cotizaciones con aceptar/rechazar
+- Panel de administraci�n (`/admin`): proveedores, productos (activos e inactivos) con activar/desactivar, y cotizaciones de la plataforma
+- Row Level Security en Postgres: cada usuario solo puede leer/escribir lo que le corresponde, incluso si la UI fallara
+
+## Capturas
+
+| Cat�logo | Carrito |
+|---|---|
+| ![Cat�logo](docs/screenshots/02-catalogo.png) | ![Carrito](docs/screenshots/03-carrito.png) |
+
+| Mis cotizaciones (comprador) | Bandeja de cotizaciones (proveedor) |
+|---|---|
+| ![Mis cotizaciones](docs/screenshots/04-mis-cotizaciones.png) | ![Bandeja de cotizaciones](docs/screenshots/05-proveedor-pedidos.png) |
+
+| Panel de proveedor |
+|---|
+| ![Panel de proveedor](docs/screenshots/06-proveedor-dashboard.png) |
+
+## Puesta en marcha local
+
+### 1. Requisitos
+
+- Node.js 20.9+
+- Una cuenta gratuita en [supabase.com](https://supabase.com)
+
+### 2. Instalar dependencias
+
+```bash
+npm install
+```
+
+### 3. Configurar Supabase
+
+1. Crear un proyecto nuevo en [supabase.com](https://supabase.com/dashboard).
+2. En **SQL Editor**, ejecutar en orden:
+   - [`supabase/schema.sql`](supabase/schema.sql) - tablas, �ndices, RLS y el trigger que crea el `profile` al registrarse.
+   - [`supabase/seed.sql`](supabase/seed.sql) - categor�as, proveedores, productos y cotizaciones de demo.
+3. En **Project Settings  API**, copiar la `Project URL` y la `anon public key`.
+
+### 4. Variables de entorno
+
+Copiar `.env.example` a `.env.local` y completar:
+
+```bash
+cp .env.example .env.local
+```
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-public-key>
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+> Si dej�s `NEXT_PUBLIC_SUPABASE_URL` con el valor de ejemplo, la app sigue funcionando: el cat�logo y los proveedores se sirven desde datos mock en `lib/mock.ts`, �til para explorar la interfaz sin configurar nada. El registro, login y cotizaciones s� requieren credenciales reales de Supabase.
+
+### 5. Correr en desarrollo
+
+```bash
+npm run dev
+```
+
+Abrir [http://localhost:3000](http://localhost:3000).
+
+### 6. Credenciales de demo
+
+Si corriste `seed.sql`, puedes ingresar con cualquiera de estos usuarios (contrase�a `Demo1234!` para todos):
+
+| Email | Rol | Empresa |
+|---|---|---|
+| `admin@demo.com` | Admin | - |
+| `comprador@demo.com` | Comprador | Construcciones Herrera |
+| `promeria@demo.com` | Proveedor | Promeria (plomer�a) |
+| `lopez@demo.com` | Proveedor | Ferreter�a L�pez |
+| `norte@demo.com` | Proveedor | Materiales del Norte |
+| `solartech@demo.com` | Proveedor | SolarTech RD |
+| `autochequeo@demo.com` | Proveedor | AutoChequeo RD |
+
+## Scripts disponibles
+
+```bash
+npm run dev      # servidor de desarrollo (Webpack)
+
+ succeeded in 313ms:
+---
+title: route.js
+description: API reference for the route.js special file.
+---
+
+Route Handlers allow you to create custom request handlers for a given route using the Web [Request](https://developer.mozilla.org/docs/Web/API/Request) and [Response](https://developer.mozilla.org/docs/Web/API/Response) APIs.
+
+```ts filename="route.ts" switcher
+export async function GET() {
+  return Response.json({ message: 'Hello World' })
+}
+```
+
+```js filename="route.js" switcher
+export async function GET() {
+  return Response.json({ message: 'Hello World' })
+}
+```
+
+## Reference
+
+### HTTP Methods
+
+A **route** file allows you to create custom request handlers for a given route. The following [HTTP methods](https://developer.mozilla.org/docs/Web/HTTP/Methods) are supported: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`.
+
+```ts filename="route.ts" switcher
+export async function GET(request: Request) {}
+
+export async function HEAD(request: Request) {}
+
+export async function POST(request: Request) {}
+
+export async function PUT(request: Request) {}
+
+export async function DELETE(request: Request) {}
+
+export async function PATCH(request: Request) {}
+
+// If `OPTIONS` is not defined, Next.js will automatically implement `OPTIONS` and set the appropriate Response `Allow` header depending on the other methods defined in the Route Handler.
+export async function OPTIONS(request: Request) {}
+```
+
+```js filename="route.js" switcher
+export async function GET(request) {}
+
+export async function HEAD(request) {}
+
+export async function POST(request) {}
+
+export async function PUT(request) {}
+
+export async function DELETE(request) {}
+
+export async function PATCH(request) {}
+
+// If `OPTIONS` is not defined, Next.js will automatically implement `OPTIONS` and set the appropriate Response `Allow` header depending on the other methods defined in the Route Handler.
+export async function OPTIONS(request) {}
+```
+
+### Parameters
+
+#### `request` (optional)
+
+The `request` object is a [NextRequest](/docs/app/api-reference/functions/next-request) object, which is an extension of the Web [Request](https://developer.mozilla.org/docs/Web/API/Request) API. `NextRequest` gives you further control over the incoming request, including easily accessing `cookies` and an extended, parsed, URL object `nextUrl`.
+
+```ts filename="route.ts" switcher
+import type { NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const url = request.nextUrl
+}
+```
+
+```js filename="route.js" switcher
+export async function GET(request) {
+  const url = request.nextUrl
+}
+```
+
+#### `context` (optional)
+
+- **`params`**: a promise that resolves to an object containing the [dynamic route parameters](/docs/app/api-reference/file-conventions/dynamic-routes) for the current route.
+
+```ts filename="app/dashboard/[team]/route.ts" switcher
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ team: string }> }
+) {
+  const { team } = await params
+}
+```
+
+```js filename="app/dashboard/[team]/route.js" switcher
+export async function GET(request, { params }) {
+  const { team } = await params
+}
+```
+
+| Example                          | URL            | `params`                           |
+| -------------------------------- | -------------- | ---------------------------------- |
+| `app/dashboard/[team]/route.js`  | `/dashboard/1` | `Promise<{ team: '1' }>`           |
+| `app/shop/[tag]/[item]/route.js` | `/shop/1/2`    | `Promise<{ tag: '1', item: '2' }>` |
+| `app/blog/[...slug]/route.js`    | `/blog/1/2`    | `Promise<{ slug: ['1', '2'] }>`    |
+
+### Route Context Helper
+
+You can type the Route Handler context using `RouteContext` to get strongly typed `params` from a route literal. `RouteContext` is a globally available helper.
+
+```ts filename="app/users/[id]/route.ts"
+import type { NextRequest } from 'next/server'
+
+export async function GET(_req: NextRequest, ctx: RouteContext<'/users/[id]'>) {
+  const { id } = await ctx.params
+  return Response.json({ id })
+}
+```
+
+> **Good to know**
+>
+> - Types are generated during `next dev`, `next build` or `next typegen`.
+> - After type generation, the `RouteContext` helper is globally available. It doesn't need to be imported.
+
+## Examples
+
+### Cookies
+
+You can read or set cookies with [`cookies`](/docs/app/api-reference/functions/cookies) from `next/headers`.
+
+```ts filename="route.ts" switcher
+import { cookies } from 'next/headers'
+
+export async function GET(request: NextRequest) {
+  const cookieStore = await cookies()
+
+  const a = cookieStore.get('a')
+  const b = cookieStore.set('b', '1')
+  const c = cookieStore.delete('c')
+}
+```
+
+```js filename="route.js" switcher
+import { cookies } from 'next/headers'
+
+export async function GET(request) {
+  const cookieStore = await cookies()
+
+  const a = cookieStore.get('a')
+  const b = cookieStore.set('b', '1')
+  const c = cookieStore.delete('c')
+}
+```
+
+Alternatively, you can return a new `Response` using the [`Set-Cookie`](https://developer.mozilla.org/docs/Web/HTTP/Headers/Set-Cookie) header.
+
+```ts filename="app/api/route.ts" switcher
+import { cookies } from 'next/headers'
+
+export async function GET(request: Request) {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('token')
+
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: { 'Set-Cookie': `token=${token.value}` },
+  })
+}
+```
+
+```js filename="app/api/route.js" switcher
+import { cookies } from 'next/headers'
+
+export async function GET(request) {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('token')
+
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: { 'Set-Cookie': `token=${token.value}` },
+  })
+}
+```
+
+You can also use the underlying Web APIs to read cookies from the request ([`NextRequest`](/docs/app/api-reference/functions/next-request)):
+
+```ts filename="app/api/route.ts" switcher
+import { type NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const token = request.cookies.get('token')
+}
+
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg -n 'api|check.*index|MASTER_INDEX|allDocs|markdown|docs/' scripts/check-docs.mjs | Select-Object -First 55" in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/02-route-segment-config/index.md -Encoding UTF8 | Select-Object -First 95' in C:\Users\HMN\resuelvelo
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$paths = @('"'proxy.ts','lib/supabase/proxy.ts','vitest.config.ts','package.json','.orchestrator/features/health-endpoint/request.md'); foreach ("'$path in $paths) { $line = 0; Get-Content -LiteralPath $path -Encoding UTF8 | ForEach-Object { $line++; '"'{0}:{1}: {2}' -f "'$path,$line,$_ } }' in C:\Users\HMN\resuelvelo
+ succeeded in 187ms:
+13:function markdownFiles(directory) {
+18:    return entry.isDirectory() ? markdownFiles(path) : entry.isFile() && entry.name.endsWith('.md') ? [path] : [];
+44:  const index = resolve(root, 'docs/index/MASTER_INDEX.md');
+54:    if (name === 'AGENTS.md' && !text.includes('docs/index/MASTER_INDEX.md')) errors.push('AGENTS.md no apunta al índice');
+58:  if (!existsSync(index)) errors.push('Falta docs/index/MASTER_INDEX.md');
+60:    checked.add(index);
+62:    for (const file of markdownFiles(resolve(root, 'docs'))) {
+65:      if (file.includes(`${sep}engineering${sep}`) || file === resolve(root, 'docs/history/README.md')) {
+
+ succeeded in 197ms:
+proxy.ts:1: import { type NextRequest } from 'next/server'
+proxy.ts:2: import { updateSession } from '@/lib/supabase/proxy'
+proxy.ts:3: 
+proxy.ts:4: export async function proxy(request: NextRequest) {
+proxy.ts:5:   return await updateSession(request)
+proxy.ts:6: }
+proxy.ts:7: 
+proxy.ts:8: export const config = {
+proxy.ts:9:   matcher: [
+proxy.ts:10:     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+proxy.ts:11:   ],
+proxy.ts:12: }
+lib/supabase/proxy.ts:1: import { createServerClient } from '@supabase/ssr'
+lib/supabase/proxy.ts:2: import { NextResponse, type NextRequest } from 'next/server'
+lib/supabase/proxy.ts:3: 
+lib/supabase/proxy.ts:4: const SUPABASE_DISPONIBLE =
+lib/supabase/proxy.ts:5:   !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+lib/supabase/proxy.ts:6:   process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://<project-ref>.supabase.co'
+lib/supabase/proxy.ts:7: 
+lib/supabase/proxy.ts:8: function coincidePrefijo(pathname: string, prefijo: string) {
+lib/supabase/proxy.ts:9:   return pathname === prefijo || pathname.startsWith(`${prefijo}/`)
+lib/supabase/proxy.ts:10: }
+lib/supabase/proxy.ts:11: 
+lib/supabase/proxy.ts:12: function rutaProtegida(pathname: string) {
+lib/supabase/proxy.ts:13:   return (
+lib/supabase/proxy.ts:14:     coincidePrefijo(pathname, '/admin') ||
+lib/supabase/proxy.ts:15:     coincidePrefijo(pathname, '/proveedor') ||
+lib/supabase/proxy.ts:16:     coincidePrefijo(pathname, '/mis-cotizaciones')
+lib/supabase/proxy.ts:17:   )
+lib/supabase/proxy.ts:18: }
+lib/supabase/proxy.ts:19: 
+lib/supabase/proxy.ts:20: type CookieToSet = {
+lib/supabase/proxy.ts:21:   name: string
+lib/supabase/proxy.ts:22:   value: string
+lib/supabase/proxy.ts:23:   options?: Parameters<NextResponse['cookies']['set']>[2]
+lib/supabase/proxy.ts:24: }
+lib/supabase/proxy.ts:25: 
+lib/supabase/proxy.ts:26: function redirigirConCookies(
+lib/supabase/proxy.ts:27:   request: NextRequest,
+lib/supabase/proxy.ts:28:   cookiesToSet: CookieToSet[],
+lib/supabase/proxy.ts:29:   destino: '/login' | '/catalogo'
+lib/supabase/proxy.ts:30: ) {
+lib/supabase/proxy.ts:31:   const redirectResponse = NextResponse.redirect(new URL(destino, request.url))
+lib/supabase/proxy.ts:32:   cookiesToSet.forEach(({ name, value, options }) =>
+lib/supabase/proxy.ts:33:     redirectResponse.cookies.set(name, value, options)
+lib/supabase/proxy.ts:34:   )
+lib/supabase/proxy.ts:35:   return redirectResponse
+lib/supabase/proxy.ts:36: }
+lib/supabase/proxy.ts:37: 
+lib/supabase/proxy.ts:38: export async function updateSession(request: NextRequest) {
+lib/supabase/proxy.ts:39:   if (!SUPABASE_DISPONIBLE) {
+lib/supabase/proxy.ts:40:     return NextResponse.next({ request })
+lib/supabase/proxy.ts:41:   }
+lib/supabase/proxy.ts:42: 
+lib/supabase/proxy.ts:43:   let supabaseResponse = NextResponse.next({ request })
+lib/supabase/proxy.ts:44:   let cookiesRefrescadas: CookieToSet[] = []
+lib/supabase/proxy.ts:45: 
+lib/supabase/proxy.ts:46:   const supabase = createServerClient(
+lib/supabase/proxy.ts:47:     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+lib/supabase/proxy.ts:48:     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+lib/supabase/proxy.ts:49:     {
+lib/supabase/proxy.ts:50:       cookies: {
+lib/supabase/proxy.ts:51:         getAll() {
+lib/supabase/proxy.ts:52:           return request.cookies.getAll()
+lib/supabase/proxy.ts:53:         },
+lib/supabase/proxy.ts:54:         setAll(cookiesToSet) {
+lib/supabase/proxy.ts:55:           cookiesRefrescadas = cookiesToSet
+lib/supabase/proxy.ts:56:           cookiesToSet.forEach(({ name, value }) =>
+lib/supabase/proxy.ts:57:             request.cookies.set(name, value)
+lib/supabase/proxy.ts:58:           )
+lib/supabase/proxy.ts:59:           supabaseResponse = NextResponse.next({ request })
+lib/supabase/proxy.ts:60:           cookiesToSet.forEach(({ name, value, options }) =>
+lib/supabase/proxy.ts:61:             supabaseResponse.cookies.set(name, value, options)
+lib/supabase/proxy.ts:62:           )
+lib/supabase/proxy.ts:63:         },
+lib/supabase/proxy.ts:64:       },
+lib/supabase/proxy.ts:65:     }
+lib/supabase/proxy.ts:66:   )
+lib/supabase/proxy.ts:67: 
+lib/supabase/proxy.ts:68:   const {
+lib/supabase/proxy.ts:69:     data: { user },
+lib/supabase/proxy.ts:70:   } = await supabase.auth.getUser()
+lib/supabase/proxy.ts:71: 
+lib/supabase/proxy.ts:72:   const pathname = request.nextUrl.pathname
+lib/supabase/proxy.ts:73: 
+lib/supabase/proxy.ts:74:   if (!rutaProtegida(pathname)) {
+lib/supabase/proxy.ts:75:     return supabaseResponse
+lib/supabase/proxy.ts:76:   }
+lib/supabase/proxy.ts:77: 
+lib/supabase/proxy.ts:78:   if (!user) {
+lib/supabase/proxy.ts:79:     return redirigirConCookies(request, cookiesRefrescadas, '/login')
+lib/supabase/proxy.ts:80:   }
+lib/supabase/proxy.ts:81: 
+lib/supabase/proxy.ts:82:   if (coincidePrefijo(pathname, '/mis-cotizaciones')) {
+lib/supabase/proxy.ts:83:     return supabaseResponse
+lib/supabase/proxy.ts:84:   }
+lib/supabase/proxy.ts:85: 
+lib/supabase/proxy.ts:86:   const { data: profile, error } = await supabase
+lib/supabase/proxy.ts:87:     .from('profiles')
+lib/supabase/proxy.ts:88:     .select('rol')
+lib/supabase/proxy.ts:89:     .eq('id', user.id)
+lib/supabase/proxy.ts:90:     .maybeSingle()
+lib/supabase/proxy.ts:91: 
+lib/supabase/proxy.ts:92:   const rol = error || !profile?.rol ? null : profile.rol
+lib/supabase/proxy.ts:93: 
+lib/supabase/proxy.ts:94:   if (coincidePrefijo(pathname, '/admin') && rol !== 'admin') {
+lib/supabase/proxy.ts:95:     return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
+lib/supabase/proxy.ts:96:   }
+lib/supabase/proxy.ts:97: 
+lib/supabase/proxy.ts:98:   if (coincidePrefijo(pathname, '/proveedor') && rol !== 'proveedor') {
+lib/supabase/proxy.ts:99:     return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
+lib/supabase/proxy.ts:100:   }
+lib/supabase/proxy.ts:101: 
+lib/supabase/proxy.ts:102:   return supabaseResponse
+lib/supabase/proxy.ts:103: }
+vitest.config.ts:1: import { defineConfig } from 'vitest/config'
+vitest.config.ts:2: import path from 'path'
+vitest.config.ts:3: 
+vitest.config.ts:4: export default defineConfig({
+vitest.config.ts:5:   test: {
+vitest.config.ts:6:     environment: 'jsdom',
+vitest.config.ts:7:     globals: true,
+vitest.config.ts:8:     setupFiles: ['./tests/setup.ts'],
+vitest.config.ts:9:     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+vitest.config.ts:10:   },
+vitest.config.ts:11:   resolve: {
+vitest.config.ts:12:     alias: {
+vitest.config.ts:13:       '@': path.resolve(__dirname, '.'),
+vitest.config.ts:14:     },
+vitest.config.ts:15:   },
+vitest.config.ts:16: })
+package.json:1: {
+package.json:2:   "name": "resuelvelo_app",
+package.json:3:   "version": "0.1.0",
+package.json:4:   "private": true,
+package.json:5:   "scripts": {
+package.json:6:     "dev": "next dev --webpack",
+package.json:7:     "build": "next build",
+package.json:8:     "start": "next start",
+package.json:9:     "lint": "eslint",
+package.json:10:     "test": "vitest run",
+package.json:11:     "test:watch": "vitest",
+package.json:12:     "typecheck": "next typegen && tsc --noEmit",
+package.json:13:     "docs:check": "node scripts/check-docs.mjs",
+package.json:14:     "test:tooling": "node --test scripts/tests",
+package.json:15:     "verify": "node scripts/verify.mjs"
+package.json:16:   },
+package.json:17:   "dependencies": {
+package.json:18:     "@base-ui/react": "^1.5.0",
+package.json:19:     "@supabase/ssr": "^0.10.3",
+package.json:20:     "@supabase/supabase-js": "^2.107.0",
+package.json:21:     "class-variance-authority": "^0.7.1",
+package.json:22:     "clsx": "^2.1.1",
+package.json:23:     "lucide-react": "^1.17.0",
+package.json:24:     "next": "^16.2.9",
+package.json:25:     "react": "19.2.4",
+package.json:26:     "react-dom": "19.2.4",
+package.json:27:     "shadcn": "^4.10.0",
+package.json:28:     "tailwind-merge": "^3.6.0",
+package.json:29:     "tw-animate-css": "^1.4.0",
+package.json:30:     "zustand": "^5.0.14"
+package.json:31:   },
+package.json:32:   "devDependencies": {
+package.json:33:     "@tailwindcss/postcss": "^4",
+package.json:34:     "@testing-library/jest-dom": "^6.9.1",
+package.json:35:     "@testing-library/react": "^16.3.2",
+package.json:36:     "@types/node": "^20",
+package.json:37:     "@types/react": "^19",
+package.json:38:     "@types/react-dom": "^19",
+package.json:39:     "eslint": "^9",
+package.json:40:     "eslint-config-next": "^16.2.9",
+package.json:41:     "jsdom": "^29.1.1",
+package.json:42:     "tailwindcss": "^4",
+package.json:43:     "typescript": "^5",
+package.json:44:     "vitest": "^4.1.9"
+package.json:45:   }
+package.json:46: }
+.orchestrator/features/health-endpoint/request.md:1: # health-endpoint
+.orchestrator/features/health-endpoint/request.md:2: 
+.orchestrator/features/health-endpoint/request.md:3: Add a backend health endpoint that exposes the current application status, version, and environment. The endpoint should follow the project's existing API conventions, require no database changes, include automated tests, and include brief API documentation. Do not modify the frontend.
+.orchestrator/features/health-endpoint/request.md:4: health-endpoint
+
+ succeeded in 232ms:
+---
+title: Route Segment Config
+description: Learn about how to configure options for Next.js route segments.
+---
+
+The Route Segment Config options allow you to configure the behavior of a [Page](/docs/app/api-reference/file-conventions/page), [Layout](/docs/app/api-reference/file-conventions/layout), or [Route Handler](/docs/app/api-reference/file-conventions/route) by directly exporting the following variables:
+
+| Option                                                                                             | Type                                                 | Default                    |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | -------------------------- |
+| [`dynamicParams`](/docs/app/api-reference/file-conventions/route-segment-config/dynamicParams)     | `boolean`                                            | `true`                     |
+| [`runtime`](/docs/app/api-reference/file-conventions/route-segment-config/runtime)                 | `'nodejs' \| 'edge'`                                 | `'nodejs'`                 |
+| [`preferredRegion`](/docs/app/api-reference/file-conventions/route-segment-config/preferredRegion) | `'auto' \| 'global' \| 'home' \| string \| string[]` | `'auto'`                   |
+| [`maxDuration`](/docs/app/api-reference/file-conventions/route-segment-config/maxDuration)         | `number`                                             | Set by deployment platform |
+
+## Version History
+
+| Version      |                                                                                                                                                                                                                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `v16.0.0`    | `dynamic`, `dynamicParams`, `revalidate`, and `fetchCache` removed when [Cache Components](/docs/app/api-reference/config/next-config-js/cacheComponents) is enabled. See [Caching and Revalidating (Previous Model)](/docs/app/guides/caching-without-cache-components#route-segment-config). |
+| `v16.0.0`    | `export const experimental_ppr = true` removed. A [codemod](/docs/app/guides/upgrading/codemods#remove-experimental_ppr-route-segment-config-from-app-router-pages-and-layouts) is available.                                                                                                  |
+| `v15.0.0-RC` | `export const runtime = "experimental-edge"` deprecated. A [codemod](/docs/app/guides/upgrading/codemods#transform-app-router-route-segment-config-runtime-value-from-experimental-edge-to-edge) is available.                                                                                 |
+
+codex
+El proxy actual consulta Supabase Auth también para rutas públicas. El plan incluirá una excepción exacta para `/api/health`, de modo que la comprobación funcione sin depender de Supabase, junto con pruebas que confirmen que las demás rutas siguen pasando por el control de sesión.
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'Get-Content -LiteralPath .orchestrator/config.yaml -Encoding UTF8' in C:\Users\HMN\resuelvelo
+ succeeded in 145ms:
+project:
+  name: resuelvelo
+  base_branch: main
+  repo_path: "C:/Users/HMN/resuelvelo"
+  worktrees_root: "C:/Users/HMN/_worktrees/resuelvelo"
+
+brain:
+  provider: codex
+
+agents:
+  claude:
+    enabled: true
+    role: infrastructure
+
+  codex:
+    enabled: true
+    role: backend
+
+  antigravity:
+    enabled: true
+    role: frontend
+
+  cursor:
+    enabled: true
+    role: qa_documentation
+
+validation:
+  worker_checks:
+    - "npm run lint"
+    - "npm run typecheck"
+    - "npm test"
+
+  integration_checks:
+    - "npm run lint"
+    - "npm run typecheck"
+    - "npm test"
+    - "npm run build"
+
+execution:
+  parallel_workers: true
+  max_parallel_workers: 4
+
+integration:
+  strategy: sequential_merge
+  auto_merge_main: false
+
+safety:
+  allow_dangerous_permission_bypass: false
+  allow_agent_push: false
+  allow_agent_merge: false
+  allow_agent_checkout_other_branches: false
+
+timeouts:
+  planning_minutes: 10
+  implementation_minutes: 45
+  validation_minutes: 15
+
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short' in C:\Users\HMN\resuelvelo
+ succeeded in 149ms:
+?? .orchestrator/features/health-endpoint/
+
+codex
+{
+  "agent": "codex",
+  "summary": "Plan for the active health-endpoint request: add GET /api/health with application liveness, package version, and environment. Include an exact proxy bypass, automated tests, and brief API documentation. Planning only; no files changed or tests run.",
+  "areas_affected": [
+    "app/api/health/route.ts",
+    "proxy.ts",
+    "tests/health.test.ts",
+    "tests/health-proxy.test.ts",
+    "docs/api/health.md",
+    "docs/index/MASTER_INDEX.md"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "H1",
+      "description": "Own app/api/health/route.ts. Implement the public GET handler using Next.js Route Handler conventions, package.json.version, NODE_ENV, and Cache-Control: no-store. Avoid database, authentication, and external service calls.",
+      "suggested_owner": "codex",
+      "depends_on": []
+    },
+    {
+      "id": "H2",
+      "description": "Own proxy.ts. Return NextResponse.next() for the exact pathname /api/health before calling updateSession. Preserve existing delegation and matcher behavior for every other pathname.",
+      "suggested_owner": "claude",
+      "depends_on": []
+    },
+    {
+      "id": "H3",
+      "description": "Own both test files, docs/api/health.md, and its index entry. Draft tests and documentation against the frozen contract in parallel with H1/H2. Use the Node environment per test file without changing global Vitest configuration.",
+      "suggested_owner": "cursor",
+      "depends_on": []
+    },
+    {
+      "id": "H4",
+      "description": "After integration, independently review the acceptance criteria, run npm run verify, and perform HTTP checks against one local server. Reserve all verification commands, .next output, and port 3000 for this task; run controls sequentially.",
+      "suggested_owner": "independent verifier",
+      "depends_on": [
+        "H1",
+        "H2",
+        "H3"
+      ]
+    }
+  ],
+  "contracts": [
+    "C1: GET /api/health requires no credentials and returns HTTP 200 with application/json and exactly {status: 'ok', version: string, environment: string}.",
+    "C2: version comes from the root package.json.version; environment comes from NODE_ENV with 'unknown' when missing or empty.",
+    "C3: status indicates application process liveness. Respond with Cache-Control: no-store and do not opt into Next.js route caching.",
+    "C4: The complete request path performs no Supabase session refresh or database/network checks. The proxy bypass matches only /api/health, including requests with query parameters.",
+    "C5: Other routes retain existing session handling. Leave framework method handling intact; POST /api/health returns HTTP 405.",
+    "C6: Documentation explains fields, status semantics, environment source, caching, and an example request/response, and appears in MASTER_INDEX.md.",
+    "C7: Preserve unrelated changes. Introduce no frontend changes, database changes, dependencies, commits, pushes, or deployments."
+  ],
+  "risks": [
+    "proxy.ts:5 currently delegates every matched request to updateSession; lib/supabase/proxy.ts:70 calls Supabase Auth before checking whether a route is protected. Omitting H2 would leave health requests dependent on Supabase.",
+    "A broad proxy exemption could bypass session handling for unintended routes; require exact-path regression tests.",
+    "NODE_ENV describes runtime mode and does not distinguish preview from production deployments.",
+    "Package version identifies the declared application release, not a commit or deployment.",
+    "Persistent-memory calls were blocked because they require approval and this session's policy forbids approvals; planning used repository evidence."
+  ],
+  "tests": [
+    "Planned: assert GET status, JSON content type, exact response keys, no-store header, and version equality with package.json.",
+    "Planned: exercise development, production, test, and missing/empty NODE_ENV values; restore environment stubs after each test.",
+    "Planned: make mocked updateSession reject and verify /api/health still passes through without calling it, including query parameters.",
+    "Planned: verify /api/healthcheck, /api/health/child, /admin, /proveedor, and /mis-cotizaciones still delegate to updateSession.",
+    "Planned: run npm run verify after integration; document failures or skipped controls accurately.",
+    "Planned: check the actual HTTP endpoint anonymously and verify POST returns 405. Direct handler tests alone do not validate routing or method dispatch."
+  ],
+  "questions_or_unknowns": [
+    "The active request was identified in .orchestrator/features/health-endpoint/request.md:3. Confirm this is the intended feature if another planning packet applies.",
+    "Proposed interpretation: status means process liveness. Dependency readiness would require a different contract.",
+    "Proposed interpretation: environment means NODE_ENV. Deployment-tier reporting would need an explicitly selected source."
+  ]
+}
+hook: Stop
+hook: Stop Completed
+tokens used
+58,610

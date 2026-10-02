@@ -1,0 +1,79 @@
+Brain: codex
+
+# health-endpoint
+
+Add a public, uncached application liveness endpoint with automated tests and brief API documentation. Consolidate backend changes under codex and tests/documentation under cursor. No frontend or infrastructure implementation is needed.
+
+## Architecture
+
+Use a single Next.js Route Handler at app/api/health/route.ts and an exact-path exemption in the existing proxy.ts. The repository has no existing REST handlers, so the contracts below establish the response convention while following the installed Next.js documentation. Status reports process liveness. Version comes from the root package.json; environment prefers VERCEL_ENV, then NODE_ENV, then 'unknown'. No helper service, shared type, database access, authentication, dependency, or deployment configuration is required. Next.js handlers are uncached by default; retain that behavior and add Cache-Control: no-store. All paths refer to the repository root, excluding the nested resuelvelo/ copy. Later integration proceeds sequentially onto feature/health-endpoint/integration; workers do not merge to main.
+
+## Assignments
+
+### codex
+
+Tasks:
+- BE1: Implement the GET Route Handler according to C1, C2, and C3, consulting the installed Next.js Route Handler guide before coding.
+- BE2: Add the exact /api/health proxy bypass according to C4, preserving the matcher and delegation for every other pathname.
+
+Scope:
+- app/api/health/route.ts
+- proxy.ts
+
+### cursor
+
+Tasks:
+- QA1: Add handler tests for the response, caching headers, package version, environment precedence and fallbacks, and environment isolation.
+- QA2: Add proxy regression tests proving health requests bypass updateSession and other paths retain existing behavior.
+- DOC1: Add brief API documentation covering the frozen contracts and register its link in the documentation index.
+
+Scope:
+- tests/health.test.ts
+- tests/health-proxy.test.ts
+- docs/api/health.md
+- docs/index/MASTER_INDEX.md
+
+## Dependencies
+
+- codex: none
+- cursor: BE1, BE2
+
+## Contracts
+
+- C1: GET /api/health requires no credentials and returns HTTP 200 with application/json and exactly {"status":"ok","version":string,"environment":string}. There is no response envelope, timestamp, uptime, commit SHA, or additional metadata. Export only GET; preserve framework handling of HEAD and OPTIONS. Unimplemented methods such as POST return 405. (owner: codex; consumers: cursor)
+- C2: Version equals the root package.json.version imported into the server module, without changing or hardcoding it. Read environment values inside GET using process.env.VERCEL_ENV || process.env.NODE_ENV || 'unknown'; empty strings fall through. Preserve the selected source value without mapping labels. This resolves the environment-source disagreement by reporting deployment tier when available and runtime mode otherwise. Introduce no custom environment variables. (owner: codex; consumers: cursor)
+- C3: Status 'ok' means the application can serve this request; it does not assert dependency readiness. Return Cache-Control: no-store and do not opt into static or application caching. The handler performs no database, Supabase, filesystem-at-request-time, or external network checks and imports no application data or authentication services. (owner: codex; consumers: cursor)
+- C4: In proxy.ts, pathname === '/api/health' returns NextResponse.next() before updateSession, regardless of query parameters or HTTP method. Every other pathname retains existing delegation, and config.matcher remains unchanged. The complete health request path performs no Supabase session refresh, authentication redirect, or database/network check. (owner: codex; consumers: cursor)
+- C5: Both new test files use the per-file Node Vitest environment without changing global configuration. Handler tests validate C1-C3 and cover VERCEL_ENV precedence, NODE_ENV fallback, and missing/empty values. Restore environment stubs and mocks after each test. Proxy tests mock updateSession to fail if invoked for health requests, cover query parameters, and verify delegation for /api/healthcheck, /api/health/child, /admin, /proveedor, /mis-cotizaciones, and /catalogo. (owner: cursor; consumers: codex)
+- C6: docs/api/health.md documents method/path, public access, exact fields, version and environment sources, liveness limitations, caching, framework method handling, and a curl request with an example response. Link it from docs/index/MASTER_INDEX.md. Documentation must describe the same contract as the handler and tests. (owner: cursor; consumers: codex)
+
+## Integration order
+
+1. codex
+2. cursor
+
+## Acceptance criteria
+
+- Anonymous GET /api/health returns 200, a JSON content type, Cache-Control: no-store, and exactly the three contracted fields with status 'ok'.
+- Version equals the root package.json.version; automated tests prove VERCEL_ENV precedence, NODE_ENV fallback, and 'unknown' when both sources are missing or empty.
+- Health requests, including query parameters, succeed without invoking updateSession even when its mock rejects; neighboring and existing application paths still delegate and the matcher is unchanged.
+- The handler contains no dependency checks or secret exposure, and the complete request path performs no Supabase authentication, database access, or external network calls.
+- The indexed API documentation matches the implemented response and accurately distinguishes liveness from readiness.
+- After sequential integration, npm run verify passes on the final repository state, including documentation, tooling tests, application tests, lint, types, and build. Existing cart and other regression suites remain passing.
+- A subsequent anonymous HTTP check against one local production server confirms GET behavior, query-parameter handling, and POST returning 405. Direct handler tests alone do not satisfy this criterion.
+- Verification controls run serially, with exclusive use of .next/ and port 3000. Failed, skipped, or invalidated checks are reported accurately and are not treated as passes.
+- The implementation changes only the six assigned files, preserves unrelated work, and introduces no frontend, database, dependency, environment-file, or deployment changes. This planning step performs no implementation, repository writes, branches, worktrees, commits, or tests.
+
+## Risks
+
+- A broad proxy exemption could unintentionally bypass session handling; exact pathname comparison and regression tests are required.
+- Liveness can remain 'ok' while Supabase or another dependency is unavailable; monitoring consumers must understand that limitation.
+- Outside Vercel, NODE_ENV reports runtime mode rather than deployment tier. Package version identifies the declared release rather than a unique deployment.
+- Global Vitest configuration uses jsdom, and environment stubs can leak between tests unless the new tests select Node and restore their state.
+- The nested resuelvelo/ copy may be included by existing TypeScript patterns or affect verification. Keep all implementation in the root tree and report unrelated failures without expanding scope.
+- Persistent-memory queries were blocked because the tools require approval and this session forbids approvals; prior API decisions could not be checked.
+
+## Open questions
+
+- Approve the selected environment meaning: VERCEL_ENV when available, otherwise NODE_ENV, otherwise 'unknown'?
+- Approve public process liveness with status 'ok', without dependency readiness checks?

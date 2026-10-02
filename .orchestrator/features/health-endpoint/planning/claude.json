@@ -1,0 +1,74 @@
+{
+  "agent": "claude",
+  "summary": "The endpoint itself (app/api/health/route.ts) is Next.js application code, not infrastructure — that belongs to a backend/app engineer. My role is to define how 'version' and 'environment' are sourced at runtime without new secrets or services, confirm there is no CI/CD or Docker surface to wire up, and flag deployment/observability concerns (no leaking build metadata, no new env vars needed). No Dockerfile, vercel.json, or .github/workflows exist in this repo (only inside node_modules) — deployment is handled by Vercel's zero-config Next.js build, so there is no pipeline file to edit for this feature.",
+  "areas_affected": [
+    "environment/version sourcing (process.env, package.json)",
+    "deployment config (none exists — Vercel auto-detects Next.js, nothing to add)",
+    "observability (optional post-deploy smoke check)",
+    "docs:check script compliance for new API.md"
+  ],
+  "proposed_tasks": [
+    {
+      "id": "infra-1",
+      "description": "Specify the exact runtime sourcing for 'version' and 'environment' fields so the app engineer doesn't invent ad-hoc env vars: version = package.json 'version' field (currently 0.1.0) imported at build time (no new env var needed, no secret exposure); environment = Vercel's auto-injected VERCEL_ENV ('production' | 'preview' | 'development'), falling back to NODE_ENV when running outside Vercel (local dev). No new environment variables need to be created or added to Vercel project settings.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": []
+    },
+    {
+      "id": "infra-2",
+      "description": "Confirm no Docker/CI/CD changes are required: repo has no Dockerfile, docker-compose.yml, vercel.json, or .github/workflows at the project root (Vercel builds via its default Next.js detection). Document this as a non-task so the feature isn't blocked waiting on infra config that doesn't exist.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": []
+    },
+    {
+      "id": "infra-3",
+      "description": "(Optional, out of scope unless requested) Propose a lightweight post-deploy smoke check hitting /api/health once it exists, as a future CI/CD addition — flagged as a stretch goal, not required by the feature request.",
+      "suggested_owner": "infrastructure-engineer",
+      "depends_on": [
+        "app-1"
+      ]
+    },
+    {
+      "id": "app-1",
+      "description": "DEPENDENCY (not my ownership): implement app/api/health/route.ts using NextResponse, returning { status, version, environment } per the sourcing defined in infra-1. This is application/business logic under app/, owned by a backend/app engineer, not infrastructure.",
+      "suggested_owner": "backend-engineer",
+      "depends_on": [
+        "infra-1"
+      ]
+    },
+    {
+      "id": "test-1",
+      "description": "DEPENDENCY (not my ownership): add Vitest test(s) for the route handler (e.g. tests/api/health.test.ts), following the existing vi.stubEnv() pattern seen in data-fallback.test.ts to assert correct environment reporting under different VERCEL_ENV/NODE_ENV values.",
+      "suggested_owner": "backend-engineer or qa",
+      "depends_on": [
+        "app-1",
+        "infra-1"
+      ]
+    },
+    {
+      "id": "docs-1",
+      "description": "DEPENDENCY (not my ownership): add brief API documentation (e.g. docs/engineering/API.md or a section in PROJECT_GUIDE.md) describing the endpoint contract, and register it in docs/index/MASTER_INDEX.md so npm run docs:check does not fail.",
+      "suggested_owner": "backend-engineer",
+      "depends_on": [
+        "app-1"
+      ]
+    }
+  ],
+  "contracts": [
+    "version field value MUST come from package.json's 'version' field (currently '0.1.0') — no new build-time env var or git-sha plumbing needed.",
+    "environment field value MUST be sourced from process.env.VERCEL_ENV with fallback to process.env.NODE_ENV — do not introduce a custom env var for this.",
+    "No new environment variables need to be added to Vercel project settings for this feature."
+  ],
+  "risks": [
+    "If the app engineer adds a new custom env var (e.g. APP_VERSION, APP_ENV) instead of reusing VERCEL_ENV/package.json version, it creates unnecessary secrets-wiring overhead in Vercel project settings across dev/preview/prod with no added value.",
+    "The health response must not leak sensitive build/runtime details (internal hostnames, full env var dumps, stack traces) — restrict to status/version/environment only.",
+    "Since there is no existing app/api/ directory, this is the first REST route in the app — Turbopack/Next.js 16 route handler conventions should be double-checked against node_modules/next/dist/docs/ per AGENTS.md before implementation, as this project explicitly warns that API conventions may differ from training data."
+  ],
+  "tests": [
+    "Automated test ownership belongs to the app/backend engineer, not infra — no infrastructure-level tests (e.g. pipeline tests, container tests) are needed since there is no Docker/CI surface in this repo."
+  ],
+  "questions_or_unknowns": [
+    "Should the environment value be the raw VERCEL_ENV string ('production'/'preview'/'development') or mapped to a project-specific label? No existing convention in the codebase for this — needs a decision from whoever owns app-1.",
+    "Is a post-deploy smoke check (infra-3) actually wanted, or is this feature scoped to the endpoint + tests + docs only, as the request states? Recommend treating infra-3 as explicitly out of scope unless the user confirms otherwise."
+  ]
+}
