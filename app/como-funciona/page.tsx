@@ -77,7 +77,10 @@ export default function ComoFuncionaPage() {
             </Button>
           </Link>
           <Link href="/register?rol=proveedor">
-            <Button variant="outline" className="border-white text-white hover:bg-orange-600">
+            <Button
+              variant="outline"
+              className="border-white bg-transparent text-white hover:bg-orange-600 hover:text-white dark:bg-transparent dark:hover:bg-orange-600"
+            >
               Soy proveedor
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
