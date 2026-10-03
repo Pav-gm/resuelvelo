@@ -54,11 +54,30 @@ export interface Cotizacion {
   id: string
   comprador_id: string
   proveedor_id: string
-  estado: 'pendiente' | 'respondida' | 'aceptada' | 'rechazada'
+  estado: 'pendiente' | 'respondida' | 'aceptada' | 'rechazada' | 'despachada' | 'recibida' | 'cancelada'
   mensaje?: string
   total_estimado?: number
   created_at: string
   items?: ItemCotizacion[]
+}
+
+export interface Feedback {
+  id: string
+  cotizacion_id: string
+  proveedor_id: string
+  calificacion: number
+  comentario?: string | null
+  created_at: string
+  /** Identidad pública anonimizada; no representa un dato de perfil. */
+  autor_anonimo: string
+}
+
+export type FeedbackPublico = Omit<Feedback, 'cotizacion_id'>
+
+export interface ResumenFeedbackProveedor {
+  reseñas: FeedbackPublico[]
+  promedio: number
+  conteo: number
 }
 
 export interface ItemCotizacion {

@@ -155,7 +155,7 @@ export async function cotizarDesdeCarrito(
 
 // ─── Responder cotización (proveedor) ────────────────────────
 
-type EstadoCotizacion = 'respondida' | 'aceptada' | 'rechazada'
+type EstadoCotizacion = 'aceptada' | 'rechazada'
 
 export async function responderCotizacion(
   cotizacionId: string,
@@ -173,12 +173,63 @@ export async function responderCotizacion(
 
   if (!prov) return
 
-  await supabase
-    .from('cotizaciones')
-    .update({ estado })
-    .eq('id', cotizacionId)
-    .eq('proveedor_id', prov.id)
+  const { error } = estado === 'aceptada'
+    ? await supabase.rpc('aceptar_cotizacion', { p_cotizacion_id: cotizacionId })
+    : await supabase.rpc('rechazar_cotizacion', { p_cotizacion_id: cotizacionId })
+
+  if (error) return
 
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
+}
+
+export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
+  revalidatePath('/mis-cotizaciones')
+  revalidatePath('/proveedor/pedidos')
+}
+
+export type CrearFeedbackResultado = { data: { id: string } } | { error: string }
+
+export async function crearFeedback(input: {
+  cotizacionId: string
+  calificacion: number
+  comentario?: string
+}): Promise<CrearFeedbackResultado> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'FEEDBACK_NO_AUTENTICADO' }
+
+  if (
+    !input ||
+    typeof input.cotizacionId !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.cotizacionId) ||
+    !Number.isInteger(input.calificacion) ||
+    input.calificacion < 1 ||
+    input.calificacion > 5 ||
+    (input.comentario !== undefined && typeof input.comentario !== 'string') ||
+    (typeof input.comentario === 'string' && [...input.comentario].length > 1000)
+  ) {
+    return { error: 'FEEDBACK_VALIDACION' }
+  }
+
+  const comentario = input.comentario?.trim() || null
+  const { data, error } = await supabase.rpc('crear_feedback', {
+    p_cotizacion_id: input.cotizacionId,
+    p_calificacion: input.calificacion,
+    p_comentario: comentario,
+  })
+
+  if (error) {
+    const code = error.message.match(/FEEDBACK_(?:DUPLICADO|NO_ELEGIBLE|VALIDACION|NO_AUTENTICADO)/)?.[0]
+    return { error: code ?? 'FEEDBACK_ERROR' }
+  }
+
+  revalidatePath('/mis-cotizaciones')
+  revalidatePath('/proveedores')
+  return { data: { id: data as string } }
 }
