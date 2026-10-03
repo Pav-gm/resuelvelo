@@ -1,5 +1,13 @@
-import type { Categoria, Cotizacion, Producto, Proveedor } from '@/types'
-import { CATEGORIAS_MOCK, PRODUCTOS_MOCK } from '@/lib/mock'
+import type {
+  Categoria,
+  Cotizacion,
+  Feedback,
+  FeedbackPublico,
+  Producto,
+  Proveedor,
+  ResumenFeedbackProveedor,
+} from '@/types'
+import { CATEGORIAS_MOCK, FEEDBACK_MOCK, PRODUCTOS_MOCK } from '@/lib/mock'
 
 const SUPABASE_DISPONIBLE =
   !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -289,6 +297,53 @@ export async function getCotizacionesDelComprador(compradorId: string): Promise<
 
   if (error || !data) return []
   return data as unknown as Cotizacion[]
+}
+
+// ─── Feedback público y feedback de una cotización ─────────
+
+export async function getFeedbackDeProveedor(
+  proveedorId: string
+): Promise<ResumenFeedbackProveedor> {
+  const reseñasMock = FEEDBACK_MOCK.filter((feedback) => feedback.proveedor_id === proveedorId)
+  if (!SUPABASE_DISPONIBLE) {
+    return resumirFeedback(reseñasMock)
+  }
+
+  const supabase = await getServerClient()
+  const { data, error } = await supabase
+    .from('feedback_publico')
+    .select('id, proveedor_id, calificacion, comentario, created_at, autor_anonimo')
+    .eq('proveedor_id', proveedorId)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return resumirFeedback(reseñasMock)
+  return resumirFeedback(data as FeedbackPublico[])
+}
+
+export async function getFeedbackPorCotizacion(
+  cotizacionId: string
+): Promise<Feedback | null> {
+  const fallback = FEEDBACK_MOCK.find((feedback) => feedback.cotizacion_id === cotizacionId) ?? null
+  if (!SUPABASE_DISPONIBLE) return fallback
+
+  const supabase = await getServerClient()
+  const { data, error } = await supabase
+    .from('feedback')
+    .select('id, cotizacion_id, proveedor_id, calificacion, comentario, created_at')
+    .eq('cotizacion_id', cotizacionId)
+    .maybeSingle()
+
+  if (error) return fallback
+  if (!data) return null
+  return { ...data, autor_anonimo: 'Comprador verificado' } as Feedback
+}
+
+function resumirFeedback(reseñas: FeedbackPublico[]): ResumenFeedbackProveedor {
+  const conteo = reseñas.length
+  const promedio = conteo
+    ? Math.round((reseñas.reduce((suma, reseña) => suma + reseña.calificacion, 0) / conteo) * 100) / 100
+    : 0
+  return { reseñas: reseñas.slice(0, 50), promedio, conteo }
 }
 
 // ─── Producto individual ─────────────────────────────────────
