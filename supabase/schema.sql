@@ -269,14 +269,6 @@ create policy "cotizaciones: comprador crea"
   with check (auth.uid() = comprador_id);
 
 drop policy if exists "cotizaciones: proveedor actualiza estado" on public.cotizaciones;
-create policy "cotizaciones: proveedor actualiza estado"
-  on public.cotizaciones for update
-  using (
-    exists (
-      select 1 from public.proveedores
-      where id = proveedor_id and user_id = auth.uid()
-    )
-  );
 
 drop policy if exists "cotizaciones: admin lee todas" on public.cotizaciones;
 create policy "cotizaciones: admin lee todas"
@@ -353,6 +345,96 @@ alter table public.cotizaciones add constraint cotizaciones_cancelada_por_check
 alter table public.cotizaciones drop constraint if exists cotizaciones_recibida_por_check;
 alter table public.cotizaciones add constraint cotizaciones_recibida_por_check
   check (recibida_por is null or recibida_por in ('comprador','proveedor'));
+
+-- ─── feedback verificado ───────────────────────────────────
+create table if not exists public.feedback (
+  id             uuid primary key default uuid_generate_v4(),
+  cotizacion_id  uuid not null references public.cotizaciones(id) on delete cascade,
+  comprador_id   uuid not null references public.profiles(id) on delete cascade,
+  proveedor_id   uuid not null references public.proveedores(id) on delete cascade,
+  calificacion   smallint not null check (calificacion between 1 and 5),
+  comentario     text check (comentario is null or char_length(comentario) <= 1000),
+  created_at     timestamptz not null default now(),
+  constraint feedback_cotizacion_id_key unique (cotizacion_id)
+);
+
+create index if not exists idx_feedback_proveedor_fecha
+  on public.feedback(proveedor_id, created_at desc);
+create index if not exists idx_feedback_comprador
+  on public.feedback(comprador_id);
+
+alter table public.feedback enable row level security;
+drop policy if exists "feedback: partes leen" on public.feedback;
+drop policy if exists "feedback: comprador consulta la suya" on public.feedback;
+create policy "feedback: comprador consulta la suya"
+  on public.feedback for select to authenticated
+  using (comprador_id = auth.uid());
+
+-- La API pública recibe solo contenido de reseña y una etiqueta anónima.
+create or replace view public.feedback_publico
+with (security_barrier = true)
+as
+  select id, proveedor_id, calificacion, comentario, created_at,
+         'Comprador verificado'::text as autor_anonimo
+  from public.feedback;
+
+revoke all on public.feedback from anon, authenticated;
+grant select on public.feedback to authenticated;
+revoke all on public.feedback_publico from public;
+grant select on public.feedback_publico to anon, authenticated;
+
+create or replace function public.crear_feedback(
+  p_cotizacion_id uuid,
+  p_calificacion integer,
+  p_comentario text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_comprador_id uuid;
+  v_proveedor_id uuid;
+  v_estado text;
+  v_feedback_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'FEEDBACK_NO_AUTENTICADO';
+  end if;
+
+  if p_calificacion is null or p_calificacion not between 1 and 5
+     or (p_comentario is not null and char_length(p_comentario) > 1000) then
+    raise exception 'FEEDBACK_VALIDACION';
+  end if;
+
+  select c.comprador_id, c.proveedor_id, c.estado
+    into v_comprador_id, v_proveedor_id, v_estado
+  from public.cotizaciones c
+  where c.id = p_cotizacion_id
+  for update;
+
+  if not found or v_comprador_id is distinct from auth.uid() or v_estado is distinct from 'recibida' then
+    raise exception 'FEEDBACK_NO_ELEGIBLE';
+  end if;
+
+  if exists (select 1 from public.feedback f where f.cotizacion_id = p_cotizacion_id) then
+    raise exception 'FEEDBACK_DUPLICADO';
+  end if;
+
+  insert into public.feedback(cotizacion_id, comprador_id, proveedor_id, calificacion, comentario)
+  values (p_cotizacion_id, v_comprador_id, v_proveedor_id, p_calificacion, p_comentario)
+  returning id into v_feedback_id;
+
+  return v_feedback_id;
+exception
+  when unique_violation then
+    raise exception 'FEEDBACK_DUPLICADO';
+end;
+$$;
+
+revoke execute on function public.crear_feedback(uuid, integer, text) from public, anon;
+grant execute on function public.crear_feedback(uuid, integer, text) to authenticated;
 
 -- Solo las funciones de abajo pueden tocar stock_reservado.
 create or replace function public.proteger_stock_reservado()
@@ -659,6 +741,11 @@ revoke execute on function public.cancelar_venta(uuid)        from public, anon;
 revoke execute on function public.confirmar_recepcion(uuid)   from public, anon;
 revoke execute on function public.despachar_cotizacion(uuid)  from public, anon;
 revoke execute on function public.rechazar_cotizacion(uuid)   from public, anon;
+grant execute on function public.aceptar_cotizacion(uuid)     to authenticated;
+grant execute on function public.cancelar_venta(uuid)         to authenticated;
+grant execute on function public.confirmar_recepcion(uuid)    to authenticated;
+grant execute on function public.despachar_cotizacion(uuid)  to authenticated;
+grant execute on function public.rechazar_cotizacion(uuid)   to authenticated;
 
 -- Función de trigger: Postgres no exige EXECUTE para dispararlo.
 revoke execute on function public.handle_new_user() from public, anon, authenticated;

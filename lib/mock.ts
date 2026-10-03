@@ -1,4 +1,8 @@
-import type { Categoria, Producto } from '@/types'
+import type { Categoria, Feedback, Producto } from '@/types'
+
+// El catálogo de demostración no incluye ventas recibidas; por eso no muestra
+// reseñas inventadas ni permite asociarlas a cotizaciones inexistentes.
+export const FEEDBACK_MOCK: Feedback[] = []
 
 export const CATEGORIAS_MOCK: Categoria[] = [
   { id: 'c1', nombre: 'Materiales de construcción', slug: 'materiales', icono: '🧱' },
