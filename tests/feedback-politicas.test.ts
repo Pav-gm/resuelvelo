@@ -66,15 +66,14 @@ describe('C-ELIGIBILIDAD y C-CREACION en schema.sql', () => {
     expect(crearFeedback).toContain("raise exception 'FEEDBACK_VALIDACION'")
   })
 
-  it('no ofrece políticas de escritura directa y limita la lectura de la tabla al comprador', () => {
+  it('no ofrece políticas de escritura directa y limita la lectura de la tabla a las columnas públicas', () => {
     expect(schema).toContain('alter table public.feedback enable row level security;')
-    expect(schema).toContain('create policy "feedback: comprador consulta la suya"')
-    expect(schema).toContain('using (comprador_id = auth.uid())')
+    expect(schema).toContain('create policy "feedback: lectura publica"')
+    expect(schema).not.toContain('create policy "feedback: comprador consulta la suya"')
     expect(schema).not.toMatch(/on public\.feedback for insert/)
     expect(schema).not.toMatch(/on public\.feedback for update/)
     expect(schema).not.toMatch(/on public\.feedback for delete/)
     expect(schema).toContain('revoke all on public.feedback from anon, authenticated;')
-    expect(schema).toContain('grant select on public.feedback to authenticated;')
     expect(schema).toContain(
       'revoke execute on function public.crear_feedback(uuid, integer, text) from public, anon;'
     )
@@ -111,12 +110,25 @@ describe('C-ELIGIBILIDAD y C-CREACION en schema.sql', () => {
 })
 
 describe('C-LECTURA — superficie pública', () => {
-  it('la vista publica solo reseña y autor anonimizado', () => {
+  it('la vista publica solo reseña y autor anonimizado, con los permisos de quien consulta', () => {
+    expect(vista).toContain('security_invoker = true')
     expect(vista).toContain('security_barrier = true')
     expect(vista).toContain('id, proveedor_id, calificacion, comentario, created_at')
     expect(vista).toContain("'Comprador verificado'::text as autor_anonimo")
     expect(vista).not.toMatch(/comprador_id|email|telefono|correo/)
     expect(schema).toContain('grant select on public.feedback_publico to anon, authenticated;')
+  })
+
+  it('comprador_id no es legible por ningún rol de la API: solo hay permisos por columna', () => {
+    expect(schema).toContain(
+      'grant select (id, proveedor_id, calificacion, comentario, created_at) on public.feedback to anon;'
+    )
+    expect(schema).toContain(
+      'grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id) on public.feedback to authenticated;'
+    )
+    expect(schema).not.toMatch(/grant select on public\.feedback to/)
+    expect(schema).not.toMatch(/grant select \([^)]*comprador_id[^)]*\) on public\.feedback/)
+    expect(schema).toContain('create policy "feedback: lectura publica"')
   })
 })
 

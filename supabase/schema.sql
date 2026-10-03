@@ -366,20 +366,24 @@ create index if not exists idx_feedback_comprador
 alter table public.feedback enable row level security;
 drop policy if exists "feedback: partes leen" on public.feedback;
 drop policy if exists "feedback: comprador consulta la suya" on public.feedback;
-create policy "feedback: comprador consulta la suya"
-  on public.feedback for select to authenticated
-  using (comprador_id = auth.uid());
+drop policy if exists "feedback: lectura publica" on public.feedback;
+-- Todas las filas son legibles, pero solo las columnas con GRANT (más abajo): comprador_id no lo es para nadie.
+create policy "feedback: lectura publica"
+  on public.feedback for select to anon, authenticated
+  using (true);
 
--- La API pública recibe solo contenido de reseña y una etiqueta anónima.
+-- La API pública recibe solo contenido de reseña y una etiqueta anónima. La vista usa los permisos de quien consulta
+-- (security_invoker): no se salta RLS ni los permisos por columna.
 create or replace view public.feedback_publico
-with (security_barrier = true)
+with (security_invoker = true, security_barrier = true)
 as
   select id, proveedor_id, calificacion, comentario, created_at,
          'Comprador verificado'::text as autor_anonimo
   from public.feedback;
 
 revoke all on public.feedback from anon, authenticated;
-grant select on public.feedback to authenticated;
+grant select (id, proveedor_id, calificacion, comentario, created_at) on public.feedback to anon;
+grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id) on public.feedback to authenticated;
 revoke all on public.feedback_publico from public;
 grant select on public.feedback_publico to anon, authenticated;
 
