@@ -116,6 +116,7 @@ describe('C-LECTURA — superficie pública', () => {
     expect(vista).toContain('id, proveedor_id, calificacion, comentario, created_at')
     expect(vista).toContain("'Comprador verificado'::text as autor_anonimo")
     expect(vista).not.toMatch(/comprador_id|email|telefono|correo/)
+    expect(schema).toContain('revoke all on public.feedback_publico from public, anon, authenticated;')
     expect(schema).toContain('grant select on public.feedback_publico to anon, authenticated;')
   })
 

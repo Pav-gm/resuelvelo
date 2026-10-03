@@ -384,7 +384,7 @@ as
 revoke all on public.feedback from anon, authenticated;
 grant select (id, proveedor_id, calificacion, comentario, created_at) on public.feedback to anon;
 grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id) on public.feedback to authenticated;
-revoke all on public.feedback_publico from public;
+revoke all on public.feedback_publico from public, anon, authenticated;
 grant select on public.feedback_publico to anon, authenticated;
 
 create or replace function public.crear_feedback(
