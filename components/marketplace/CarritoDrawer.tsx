@@ -82,19 +82,23 @@ export default function CarritoDrawer() {
                         <button
                           onClick={() => actualizarCantidad(producto.id, cantidad - 1)}
                           className="rounded-md border p-1 hover:bg-gray-50"
+                          aria-label="Disminuir cantidad"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
                         <span className="w-6 text-center text-sm font-medium">{cantidad}</span>
                         <button
                           onClick={() => actualizarCantidad(producto.id, cantidad + 1)}
-                          className="rounded-md border p-1 hover:bg-gray-50"
+                          className="rounded-md border p-1 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                          disabled={producto.stock <= 0 || cantidad >= producto.stock}
+                          aria-label="Aumentar cantidad"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                         <button
                           onClick={() => quitar(producto.id)}
                           className="ml-1 rounded-md p-1 text-gray-400 hover:text-red-500"
+                          aria-label="Quitar producto"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
