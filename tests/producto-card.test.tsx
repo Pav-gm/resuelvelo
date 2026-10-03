@@ -100,14 +100,14 @@ describe('ProductoCard — estados de stock', () => {
     expect(useCarritoStore.getState().items[0].cantidad).toBe(2)
   })
 
-  it('la última unidad muestra Agregado deshabilitado y luego Máximo en carrito', () => {
+  it('al agregar la última unidad disponible manda Máximo en carrito', () => {
     vi.useFakeTimers()
     render(<ProductoCard producto={producto({ stock: 1 })} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
 
-    const agregado = screen.getByRole('button', { name: 'Agregado' })
-    expect(agregado).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Máximo en carrito' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Agregado' })).not.toBeInTheDocument()
     expect(useCarritoStore.getState().items[0].cantidad).toBe(1)
 
     act(() => {
@@ -115,7 +115,6 @@ describe('ProductoCard — estados de stock', () => {
     })
 
     expect(screen.getByRole('button', { name: 'Máximo en carrito' })).toBeDisabled()
-    expect(screen.queryByRole('button', { name: 'Agregado' })).not.toBeInTheDocument()
   })
 
   it('no vuelve a mostrar Agregado si el carrito ya está en el stock', () => {
