@@ -41,8 +41,9 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
     const despues =
       useCarritoStore.getState().items.find((i) => i.producto.id === producto.id)
         ?.cantidad ?? 0
-    // Solo marcar «Agregado» si la adición cambió el carrito efectivamente.
-    if (despues > antes) {
+    // Solo marcar «Agregado» si la adición cambió el carrito efectivamente
+    // y aún no se alcanzó el stock; al llegar al stock manda «Máximo en carrito».
+    if (despues > antes && despues < producto.stock) {
       setAgregado(true)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       timeoutRef.current = setTimeout(() => setAgregado(false), AGREGADO_MS)
@@ -93,7 +94,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
             onClick={handleAgregar}
           >
             <ShoppingCart className="mr-1.5 h-4 w-4" />
-            {agregado ? 'Agregado' : alMaximo ? 'Máximo en carrito' : 'Agregar'}
+            {alMaximo ? 'Máximo en carrito' : agregado ? 'Agregado' : 'Agregar'}
           </Button>
         </div>
       </div>
