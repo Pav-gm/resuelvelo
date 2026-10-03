@@ -1,13 +1,19 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getCotizacionesDelComprador } from '@/lib/data'
+import { getCotizacionesDelComprador, getFeedbackPorCotizacion } from '@/lib/data'
+import type { Feedback } from '@/types'
 import LimpiarCarritoEnEnviada from '@/components/marketplace/LimpiarCarritoEnEnviada'
+import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
+import ConfirmarRecepcionButton from '@/components/marketplace/ConfirmarRecepcionButton'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
   respondida: 'bg-blue-100 text-blue-700',
   aceptada:   'bg-green-100 text-green-700',
   rechazada:  'bg-red-100 text-red-700',
+  despachada: 'bg-purple-100 text-purple-700',
+  recibida:   'bg-teal-100 text-teal-700',
+  cancelada:  'bg-gray-200 text-gray-600',
 }
 
 export default async function MisCotizacionesPage({
@@ -21,6 +27,17 @@ export default async function MisCotizacionesPage({
 
   const params = await searchParams
   const cotizaciones = await getCotizacionesDelComprador(user.id)
+
+  // Solo las cotizaciones `recibida` pueden mostrar la acción de feedback
+  // (una reseña por cotización); se resuelve en servidor por contrato.
+  const feedbackPorCotizacion = new Map<string, Feedback | null>()
+  await Promise.all(
+    cotizaciones
+      .filter((cot) => cot.estado === 'recibida')
+      .map(async (cot) => {
+        feedbackPorCotizacion.set(cot.id, await getFeedbackPorCotizacion(cot.id))
+      })
+  )
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -63,9 +80,14 @@ export default async function MisCotizacionesPage({
                       })}
                     </p>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
-                    {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
+                      {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
+                    </span>
+                    {cot.estado === 'despachada' && (
+                      <ConfirmarRecepcionButton cotizacionId={cot.id} />
+                    )}
+                  </div>
                 </div>
 
                 <div className="divide-y">
@@ -94,6 +116,13 @@ export default async function MisCotizacionesPage({
                       minimumFractionDigits: 2,
                     })}
                   </div>
+                )}
+
+                {cot.estado === 'recibida' && (
+                  <FormularioFeedback
+                    cotizacionId={cot.id}
+                    feedback={feedbackPorCotizacion.get(cot.id) ?? null}
+                  />
                 )}
               </div>
             )
