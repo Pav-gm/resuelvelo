@@ -8,6 +8,9 @@ const estadoBadge: Record<string, string> = {
   respondida: 'bg-blue-100 text-blue-700',
   aceptada:   'bg-green-100 text-green-700',
   rechazada:  'bg-red-100 text-red-700',
+  despachada: 'bg-purple-100 text-purple-700',
+  recibida:   'bg-teal-100 text-teal-700',
+  cancelada:  'bg-gray-200 text-gray-600',
 }
 
 export default async function PedidosPage() {
