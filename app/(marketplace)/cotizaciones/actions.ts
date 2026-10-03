@@ -17,14 +17,50 @@ export async function cotizarDesdeCarrito(
   const itemsRaw = formData.get('items') as string
   if (!itemsRaw) return { error: 'El carrito está vacío.' }
 
-  let items: ItemCarrito[]
+  let itemsRawParsed: unknown
   try {
-    items = JSON.parse(itemsRaw)
+    itemsRawParsed = JSON.parse(itemsRaw)
   } catch {
     return { error: 'Datos del carrito inválidos.' }
   }
 
-  if (!items.length) return { error: 'El carrito está vacío.' }
+  if (!Array.isArray(itemsRawParsed)) {
+    return { error: 'Datos del carrito inválidos.' }
+  }
+  if (!itemsRawParsed.length) return { error: 'El carrito está vacío.' }
+
+  const itemsUnicos = new Map<string, ItemCarrito>()
+  for (const item of itemsRawParsed) {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      !('producto' in item) ||
+      !item.producto ||
+      typeof item.producto !== 'object' ||
+      !('id' in item.producto) ||
+      typeof item.producto.id !== 'string' ||
+      !item.producto.id.trim() ||
+      !('cantidad' in item) ||
+      !Number.isInteger(item.cantidad) ||
+      item.cantidad <= 0
+    ) {
+      return { error: 'Datos del carrito inválidos.' }
+    }
+
+    const productoId = item.producto.id
+    const itemExistente = itemsUnicos.get(productoId)
+    if (itemExistente) {
+      const cantidadFusionada = itemExistente.cantidad + item.cantidad
+      if (!Number.isSafeInteger(cantidadFusionada)) {
+        return { error: 'Datos del carrito inválidos.' }
+      }
+      itemExistente.cantidad = cantidadFusionada
+    } else {
+      itemsUnicos.set(productoId, item as ItemCarrito)
+    }
+  }
+
+  const items = Array.from(itemsUnicos.values())
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,12 +78,29 @@ export async function cotizarDesdeCarrito(
   // confiamos en proveedor_id/precio que llega del carrito del cliente, ya
   // que puede provenir de datos mock (IDs no-UUID) o estar desactualizado.
   const todosLosProductoIds = items.map((i) => i.producto.id)
-  const { data: productosDb } = await supabase
-    .from('productos')
-    .select('id, proveedor_id, precio')
-    .in('id', todosLosProductoIds)
+  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number }[] | null
+  try {
+    const { data, error } = await supabase
+      .from('productos')
+      .select('id, proveedor_id, precio, stock')
+      .in('id', todosLosProductoIds)
+
+    if (error) return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
+    productosDb = data
+  } catch {
+    return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
+  }
 
   const productoPorId = new Map((productosDb ?? []).map((p) => [p.id, p]))
+  for (const item of items) {
+    const productoDb = productoPorId.get(item.producto.id)
+    // Los IDs que no existen conservan el flujo parcial previo.
+    if (productoDb && item.cantidad > productoDb.stock) {
+      return {
+        error: `No hay stock suficiente para ${item.producto.nombre ?? 'uno de los productos'} (disponible: ${productoDb.stock}, solicitado: ${item.cantidad}).`,
+      }
+    }
+  }
 
   let creadas = 0
   let algunProductoInvalido = false
