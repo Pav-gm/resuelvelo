@@ -128,3 +128,107 @@ describe('Carrito — totales', () => {
     expect(useCarritoStore.getState().cantidadTotal()).toBe(5)
   })
 })
+
+describe('Carrito — topes de stock al agregar', () => {
+  const productoConStock = (stock: number): Producto => ({ ...PRODUCTO_A, stock })
+
+  it('ignora cantidades que no son enteros positivos y no toca el carrito', () => {
+    const producto = productoConStock(10)
+    useCarritoStore.getState().agregar(producto, 2)
+
+    for (const cantidad of [0, -1, -5, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      useCarritoStore.getState().agregar(producto, cantidad)
+    }
+
+    const { items } = useCarritoStore.getState()
+    expect(items).toHaveLength(1)
+    expect(items[0].cantidad).toBe(2)
+    expect(items[0].producto.id).toBe(producto.id)
+  })
+
+  it('no agrega un producto con stock cero o negativo', () => {
+    useCarritoStore.getState().agregar(productoConStock(0))
+    useCarritoStore.getState().agregar(productoConStock(-3), 2)
+    useCarritoStore.getState().agregar(PRODUCTO_B, 1)
+
+    const { items } = useCarritoStore.getState()
+    expect(items).toHaveLength(1)
+    expect(items[0].producto.id).toBe(PRODUCTO_B.id)
+  })
+
+  it('limita la cantidad nueva al stock sin duplicar el producto', () => {
+    const producto = productoConStock(4)
+    useCarritoStore.getState().agregar(producto, 9)
+
+    const { items } = useCarritoStore.getState()
+    expect(items).toHaveLength(1)
+    expect(items[0].cantidad).toBe(4)
+    expect(items[0]).toMatchObject({ producto, cantidad: 4 })
+  })
+
+  it('permite agregar exactamente hasta el stock', () => {
+    const producto = productoConStock(3)
+    useCarritoStore.getState().agregar(producto, 3)
+    expect(useCarritoStore.getState().items[0].cantidad).toBe(3)
+  })
+
+  it('limita la cantidad acumulada al stock y conserva una sola línea', () => {
+    const producto = productoConStock(6)
+    useCarritoStore.getState().agregar(producto, 4)
+    useCarritoStore.getState().agregar(producto, 5)
+
+    const { items } = useCarritoStore.getState()
+    expect(items).toHaveLength(1)
+    expect(items[0].cantidad).toBe(6)
+  })
+
+  it('no modifica la línea cuando ya está en el stock', () => {
+    const producto = productoConStock(2)
+    useCarritoStore.getState().agregar(producto, 2)
+    useCarritoStore.getState().agregar(producto, 1)
+
+    expect(useCarritoStore.getState().items).toHaveLength(1)
+    expect(useCarritoStore.getState().items[0].cantidad).toBe(2)
+    expect(useCarritoStore.getState().total()).toBe(producto.precio * 2)
+  })
+})
+
+describe('Carrito — actualizar cantidad con stock', () => {
+  it('sigue quitando el producto con cantidad cero o negativa', () => {
+    useCarritoStore.getState().agregar(PRODUCTO_A, 4)
+    useCarritoStore.getState().agregar(PRODUCTO_B, 2)
+
+    useCarritoStore.getState().actualizarCantidad('p1', 0)
+    expect(useCarritoStore.getState().items.map((i) => i.producto.id)).toEqual(['p2'])
+
+    useCarritoStore.getState().actualizarCantidad('p2', -8)
+    expect(useCarritoStore.getState().items).toHaveLength(0)
+  })
+
+  it('limita una cantidad positiva al stock del producto', () => {
+    const producto = { ...PRODUCTO_A, stock: 5 }
+    useCarritoStore.getState().agregar(producto, 1)
+    useCarritoStore.getState().actualizarCantidad(producto.id, 40)
+
+    const { items } = useCarritoStore.getState()
+    expect(items).toHaveLength(1)
+    expect(items[0].cantidad).toBe(5)
+  })
+
+  it('conserva una cantidad positiva dentro del stock', () => {
+    const producto = { ...PRODUCTO_A, stock: 8 }
+    useCarritoStore.getState().agregar(producto, 1)
+    useCarritoStore.getState().actualizarCantidad(producto.id, 4)
+
+    expect(useCarritoStore.getState().items[0].cantidad).toBe(4)
+    expect(useCarritoStore.getState().cantidadTotal()).toBe(4)
+  })
+
+  it('no crea una línea al actualizar un producto ausente', () => {
+    useCarritoStore.getState().agregar(PRODUCTO_B, 1)
+    useCarritoStore.getState().actualizarCantidad('inexistente', 3)
+
+    expect(useCarritoStore.getState().items).toHaveLength(1)
+    expect(useCarritoStore.getState().items[0].producto.id).toBe(PRODUCTO_B.id)
+  })
+})
