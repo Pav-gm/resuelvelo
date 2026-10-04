@@ -22,10 +22,10 @@ function formatearFecha(fecha: string): string {
 /**
  * Línea de seguimiento compartida por las vistas del proveedor y del comprador:
  * Aceptada → Despachada → Recibida, con la fecha de despacho cuando existe y
- * el actor de la cancelación cuando el estado es cancelada. En cancelada la
- * línea se limita a «Aceptada → Despachada (completa solo si existe
- * despachada_at)» junto con «Cancelada por …»; el paso «Recibida» no se
- * renderiza en absoluto (conforme a TRACKING-UI).
+ * el actor de la cancelación cuando el estado es cancelada. En cancelada se
+ * muestra «Cancelada por …» y los tres pasos se renderizan siempre; «Recibida»
+ * aparece como pendiente (text-gray-400, punto gris) y nunca como completada,
+ * conforme a TRACKING-UI.
  * Las etiquetas se muestran numeradas («1 · Aceptada») para diferenciarse de
  * los badges de estado al consultar el DOM en las pruebas.
  */
@@ -42,12 +42,12 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
     ? !!despachadaAt
     : estado === 'despachada' || estado === 'recibida'
 
-  // En cancelada solo se muestran Aceptada → Despachada; «Recibida» no se
-  // presenta (ni completa ni pendiente) porque la venta no continuará.
+  // Los tres pasos se renderizan siempre; en cancelada «Recibida» queda como
+  // pendiente (completa es false) porque la venta no llegó a recibirse.
   const pasos = [
     { etiqueta: 'Aceptada', completa: true },
     { etiqueta: 'Despachada', completa: despachadaCompleta },
-    ...(cancelada ? [] : [{ etiqueta: 'Recibida', completa: estado === 'recibida' }]),
+    { etiqueta: 'Recibida', completa: estado === 'recibida' },
   ]
 
   return (
