@@ -53,6 +53,8 @@ const h = vi.hoisted(() => {
     },
     crearFeedback: vi.fn(),
     confirmarRecepcion: vi.fn(),
+    cancelarVenta: vi.fn(),
+    despacharCotizacion: vi.fn(),
   }
 })
 
@@ -95,7 +97,16 @@ vi.mock('@/lib/data', () => ({
 vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
   crearFeedback: h.crearFeedback,
   confirmarRecepcion: h.confirmarRecepcion,
+  cancelarVenta: h.cancelarVenta,
   responderCotizacion: vi.fn(),
+}))
+
+vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
+  despacharCotizacion: h.despacharCotizacion,
+  toggleProducto: vi.fn(),
+  eliminarProducto: vi.fn(),
+  crearProducto: vi.fn(),
+  actualizarProducto: vi.fn(),
 }))
 
 import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
@@ -114,7 +125,21 @@ const BADGES: Record<string, string> = {
   cancelada: 'bg-gray-200 text-gray-600',
 }
 
-function cotizacion(estado: Cotizacion['estado'], id: string): Cotizacion {
+const DESPACHADA_AT = '2026-04-02T18:00:00.000Z'
+
+function fechaDespacho(iso: string) {
+  return new Date(iso).toLocaleDateString('es-DO', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+function cotizacion(
+  estado: Cotizacion['estado'],
+  id: string,
+  extra: Partial<Cotizacion> = {}
+): Cotizacion {
   return {
     id,
     comprador_id: 'comprador-1',
@@ -122,7 +147,18 @@ function cotizacion(estado: Cotizacion['estado'], id: string): Cotizacion {
     estado,
     created_at: '2026-03-15T15:00:00.000Z',
     items: [],
+    ...extra,
   }
+}
+
+function pasoSeguimiento(scope: HTMLElement, numero: number, etiqueta: string) {
+  const marca = `${numero} · ${etiqueta}`
+  return within(scope).getByText((_, element) => {
+    if (!element || element.tagName !== 'SPAN') return false
+    if (element.getAttribute('aria-hidden') === 'true') return false
+    const texto = element.textContent ?? ''
+    return texto === marca || texto.startsWith(marca)
+  })
 }
 
 function resena(overrides: Partial<Feedback> = {}): Feedback {
@@ -160,6 +196,8 @@ beforeEach(() => {
   h.resumen = { reseñas: [], promedio: 0, conteo: 0 }
   h.crearFeedback.mockReset()
   h.confirmarRecepcion.mockReset()
+  h.cancelarVenta.mockReset()
+  h.despacharCotizacion.mockReset()
 })
 
 afterEach(() => {
@@ -331,6 +369,21 @@ describe('Mis cotizaciones — acción solo en elegibles', () => {
       expect(within(tarjeta(prefijo)).queryByText('Tu reseña')).not.toBeInTheDocument()
     }
     expect(within(tarjeta('FFFFFFFF')).queryByRole('button', { name: 'Confirmar recepción' })).not.toBeInTheDocument()
+
+    expect(within(tarjeta('33333333')).getByText('El proveedor aceptó; falta que despache.')).toBeInTheDocument()
+    expect(within(tarjeta('33333333')).getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
+    expect(within(tarjeta('33333333')).queryByRole('dialog')).not.toBeInTheDocument()
+    for (const prefijo of ['11111111', '22222222', '44444444', '55555555', '66666666', 'FFFFFFFF', 'EEEEEEEE']) {
+      expect(within(tarjeta(prefijo)).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    }
+    for (const prefijo of ['33333333', '55555555', '66666666', 'FFFFFFFF', 'EEEEEEEE']) {
+      expect(within(tarjeta(prefijo)).getByRole('region', { name: 'Seguimiento de la cotización' })).toBeInTheDocument()
+    }
+    for (const prefijo of ['11111111', '22222222', '44444444']) {
+      expect(within(tarjeta(prefijo)).queryByRole('region', { name: 'Seguimiento de la cotización' })).not.toBeInTheDocument()
+    }
+    expect(screen.queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
   })
 
   it('redirige al anónimo antes de mostrar cotizaciones', async () => {
@@ -378,6 +431,11 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     expect(seccion).not.toHaveTextContent('usuario-secreto-99')
     expect(seccion).not.toHaveTextContent('secreto@correo.com')
     expect(screen.queryByRole('button', { name: 'Enviar reseña' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Confirmar recepción' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Seguimiento de la cotización' })).not.toBeInTheDocument()
   })
 
   it('explica el vacío cuando el proveedor no tiene reseñas', async () => {
@@ -407,6 +465,7 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
   it('el panel del proveedor conserva el badge de recibida', async () => {
     h.cotizacionesProveedor.push(cotizacion('recibida', COT_RECIBIDA))
     h.cotizacionesProveedor.push(cotizacion('despachada', COT_DESPACHADA))
+    h.cotizacionesProveedor.push(cotizacion('aceptada', '33333333-1111-4111-8111-111111111111'))
 
     const ui = await PanelProveedorPage()
     render(ui)
@@ -414,5 +473,246 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     expect(screen.getByText('Recibida').className).toContain('text-teal-700')
     expect(screen.getByText('Despachada').className).toContain('text-purple-700')
     expect(screen.queryByRole('button', { name: 'Enviar reseña' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Confirmar recepción' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    expect(screen.queryByText('El proveedor aceptó; falta que despache.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Seguimiento de la cotización' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
+  it('en aceptada cancela sin confirmación y muestra el error de la RPC', async () => {
+    const id = '33333333-1111-4111-8111-111111111111'
+    h.cancelarVenta.mockResolvedValue({
+      error: 'Solo puedes cancelar antes de que el proveedor despache.',
+    })
+    h.cotizaciones.push(cotizacion('aceptada', id))
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const card = tarjeta('33333333')
+    const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
+    expect(pasoSeguimiento(linea, 1, 'Aceptada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Cancelar' }))
+
+    expect(within(card).queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(h.cancelarVenta).toHaveBeenCalledWith(id)
+    })
+    expect(await within(card).findByRole('alert')).toHaveTextContent(
+      'Solo puedes cancelar antes de que el proveedor despache.'
+    )
+    expect(h.cancelarVenta).toHaveBeenCalledTimes(1)
+  })
+
+  it('en despachada muestra la fecha y solo la confirmación de recepción', async () => {
+    h.cotizaciones.push(
+      cotizacion('despachada', COT_DESPACHADA, { despachada_at: DESPACHADA_AT })
+    )
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const card = tarjeta('DDDDDDDD')
+    const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
+    expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
+    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(within(card).getByRole('button', { name: 'Confirmar recepción' })).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
+  })
+
+  it('en recibida completa el seguimiento y conserva el formulario de reseña', async () => {
+    h.cotizaciones.push(
+      cotizacion('recibida', COT_RECIBIDA, { despachada_at: DESPACHADA_AT })
+    )
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const card = tarjeta('FFFFFFFF')
+    const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
+    expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
+    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('font-medium')
+    expect(within(card).getByRole('form', { name: 'Dejar reseña del proveedor' })).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Confirmar recepción' })).not.toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+  })
+
+  it('en cancelada nombra al comprador y no marca Recibida como completada', async () => {
+    h.cotizaciones.push(
+      cotizacion('cancelada', '66666666-1111-4111-8111-111111111111', {
+        cancelada_por: 'comprador',
+      })
+    )
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const card = tarjeta('66666666')
+    const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
+    expect(within(linea).getByRole('status')).toHaveTextContent('Cancelada por el comprador.')
+    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(within(card).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () => {
+  it.each([
+    ['pendiente', false, false],
+    ['respondida', false, false],
+    ['aceptada', true, true],
+    ['rechazada', false, false],
+    ['despachada', false, true],
+    ['recibida', false, false],
+    ['cancelada', false, false],
+  ] as const)(
+    'en %s ofrece despacho=%s y cancelación=%s',
+    async (estado, puedeDespachar, puedeCancelar) => {
+      h.cotizacionesProveedor.push(
+        cotizacion(estado, 'aaaaaaaa-1111-4111-8111-111111111111')
+      )
+
+      const ui = await PedidosPage()
+      render(ui)
+
+      const card = tarjeta('AAAAAAAA')
+      const despacho = within(card).queryByRole('button', { name: 'Marcar como despachada' })
+      const cancelacion = within(card).queryByRole('button', { name: 'Cancelar venta' })
+      if (puedeDespachar) expect(despacho).toBeInTheDocument()
+      else expect(despacho).not.toBeInTheDocument()
+      if (puedeCancelar) expect(cancelacion).toBeInTheDocument()
+      else expect(cancelacion).not.toBeInTheDocument()
+
+      const conSeguimiento = estado === 'aceptada' || estado === 'despachada' || estado === 'recibida' || estado === 'cancelada'
+      const linea = within(card).queryByRole('region', { name: 'Seguimiento de la cotización' })
+      if (conSeguimiento) expect(linea).toBeInTheDocument()
+      else expect(linea).not.toBeInTheDocument()
+
+      expect(within(card).queryByRole('button', { name: 'Confirmar recepción' })).not.toBeInTheDocument()
+      expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
+    }
+  )
+
+  it('exige confirmación antes de despachar y muestra el error del RPC', async () => {
+    const id = '33333333-1111-4111-8111-111111111111'
+    h.despacharCotizacion.mockResolvedValue({
+      error: 'Solo puedes despachar una venta aceptada.',
+    })
+    h.cotizacionesProveedor.push(cotizacion('aceptada', id))
+
+    const ui = await PedidosPage()
+    render(ui)
+
+    const card = tarjeta('33333333')
+    fireEvent.click(within(card).getByRole('button', { name: 'Marcar como despachada' }))
+    expect(h.despacharCotizacion).not.toHaveBeenCalled()
+
+    const dialogo = within(card).getByRole('dialog', { name: 'Confirmar despacho' })
+    expect(dialogo).toHaveTextContent('¿Confirmas que esta venta fue despachada?')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Volver' }))
+    expect(within(card).queryByRole('dialog', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
+    expect(h.despacharCotizacion).not.toHaveBeenCalled()
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Marcar como despachada' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, marcar como despachada' }))
+
+    expect(await within(card).findByRole('alert')).toHaveTextContent(
+      'Solo puedes despachar una venta aceptada.'
+    )
+    expect(h.despacharCotizacion).toHaveBeenCalledTimes(1)
+    expect(h.despacharCotizacion).toHaveBeenCalledWith(id)
+    expect(within(card).queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('deshabilita los controles mientras el despacho está en curso', async () => {
+    let resolver: (value: null) => void = () => {}
+    h.despacharCotizacion.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolver = resolve
+        })
+    )
+    h.cotizacionesProveedor.push(
+      cotizacion('aceptada', '33333333-1111-4111-8111-111111111111')
+    )
+
+    const ui = await PedidosPage()
+    render(ui)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Marcar como despachada' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, marcar como despachada' }))
+
+    const despachando = await screen.findByRole('button', { name: 'Despachando…' })
+    expect(despachando).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Marcar como despachada' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancelar venta' })).toBeDisabled()
+    fireEvent.click(despachando)
+    expect(h.despacharCotizacion).toHaveBeenCalledTimes(1)
+
+    resolver(null)
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Marcar como despachada' })).toBeEnabled()
+  })
+
+  it('en despachada solo cancela tras confirmar y muestra fecha y error', async () => {
+    const id = COT_DESPACHADA
+    h.cancelarVenta.mockResolvedValue({ error: 'Esta venta ya no se puede cancelar.' })
+    h.cotizacionesProveedor.push(
+      cotizacion('despachada', id, { despachada_at: DESPACHADA_AT })
+    )
+
+    const ui = await PedidosPage()
+    render(ui)
+
+    const card = tarjeta('DDDDDDDD')
+    const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
+    expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
+    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(within(card).queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Cancelar venta' }))
+    expect(h.cancelarVenta).not.toHaveBeenCalled()
+    const dialogo = within(card).getByRole('dialog', { name: 'Confirmar cancelación' })
+    expect(dialogo).toHaveTextContent('¿Seguro que quieres cancelar esta venta? Esta acción no se puede deshacer.')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, cancelar venta' }))
+
+    expect(await within(card).findByRole('alert')).toHaveTextContent('Esta venta ya no se puede cancelar.')
+    expect(h.cancelarVenta).toHaveBeenCalledWith(id)
+    expect(within(card).queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('en cancelada nombra al proveedor y no ofrece acciones de venta', async () => {
+    h.cotizacionesProveedor.push(
+      cotizacion('cancelada', '66666666-1111-4111-8111-111111111111', {
+        despachada_at: DESPACHADA_AT,
+        cancelada_por: 'proveedor',
+      })
+    )
+
+    const ui = await PedidosPage()
+    render(ui)
+
+    const card = tarjeta('66666666')
+    const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
+    expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
+    expect(within(linea).getByRole('status')).toHaveTextContent('Cancelada por el proveedor.')
+    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(within(card).queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
   })
 })
