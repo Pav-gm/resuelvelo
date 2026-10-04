@@ -182,3 +182,41 @@ export async function responderCotizacion(
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
 }
+
+// ─── Seguimiento de venta (comprador) ────────────────────────
+
+export type SeguimientoVentaError = { error: string } | null
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+async function ejecutarRpcSeguimientoVenta(
+  cotizacionId: string,
+  rpc: 'cancelar_venta' | 'confirmar_recepcion'
+): Promise<SeguimientoVentaError> {
+  if (typeof cotizacionId !== 'string' || !UUID_REGEX.test(cotizacionId)) {
+    return { error: 'La cotización indicada no es válida.' }
+  }
+
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return { error: 'Inicia sesión para actualizar la cotización.' }
+
+    const { error } = await supabase.rpc(rpc, { p_cotizacion_id: cotizacionId })
+    if (error) return { error: error.message || 'No se pudo actualizar la cotización.' }
+  } catch {
+    return { error: 'No se pudo actualizar la cotización. Intenta de nuevo.' }
+  }
+
+  revalidatePath('/proveedor/pedidos')
+  revalidatePath('/mis-cotizaciones')
+  return null
+}
+
+export async function cancelarCotizacion(cotizacionId: string): Promise<SeguimientoVentaError> {
+  return ejecutarRpcSeguimientoVenta(cotizacionId, 'cancelar_venta')
+}
+
+export async function confirmarRecepcion(cotizacionId: string): Promise<SeguimientoVentaError> {
+  return ejecutarRpcSeguimientoVenta(cotizacionId, 'confirmar_recepcion')
+}
