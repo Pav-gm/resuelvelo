@@ -2,12 +2,17 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getCotizacionesDeProveedor } from '@/lib/data'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
+import AccionVentaButton from '@/components/marketplace/AccionVentaButton'
+import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
   respondida: 'bg-blue-100 text-blue-700',
   aceptada:   'bg-green-100 text-green-700',
   rechazada:  'bg-red-100 text-red-700',
+  despachada: 'bg-indigo-100 text-indigo-700',
+  recibida:   'bg-teal-100 text-teal-700',
+  cancelada:  'bg-gray-100 text-gray-500',
 }
 
 export default async function PedidosPage() {
@@ -57,6 +62,15 @@ export default async function PedidosPage() {
                     {cot.estado === 'pendiente' && (
                       <ResponderCotizacionButton cotizacionId={cot.id} />
                     )}
+                    {cot.estado === 'aceptada' && (
+                      <>
+                        <AccionVentaButton cotizacionId={cot.id} accion="despachar" />
+                        <AccionVentaButton cotizacionId={cot.id} accion="cancelar-proveedor" />
+                      </>
+                    )}
+                    {cot.estado === 'despachada' && (
+                      <AccionVentaButton cotizacionId={cot.id} accion="cancelar-proveedor" />
+                    )}
                   </div>
                 </div>
 
@@ -85,6 +99,12 @@ export default async function PedidosPage() {
                     Total estimado: ${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                   </div>
                 )}
+
+                <LineaSeguimiento
+                  estado={cot.estado}
+                  despachadaAt={cot.despachada_at}
+                  canceladaPor={cot.cancelada_por}
+                />
               </div>
             )
           })}

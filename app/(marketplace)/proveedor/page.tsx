@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
   Package, ShoppingBag, TrendingUp, AlertCircle,
-  Plus, ArrowRight, CheckCircle2, Clock
+  Plus, ArrowRight, CheckCircle2, Clock,
+  Truck, PackageCheck, XCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
@@ -20,6 +21,9 @@ const estadoBadge: Record<string, string> = {
   respondida: 'bg-blue-100 text-blue-700',
   aceptada:   'bg-green-100 text-green-700',
   rechazada:  'bg-red-100 text-red-700',
+  despachada: 'bg-indigo-100 text-indigo-700',
+  recibida:   'bg-teal-100 text-teal-700',
+  cancelada:  'bg-gray-100 text-gray-500',
 }
 
 const estadoIcono: Record<string, React.ElementType> = {
@@ -27,6 +31,9 @@ const estadoIcono: Record<string, React.ElementType> = {
   respondida: ArrowRight,
   aceptada:   CheckCircle2,
   rechazada:  AlertCircle,
+  despachada: Truck,
+  recibida:   PackageCheck,
+  cancelada:  XCircle,
 }
 
 export default async function PanelProveedorPage() {
