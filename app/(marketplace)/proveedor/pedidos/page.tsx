@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getCotizacionesDeProveedor } from '@/lib/data'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
+import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
+import AccionesVentaProveedor from '@/components/marketplace/AccionesVentaProveedor'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
@@ -87,6 +89,17 @@ export default async function PedidosPage() {
                   <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
                     Total estimado: ${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                   </div>
+                )}
+
+                <LineaSeguimiento
+                  estado={cot.estado}
+                  despachadaAt={cot.despachada_at}
+                  canceladaPor={cot.cancelada_por}
+                />
+
+                {/* Despacho y cancelación en aceptada; solo cancelación en despachada. */}
+                {(cot.estado === 'aceptada' || cot.estado === 'despachada') && (
+                  <AccionesVentaProveedor cotizacionId={cot.id} estado={cot.estado} />
                 )}
               </div>
             )

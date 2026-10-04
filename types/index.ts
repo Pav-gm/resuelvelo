@@ -58,6 +58,10 @@ export interface Cotizacion {
   mensaje?: string
   total_estimado?: number
   created_at: string
+  /** Fecha de despacho (columna despachada_at); null hasta que el proveedor despache. */
+  despachada_at?: string | null
+  /** Quién canceló la venta; null si no está cancelada. */
+  cancelada_por?: 'comprador' | 'proveedor' | null
   items?: ItemCotizacion[]
 }
 
