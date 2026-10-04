@@ -34,7 +34,11 @@ export default async function ProveedoresPage() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <h2 className="font-semibold text-gray-900 truncate">{prov.nombre_empresa}</h2>
+                    <h2 className="font-semibold text-gray-900 truncate">
+                      <Link href={`/proveedores/${prov.id}`} className="hover:underline">
+                        {prov.nombre_empresa}
+                      </Link>
+                    </h2>
                     {prov.verificado && (
                       <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" aria-label="Verificado" />
                     )}
