@@ -127,11 +127,9 @@ export async function eliminarProducto(productoId: string): Promise<void> {
   revalidatePath('/catalogo')
 }
 
-type DespacharCotizacionResultado = { error: string } | null
-
-async function despacharCotizacionRpc(
+export async function despacharCotizacion(
   cotizacionId: string
-): Promise<DespacharCotizacionResultado> {
+): Promise<{ error: string } | null> {
   const supabase = await createClient()
   await getProveedorId()
 
@@ -143,18 +141,4 @@ async function despacharCotizacionRpc(
   revalidatePath('/proveedor/pedidos')
   revalidatePath('/mis-cotizaciones')
   return null
-}
-
-// Se conserva el export previo para consumidores que esperan una acción void.
-// Los rechazos de transición se propagan como excepción.
-export async function despacharCotizacion(cotizacionId: string): Promise<void> {
-  const resultado = await despacharCotizacionRpc(cotizacionId)
-  if (resultado) throw new Error(resultado.error)
-}
-
-// Acción para controles que necesitan mostrar el error devuelto por la RPC.
-export async function despacharCotizacionResultado(
-  cotizacionId: string
-): Promise<DespacharCotizacionResultado> {
-  return despacharCotizacionRpc(cotizacionId)
 }
