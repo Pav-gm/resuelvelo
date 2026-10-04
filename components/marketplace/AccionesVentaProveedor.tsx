@@ -17,15 +17,29 @@ type TipoConfirmacion = 'despachar' | 'cancelar' | null
  * (aceptada o despachada). Ambos exigen confirmación previa, se deshabilitan
  * durante la acción y muestran los errores devueltos por las RPC.
  */
+type ResultadoAccion = { error: string } | null | void
+
+async function aResultado(accion: () => Promise<ResultadoAccion>): Promise<{ error: string } | null> {
+  try {
+    const resultado: unknown = await accion()
+    if (resultado && typeof resultado === 'object' && 'error' in resultado) {
+      return resultado as { error: string }
+    }
+    return null
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'No se pudo completar la acción.' }
+  }
+}
+
 export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) {
   const [pendiente, startTransition] = useTransition()
   const [confirmacion, setConfirmacion] = useState<TipoConfirmacion>(null)
   const [error, setError] = useState<string | null>(null)
 
-  function ejecutar(accion: () => Promise<{ error: string } | null>) {
+  function ejecutar(accion: () => Promise<ResultadoAccion>) {
     setError(null)
     startTransition(async () => {
-      const resultado = await accion()
+      const resultado = await aResultado(accion)
       if (resultado?.error) {
         setError(resultado.error)
       }
