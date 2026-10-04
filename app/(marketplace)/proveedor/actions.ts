@@ -127,18 +127,15 @@ export async function eliminarProducto(productoId: string): Promise<void> {
   revalidatePath('/catalogo')
 }
 
-export async function despacharCotizacion(
-  cotizacionId: string
-): Promise<{ error: string } | null> {
+export async function despacharCotizacion(cotizacionId: string): Promise<void> {
   const supabase = await createClient()
   await getProveedorId()
 
   const { error } = await supabase.rpc('despachar_cotizacion', {
     p_cotizacion_id: cotizacionId,
   })
-  if (error) return { error: error.message }
+  if (error) throw new Error(error.message)
 
   revalidatePath('/proveedor/pedidos')
   revalidatePath('/mis-cotizaciones')
-  return null
 }
