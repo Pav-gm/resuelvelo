@@ -5,6 +5,8 @@ import type { Feedback } from '@/types'
 import LimpiarCarritoEnEnviada from '@/components/marketplace/LimpiarCarritoEnEnviada'
 import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
 import ConfirmarRecepcionButton from '@/components/marketplace/ConfirmarRecepcionButton'
+import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
+import CancelarVentaButton from '@/components/marketplace/CancelarVentaButton'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
@@ -115,6 +117,20 @@ export default async function MisCotizacionesPage({
                     Total estimado: ${Number(cot.total_estimado).toLocaleString('es-DO', {
                       minimumFractionDigits: 2,
                     })}
+                  </div>
+                )}
+
+                <LineaSeguimiento
+                  estado={cot.estado}
+                  despachadaAt={cot.despachada_at}
+                  canceladaPor={cot.cancelada_por}
+                />
+
+                {/* El comprador espera el despacho y solo puede cancelar mientras está aceptada. */}
+                {cot.estado === 'aceptada' && (
+                  <div className="flex items-center justify-between gap-4 border-t bg-gray-50 px-6 py-4">
+                    <p className="text-sm text-gray-700">El proveedor aceptó; falta que despache.</p>
+                    <CancelarVentaButton cotizacionId={cot.id} />
                   </div>
                 )}
 
