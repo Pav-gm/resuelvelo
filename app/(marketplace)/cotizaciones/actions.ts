@@ -193,6 +193,24 @@ export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
   revalidatePath('/proveedor/pedidos')
 }
 
+export async function cancelarVenta(
+  cotizacionId: string
+): Promise<{ error: string } | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { error } = await supabase.rpc('cancelar_venta', {
+    p_cotizacion_id: cotizacionId,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/proveedor/pedidos')
+  revalidatePath('/mis-cotizaciones')
+  return null
+}
+
 export type CrearFeedbackResultado = { data: { id: string } } | { error: string }
 
 export async function crearFeedback(input: {
