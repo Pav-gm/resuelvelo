@@ -2,12 +2,17 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCotizacionesDelComprador } from '@/lib/data'
 import LimpiarCarritoEnEnviada from '@/components/marketplace/LimpiarCarritoEnEnviada'
+import AccionVentaButton from '@/components/marketplace/AccionVentaButton'
+import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
   respondida: 'bg-blue-100 text-blue-700',
   aceptada:   'bg-green-100 text-green-700',
   rechazada:  'bg-red-100 text-red-700',
+  despachada: 'bg-indigo-100 text-indigo-700',
+  recibida:   'bg-teal-100 text-teal-700',
+  cancelada:  'bg-gray-100 text-gray-500',
 }
 
 export default async function MisCotizacionesPage({
@@ -63,9 +68,20 @@ export default async function MisCotizacionesPage({
                       })}
                     </p>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
-                    {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
+                      {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
+                    </span>
+                    {cot.estado === 'aceptada' && (
+                      <>
+                        <p className="text-xs text-gray-500">El proveedor aceptó; falta que despache.</p>
+                        <AccionVentaButton cotizacionId={cot.id} accion="cancelar-comprador" />
+                      </>
+                    )}
+                    {cot.estado === 'despachada' && (
+                      <AccionVentaButton cotizacionId={cot.id} accion="confirmar-recepcion" />
+                    )}
+                  </div>
                 </div>
 
                 <div className="divide-y">
@@ -95,6 +111,12 @@ export default async function MisCotizacionesPage({
                     })}
                   </div>
                 )}
+
+                <LineaSeguimiento
+                  estado={cot.estado}
+                  despachadaAt={cot.despachada_at}
+                  canceladaPor={cot.cancelada_por}
+                />
               </div>
             )
           })}

@@ -50,14 +50,32 @@ export interface ItemCarrito {
   cantidad: number
 }
 
+export type EstadoCotizacion =
+  | 'pendiente'
+  | 'respondida'
+  | 'aceptada'
+  | 'rechazada'
+  | 'despachada'
+  | 'recibida'
+  | 'cancelada'
+
+/** Actor de una transición de venta; lo escriben las RPC de seguimiento. */
+export type ActorVenta = 'comprador' | 'proveedor'
+
 export interface Cotizacion {
   id: string
   comprador_id: string
   proveedor_id: string
-  estado: 'pendiente' | 'respondida' | 'aceptada' | 'rechazada'
+  estado: EstadoCotizacion
   mensaje?: string
   total_estimado?: number
   created_at: string
+  /** Fecha de despacho; la RPC despachar_cotizacion la fija al despachar. */
+  despachada_at?: string | null
+  /** Quién canceló; la RPC cancelar_venta escribe 'comprador' o 'proveedor'. */
+  cancelada_por?: ActorVenta | null
+  /** Quién confirmó la recepción; la RPC confirmar_recepcion lo escribe. */
+  recibida_por?: ActorVenta | null
   items?: ItemCotizacion[]
 }
 
