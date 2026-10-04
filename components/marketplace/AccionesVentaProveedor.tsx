@@ -75,22 +75,7 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
               size="sm"
               className="bg-purple-600 hover:bg-purple-700 text-white"
               disabled={pendiente}
-              onClick={() =>
-                ejecutar(async () => {
-                  // despacharCotizacion propaga los errores de la RPC como
-                  // excepción; se capturan aquí para mostrarlos en pantalla.
-                  try {
-                    await despacharCotizacion(cotizacionId)
-                    return null
-                  } catch (e) {
-                    return {
-                      error: e instanceof Error
-                        ? e.message
-                        : 'No se pudo marcar como despachada.',
-                    }
-                  }
-                })
-              }
+              onClick={() => ejecutar(() => despacharCotizacion(cotizacionId))}
             >
               {pendiente ? 'Despachando…' : 'Sí, marcar como despachada'}
             </Button>
