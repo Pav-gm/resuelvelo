@@ -11,6 +11,10 @@ const accion = readFileSync(
   path.join(process.cwd(), 'app/(marketplace)/cotizaciones/actions.ts'),
   'utf8'
 )
+const accionProveedor = readFileSync(
+  path.join(process.cwd(), 'app/(marketplace)/proveedor/actions.ts'),
+  'utf8'
+)
 const formulario = readFileSync(
   path.join(process.cwd(), 'components/marketplace/FormularioFeedback.tsx'),
   'utf8'
@@ -24,9 +28,20 @@ function bloque(marca: string, fin: string): string {
   return schema.slice(inicio, cierre)
 }
 
+function funcionExportada(fuente: string, nombre: string): string {
+  const marca = `export async function ${nombre}`
+  const inicio = fuente.indexOf(marca)
+  expect(inicio, marca).toBeGreaterThan(-1)
+  const siguiente = fuente.indexOf('\nexport ', inicio + marca.length)
+  return fuente.slice(inicio, siguiente === -1 ? fuente.length : siguiente)
+}
+
 const crearFeedback = bloque('function public.crear_feedback', '$$;')
 const confirmar = bloque('function public.confirmar_recepcion', '$$;')
 const despachar = bloque('function public.despachar_cotizacion', '$$;')
+const cancelar = bloque('function public.cancelar_venta', '$$;')
+const cancelarVentaTs = funcionExportada(accion, 'cancelarVenta')
+const despacharTs = funcionExportada(accionProveedor, 'despacharCotizacion')
 const vista = bloque('view public.feedback_publico', 'revoke all on public.feedback_publico')
 const crearFeedbackTs = accion.slice(accion.indexOf('export async function crearFeedback'))
 
@@ -152,6 +167,50 @@ describe('C-RECEPCION — el estado recibida solo sale del servidor', () => {
     )
     expect(schema).toMatch(
       /grant execute on function public\.despachar_cotizacion\(uuid\)\s+to authenticated;/
+    )
+  })
+})
+
+describe('C-CANCELACION — RPC cancelar_venta sin UPDATE de la aplicación', () => {
+  it('cancelarVenta autentica, llama al RPC con p_cotizacion_id, revalida y propaga el error', () => {
+    expect(cancelarVentaTs).toContain("if (!user) redirect('/login')")
+    expect(cancelarVentaTs).toContain("supabase.rpc('cancelar_venta'")
+    expect(cancelarVentaTs).toContain('p_cotizacion_id: cotizacionId')
+    expect(cancelarVentaTs).toContain('return { error: error.message }')
+    expect(cancelarVentaTs).toContain("revalidatePath('/proveedor/pedidos')")
+    expect(cancelarVentaTs).toContain("revalidatePath('/mis-cotizaciones')")
+    expect(cancelarVentaTs).not.toMatch(/\.update\s*\(/)
+    expect(cancelarVentaTs).not.toMatch(/\.from\(\s*['"]cotizaciones['"]\s*\)/)
+    expect(cancelarVentaTs).not.toMatch(/\.from\(\s*['"]productos['"]\s*\)/)
+  })
+
+  it('despacharCotizacion conserva el RPC y propaga el error sin UPDATE directo', () => {
+    expect(despacharTs).toContain("supabase.rpc('despachar_cotizacion'")
+    expect(despacharTs).toContain('p_cotizacion_id: cotizacionId')
+    expect(despacharTs).toContain('return { error: error.message }')
+    expect(despacharTs).toContain("revalidatePath('/proveedor/pedidos')")
+    expect(despacharTs).toContain("revalidatePath('/mis-cotizaciones')")
+    expect(despacharTs).not.toMatch(/\.update\s*\(/)
+    expect(despacharTs).not.toMatch(/\.from\(\s*['"]cotizaciones['"]\s*\)/)
+    expect(despacharTs).not.toMatch(/\.from\(\s*['"]productos['"]\s*\)/)
+  })
+
+  it('el comprador cancela desde aceptada y el proveedor desde aceptada o despachada', () => {
+    expect(cancelar).toContain("when p.user_id = auth.uid() then 'proveedor'")
+    expect(cancelar).toContain("when c.comprador_id = auth.uid() then 'comprador'")
+    expect(cancelar).toContain("v_actor = 'comprador' and v_estado is distinct from 'aceptada'")
+    expect(cancelar).toContain("Solo puedes cancelar antes de que el proveedor despache.")
+    expect(cancelar).toContain("v_actor = 'proveedor' and v_estado not in ('aceptada', 'despachada')")
+    expect(cancelar).toContain('Esta venta ya no se puede cancelar.')
+    expect(cancelar).toContain("set estado = 'cancelada'")
+    expect(cancelar).toContain('cancelada_por = v_actor')
+    expect(cancelar).not.toMatch(/p_estado/)
+    expect(schema).not.toMatch(/on public\.cotizaciones for update/)
+    expect(schema).toMatch(
+      /revoke execute on function public\.cancelar_venta\(uuid\)\s+from public, anon;/
+    )
+    expect(schema).toMatch(
+      /grant execute on function public\.cancelar_venta\(uuid\)\s+to authenticated;/
     )
   })
 })
