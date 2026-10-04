@@ -22,7 +22,8 @@ function formatearFecha(fecha: string): string {
 /**
  * Línea de seguimiento compartida por las vistas del proveedor y del comprador:
  * Aceptada → Despachada → Recibida, con la fecha de despacho cuando existe y
- * el actor de la cancelación cuando el estado es cancelada.
+ * el actor de la cancelación cuando el estado es cancelada. En cancelada no se
+ * presenta «Recibida»: solo «Aceptada» y, si hubo despacho, «Despachada».
  * Las etiquetas se muestran numeradas («1 · Aceptada») para diferenciarse de
  * los badges de estado al consultar el DOM en las pruebas.
  */
@@ -34,10 +35,46 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
     estado === 'cancelada'
   if (!conSeguimiento) return null
 
-  const despachadaCompleta =
-    estado === 'despachada' ||
-    estado === 'recibida' ||
-    (estado === 'cancelada' && !!despachadaAt)
+  if (estado === 'cancelada') {
+    // En cancelada no se presenta «Recibida»: la venta terminó antes.
+    // Solo se muestran «Aceptada» y, si hubo despacho, «Despachada».
+    return (
+      <div
+        className="border-t bg-gray-50 px-6 py-4"
+        role="region"
+        aria-label="Seguimiento de la cotización"
+      >
+        <ol
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+          data-testid="linea-seguimiento"
+        >
+          <li className="flex items-center gap-2">
+            <span aria-hidden="true" className="inline-block size-2 rounded-full bg-teal-500" />
+            <span className="font-medium text-gray-900">1 · Aceptada</span>
+          </li>
+          {despachadaAt && (
+            <li className="flex items-center gap-2">
+              <span aria-hidden="true" className="text-gray-400">→</span>
+              <span aria-hidden="true" className="inline-block size-2 rounded-full bg-teal-500" />
+              <span className="font-medium text-gray-900">
+                2 · Despachada
+                <span className="ml-1 font-normal text-gray-500">
+                  {formatearFecha(despachadaAt)}
+                </span>
+              </span>
+            </li>
+          )}
+        </ol>
+        {canceladaPor && (
+          <p className="mt-2 text-sm font-medium text-red-600" role="status">
+            Cancelada por {ETIQUETAS_ACTOR[canceladaPor]}.
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  const despachadaCompleta = estado === 'despachada' || estado === 'recibida'
 
   const pasos = [
     { etiqueta: 'Aceptada', completa: true },
@@ -83,7 +120,7 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
           </li>
         ))}
       </ol>
-      {estado === 'cancelada' && canceladaPor && (
+      {canceladaPor && (
         <p className="mt-2 text-sm font-medium text-red-600" role="status">
           Cancelada por {ETIQUETAS_ACTOR[canceladaPor]}.
         </p>
