@@ -23,8 +23,19 @@ export default function CancelarVentaButton({ cotizacionId }: { cotizacionId: st
         onClick={() => {
           setError(null)
           startTransition(async () => {
-            const resultado = await cancelarVenta(cotizacionId)
-            if (resultado?.error) setError(resultado.error)
+            try {
+              const resultado: unknown = await cancelarVenta(cotizacionId)
+              if (
+                resultado &&
+                typeof resultado === 'object' &&
+                'error' in resultado &&
+                typeof resultado.error === 'string'
+              ) {
+                setError(resultado.error)
+              }
+            } catch (e) {
+              setError(e instanceof Error ? e.message : 'No se pudo cancelar la venta.')
+            }
           })
         }}
       >
