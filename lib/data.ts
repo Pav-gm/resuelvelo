@@ -211,10 +211,10 @@ export async function getProveedorDelUsuario(): Promise<Proveedor | null> {
     .from('proveedores')
     .select('*')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
   if (error) propagarErrorLectura('getProveedorDelUsuario', error)
-  if (data === null) errorSinDatos('getProveedorDelUsuario')
+  if (!data) return null
   return data as Proveedor
 }
 
@@ -364,9 +364,9 @@ export async function getProducto(id: string): Promise<Producto | null> {
     .from('productos')
     .select('*, proveedor:proveedores(*), categoria:categorias(*)')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   if (error) propagarErrorLectura('getProducto', error)
-  if (data === null) errorSinDatos('getProducto')
+  if (!data) return null
   return data as unknown as Producto
 }
