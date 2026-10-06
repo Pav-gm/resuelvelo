@@ -453,7 +453,7 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
     ])
   })
 
-  it('conserva el comportamiento parcial cuando falta un id', async () => {
+  it('si un ítem no está disponible, no inserta los otros ítems válidos', async () => {
     h.state.productos = [productoDb({ id: '11111111-1111-4111-8111-111111111111', precio: 15, stock: 6, proveedor_id: 'prov-db' })]
 
     const outcome = await ejecutar(formConItems([
