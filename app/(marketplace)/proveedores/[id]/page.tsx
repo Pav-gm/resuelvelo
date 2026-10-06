@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Building2, MapPin, BadgeCheck, Package } from 'lucide-react'
+import ErrorCarga from '@/components/marketplace/ErrorCarga'
 import { getProveedores, getFeedbackDeProveedor } from '@/lib/data'
 import type { FeedbackPublico } from '@/types'
 
@@ -24,11 +25,14 @@ export default async function ProveedorPage({
 }) {
   const { id } = await params
 
-  const proveedores = await getProveedores()
+  const proveedores = await getProveedores().catch(() => null)
+  if (!proveedores) return <ErrorCarga />
+
   const proveedor = proveedores.find((p) => p.id === id)
   if (!proveedor) notFound()
 
-  const feedback = await getFeedbackDeProveedor(proveedor.id)
+  const feedback = await getFeedbackDeProveedor(proveedor.id).catch(() => null)
+  if (!feedback) return <ErrorCarga />
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">

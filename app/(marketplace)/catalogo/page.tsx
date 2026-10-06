@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import ProductoCard from '@/components/marketplace/ProductoCard'
 import CatalogoFiltros, { type OrdenCatalogo } from '@/components/marketplace/CatalogoFiltros'
+import ErrorCarga from '@/components/marketplace/ErrorCarga'
 import { getCategorias, getProductos, getProveedores, getSubcategorias } from '@/lib/data'
 
 interface CatalogoPageProps {
@@ -39,7 +40,7 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
     : undefined
   const orden = parseOrden(params.orden)
 
-  const [productos, categorias, subcategorias, proveedores] = await Promise.all([
+  const datos = await Promise.all([
     getProductos({
       busqueda,
       categoriaSlug: categoria,
@@ -53,7 +54,11 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
     getCategorias(),
     getSubcategorias(),
     getProveedores(),
-  ])
+  ]).catch(() => null)
+
+  if (!datos) return <ErrorCarga />
+
+  const [productos, categorias, subcategorias, proveedores] = datos
 
   const proveedoresUnicos = new Set(productos.map((p) => p.proveedor_id)).size
 
