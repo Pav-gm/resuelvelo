@@ -114,6 +114,24 @@ describe('CatalogoFiltros — subcategorías', () => {
     )
     expect(screen.queryByLabelText('Subcategoría')).not.toBeInTheDocument()
   })
+
+  it('sin subcategoría activa el selector no marca ninguna', () => {
+    mocks.paramsState.value = '?categoria=electricidad'
+    render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        categoriaInicial="electricidad"
+      />
+    )
+
+    const selector = screen.getByLabelText('Subcategoría') as HTMLSelectElement
+    expect(selector.value).toBe('')
+
+    fireEvent.change(selector, { target: { value: 'electricidad-0' } })
+    expect(ultimoPush().get('subcategoria')).toBe('electricidad-0')
+  })
 })
 
 describe('CatalogoFiltros — proveedores y orden', () => {
@@ -181,5 +199,42 @@ describe('CatalogoFiltros — chips y limpieza', () => {
     expect(trasLimpiar.has('precioMax')).toBe(false)
     expect(trasLimpiar.has('conStock')).toBe(false)
     expect(trasLimpiar.get('orden')).toBe('nombre_asc')
+  })
+
+  it('al quitar filtros los campos del formulario se vacían', () => {
+    mocks.paramsState.value = ''
+    const { rerender } = render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        conStockInicial={false}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'cable' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Solo con stock' }))
+
+    rerender(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        busquedaInicial="cable"
+        conStockInicial
+      />
+    )
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('cable')
+    expect(screen.getByRole('checkbox', { name: 'Solo con stock' })).toBeChecked()
+
+    rerender(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+      />
+    )
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('')
+    expect(screen.getByRole('checkbox', { name: 'Solo con stock' })).not.toBeChecked()
   })
 })
