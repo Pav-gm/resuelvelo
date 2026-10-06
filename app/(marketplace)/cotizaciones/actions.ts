@@ -77,25 +77,30 @@ export async function cotizarDesdeCarrito(
   // Resolver todos los productos de una vez contra la base de datos: nunca
   // confiamos en proveedor_id/precio que llega del carrito del cliente, ya
   // que puede provenir de datos mock (IDs no-UUID) o estar desactualizado.
-  const todosLosProductoIds = items.map((i) => i.producto.id)
-  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number }[] | null
-  try {
-    const { data, error } = await supabase
-      .from('productos')
-      .select('id, proveedor_id, precio, stock')
-      .in('id', todosLosProductoIds)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const productoIdsConsultables = items
+    .map((i) => i.producto.id)
+    .filter((id) => uuidRegex.test(id))
+  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; activo: boolean }[] | null = []
+  if (productoIdsConsultables.length) {
+    try {
+      const { data, error } = await supabase
+        .from('productos')
+        .select('id, proveedor_id, precio, stock, activo')
+        .in('id', productoIdsConsultables)
 
-    if (error) return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
-    productosDb = data
-  } catch {
-    return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
+      if (error) return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
+      productosDb = data
+    } catch {
+      return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
+    }
   }
 
   const productoPorId = new Map((productosDb ?? []).map((p) => [p.id, p]))
   for (const item of items) {
     const productoDb = productoPorId.get(item.producto.id)
     // Los IDs que no existen conservan el flujo parcial previo.
-    if (productoDb && item.cantidad > productoDb.stock) {
+    if (productoDb?.activo === true && item.cantidad > productoDb.stock) {
       return {
         error: `No hay stock suficiente para ${item.producto.nombre ?? 'uno de los productos'} (disponible: ${productoDb.stock}, solicitado: ${item.cantidad}).`,
       }
@@ -106,7 +111,7 @@ export async function cotizarDesdeCarrito(
   let algunProductoInvalido = false
 
   for (const itemsGrupo of Object.values(grupos)) {
-    const itemsValidos = itemsGrupo.filter((i) => productoPorId.has(i.producto.id))
+    const itemsValidos = itemsGrupo.filter((i) => productoPorId.get(i.producto.id)?.activo === true)
     if (itemsValidos.length < itemsGrupo.length) algunProductoInvalido = true
     if (!itemsValidos.length) continue
 
