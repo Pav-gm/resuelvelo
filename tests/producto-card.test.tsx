@@ -37,6 +37,22 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
+describe('ProductoCard — diseño responsive', () => {
+  it('adapta el precio y el botón Agregar al ancho móvil de la tarjeta', () => {
+    render(<ProductoCard producto={producto({ id: 'prod-1', nombre: 'Tubo PVC 4"', stock: 5 })} />)
+
+    const boton = screen.getByRole('button', { name: 'Agregar' })
+    const contenedor = boton.parentElement as HTMLElement
+
+    expect(contenedor.className).toContain('flex-col')
+    expect(contenedor.className).toContain('sm:flex-row')
+    expect(boton.className).toContain('w-full')
+    expect(boton.className).toContain('sm:w-auto')
+    expect(boton.className).toContain('whitespace-normal')
+    expect(boton.className).toContain('sm:whitespace-nowrap')
+  })
+})
+
 describe('ProductoCard — estados de stock', () => {
   it('muestra Agregar habilitado cuando hay stock y el carrito no llegó al tope', () => {
     render(<ProductoCard producto={producto({ stock: 5 })} />)
