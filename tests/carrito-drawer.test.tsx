@@ -19,6 +19,7 @@ function producto(overrides: Partial<Producto> = {}): Producto {
     id: 'prod-1',
     proveedor_id: 'prov-1',
     categoria_id: 'cat-1',
+    subcategoria_id: null,
     nombre: 'Tubo PVC 4"',
     precio: 680,
     unidad: 'unidad',

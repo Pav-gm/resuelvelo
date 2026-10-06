@@ -4,37 +4,60 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useCallback } from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Categoria } from '@/types'
+import type { Categoria, Subcategoria } from '@/types'
+import type { ProveedorConConteo } from '@/lib/data'
+
+export type OrdenCatalogo = 'precio_asc' | 'precio_desc' | 'nombre_asc'
 
 interface CatalogoFiltrosProps {
   categorias: Categoria[]
+  subcategorias: Subcategoria[]
+  proveedores: ProveedorConConteo[]
   busquedaInicial?: string
   categoriaInicial?: string
+  subcategoriaInicial?: string
+  proveedorInicialIds?: string[]
   precioMinInicial?: string
   precioMaxInicial?: string
   conStockInicial?: boolean
+  ordenInicial?: OrdenCatalogo
+}
+
+const ORDEN_OPCIONES: { value: OrdenCatalogo; label: string }[] = [
+  { value: 'precio_asc', label: 'Precio: menor a mayor' },
+  { value: 'precio_desc', label: 'Precio: mayor a menor' },
+  { value: 'nombre_asc', label: 'Nombre: A–Z' },
+]
+
+const FILTRO_KEYS = ['busqueda', 'categoria', 'subcategoria', 'proveedor', 'precioMin', 'precioMax', 'conStock'] as const
+
+interface Chip {
+  key: (typeof FILTRO_KEYS)[number] | 'proveedor'
+  value?: string
+  etiqueta: string
 }
 
 export default function CatalogoFiltros({
   categorias,
+  subcategorias,
+  proveedores,
   busquedaInicial = '',
   categoriaInicial,
+  subcategoriaInicial,
+  proveedorInicialIds = [],
   precioMinInicial = '',
   precioMaxInicial = '',
   conStockInicial = false,
+  ordenInicial,
 }: CatalogoFiltrosProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const setParam = useCallback(
-    (key: string, value: string | undefined) => {
+  const updateParams = useCallback(
+    (mutate: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParams.toString())
-      if (value) {
-        params.set(key, value)
-      } else {
-        params.delete(key)
-      }
+      mutate(params)
       router.push(`${pathname}?${params.toString()}`)
     },
     [router, pathname, searchParams]
@@ -43,11 +66,73 @@ export default function CatalogoFiltros({
   function handleBusqueda(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const busqueda = (e.currentTarget.elements.namedItem('busqueda') as HTMLInputElement)?.value
-    setParam('busqueda', busqueda || undefined)
+    updateParams((params) => {
+      if (busqueda) {
+        params.set('busqueda', busqueda)
+      } else {
+        params.delete('busqueda')
+      }
+    })
   }
 
   function handleCategoria(slug: string | undefined) {
-    setParam('categoria', slug)
+    updateParams((params) => {
+      if (slug) {
+        params.set('categoria', slug)
+      } else {
+        params.delete('categoria')
+      }
+      params.delete('subcategoria')
+    })
+  }
+
+  function handleSubcategoria(slug: string) {
+    updateParams((params) => {
+      if (slug) {
+        params.set('subcategoria', slug)
+      } else {
+        params.delete('subcategoria')
+      }
+    })
+  }
+
+  function handleOrden(orden: string) {
+    updateParams((params) => {
+      if (orden) {
+        params.set('orden', orden)
+      } else {
+        params.delete('orden')
+      }
+    })
+  }
+
+  function handleProveedor(id: string, checked: boolean) {
+    updateParams((params) => {
+      const actuales = params.getAll('proveedor')
+      const nuevos = checked
+        ? Array.from(new Set([...actuales, id]))
+        : actuales.filter((valor) => valor !== id)
+      params.delete('proveedor')
+      for (const valor of nuevos) params.append('proveedor', valor)
+    })
+  }
+
+  function quitarFiltro(key: Chip['key'], value?: string) {
+    updateParams((params) => {
+      if (key === 'proveedor' && value) {
+        const restantes = params.getAll('proveedor').filter((valor) => valor !== value)
+        params.delete('proveedor')
+        for (const valor of restantes) params.append('proveedor', valor)
+      } else {
+        params.delete(key)
+      }
+    })
+  }
+
+  function limpiarFiltros() {
+    updateParams((params) => {
+      for (const key of FILTRO_KEYS) params.delete(key)
+    })
   }
 
   function handleFiltrosPrecio(e: React.FormEvent<HTMLFormElement>) {
@@ -57,29 +142,69 @@ export default function CatalogoFiltros({
     const precioMax = (form.elements.namedItem('precioMax') as HTMLInputElement)?.value.trim()
     const conStock = (form.elements.namedItem('conStock') as HTMLInputElement)?.checked
 
-    const params = new URLSearchParams(searchParams.toString())
-    if (precioMin) {
-      params.set('precioMin', precioMin)
-    } else {
-      params.delete('precioMin')
-    }
-    if (precioMax) {
-      params.set('precioMax', precioMax)
-    } else {
-      params.delete('precioMax')
-    }
-    if (conStock) {
-      params.set('conStock', '1')
-    } else {
-      params.delete('conStock')
-    }
-    router.push(`${pathname}?${params.toString()}`)
+    updateParams((params) => {
+      if (precioMin) {
+        params.set('precioMin', precioMin)
+      } else {
+        params.delete('precioMin')
+      }
+      if (precioMax) {
+        params.set('precioMax', precioMax)
+      } else {
+        params.delete('precioMax')
+      }
+      if (conStock) {
+        params.set('conStock', '1')
+      } else {
+        params.delete('conStock')
+      }
+    })
+  }
+
+  const categoriaSeleccionada = categorias.find((cat) => cat.slug === categoriaInicial)
+  const subcategoriasDeCategoria = categoriaSeleccionada
+    ? subcategorias.filter((sub) => sub.categoria_id === categoriaSeleccionada.id)
+    : []
+
+  const chips: Chip[] = []
+  if (busquedaInicial) {
+    chips.push({ key: 'busqueda', etiqueta: `Búsqueda: ${busquedaInicial}` })
+  }
+  if (categoriaInicial) {
+    chips.push({
+      key: 'categoria',
+      etiqueta: `Categoría: ${categoriaSeleccionada?.nombre ?? categoriaInicial}`,
+    })
+  }
+  if (subcategoriaInicial) {
+    const subcategoria = subcategorias.find((sub) => sub.slug === subcategoriaInicial)
+    chips.push({
+      key: 'subcategoria',
+      etiqueta: `Subcategoría: ${subcategoria?.nombre ?? subcategoriaInicial}`,
+    })
+  }
+  for (const id of proveedorInicialIds) {
+    const proveedor = proveedores.find((prov) => prov.id === id)
+    chips.push({
+      key: 'proveedor',
+      value: id,
+      etiqueta: `Proveedor: ${proveedor?.nombre_empresa ?? id}`,
+    })
+  }
+  if (precioMinInicial) {
+    chips.push({ key: 'precioMin', etiqueta: `Precio mínimo: ${precioMinInicial}` })
+  }
+  if (precioMaxInicial) {
+    chips.push({ key: 'precioMax', etiqueta: `Precio máximo: ${precioMaxInicial}` })
+  }
+  if (conStockInicial) {
+    chips.push({ key: 'conStock', etiqueta: 'Solo con stock' })
   }
 
   return (
     <>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
-        <form onSubmit={handleBusqueda} className="relative flex-1">
+        <form key={busquedaInicial} onSubmit={handleBusqueda} className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             name="busqueda"
@@ -92,6 +217,7 @@ export default function CatalogoFiltros({
       </div>
 
       <form
+        key={`${precioMinInicial}|${precioMaxInicial}|${conStockInicial ? '1' : '0'}`}
         onSubmit={handleFiltrosPrecio}
         className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
       >
@@ -142,7 +268,7 @@ export default function CatalogoFiltros({
         </button>
       </form>
 
-      <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
         <button
           onClick={() => handleCategoria(undefined)}
           className={cn(
@@ -170,6 +296,106 @@ export default function CatalogoFiltros({
           </button>
         ))}
       </div>
+
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        {categoriaSeleccionada && (
+          <div className="flex flex-1 flex-col gap-1 sm:min-w-[200px]">
+            <label htmlFor="subcategoria" className="text-xs font-medium text-gray-600">
+              Subcategoría
+            </label>
+            <select
+              id="subcategoria"
+              name="subcategoria"
+              value={subcategoriaInicial ?? ''}
+              onChange={(e) => handleSubcategoria(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+            >
+              <option value="" hidden>
+                Todas las subcategorías
+              </option>
+              {subcategoriasDeCategoria.map((sub) => (
+                <option key={sub.id} value={sub.slug}>
+                  {sub.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="flex flex-1 flex-col gap-1 sm:min-w-[200px]">
+          <label htmlFor="orden" className="text-xs font-medium text-gray-600">
+            Ordenar por
+          </label>
+          <select
+            id="orden"
+            name="orden"
+            value={ordenInicial ?? 'precio_asc'}
+            onChange={(e) => handleOrden(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+          >
+            {ORDEN_OPCIONES.map((opcion) => (
+              <option key={opcion.value} value={opcion.value}>
+                {opcion.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {proveedores.length > 0 && (
+        <fieldset className="mb-6 rounded-xl border border-gray-200 p-4">
+          <legend className="px-1 text-xs font-medium text-gray-600">Proveedores</legend>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {proveedores.map((proveedor) => (
+              <label
+                key={proveedor.id}
+                className="flex cursor-pointer items-center gap-2 text-sm text-gray-700"
+              >
+                <input
+                  type="checkbox"
+                  name="proveedor"
+                  value={proveedor.id}
+                  checked={proveedorInicialIds.includes(proveedor.id)}
+                  onChange={(e) => handleProveedor(proveedor.id, e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400/20"
+                />
+                {proveedor.nombre_empresa}
+                {typeof proveedor.productos_count === 'number' && (
+                  <span className="text-xs text-gray-400">({proveedor.productos_count})</span>
+                )}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
+      {chips.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {chips.map((chip) => (
+            <span
+              key={`${chip.key}-${chip.value ?? ''}`}
+              className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 py-1 pl-3 pr-1 text-sm text-orange-700"
+            >
+              {chip.etiqueta}
+              <button
+                type="button"
+                aria-label={`Quitar filtro ${chip.etiqueta}`}
+                onClick={() => quitarFiltro(chip.key, chip.value)}
+                className="rounded-full px-1 text-base leading-none text-orange-500 transition-colors hover:bg-orange-100"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={limpiarFiltros}
+            className="rounded-full px-3 py-1 text-sm font-medium text-gray-500 underline-offset-2 transition-colors hover:text-orange-500 hover:underline"
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
     </>
   )
 }

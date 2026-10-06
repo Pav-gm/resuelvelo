@@ -29,10 +29,18 @@ export interface Categoria {
   icono?: string
 }
 
+export interface Subcategoria {
+  id: string
+  categoria_id: string
+  nombre: string
+  slug: string
+}
+
 export interface Producto {
   id: string
   proveedor_id: string
   categoria_id: string
+  subcategoria_id: string | null
   nombre: string
   descripcion?: string
   precio: number
@@ -43,6 +51,7 @@ export interface Producto {
   created_at: string
   proveedor?: Proveedor
   categoria?: Categoria
+  subcategoria?: Subcategoria | null
 }
 
 export interface ItemCarrito {

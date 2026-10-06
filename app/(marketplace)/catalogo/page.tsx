@@ -1,18 +1,22 @@
 import { Suspense } from 'react'
 import ProductoCard from '@/components/marketplace/ProductoCard'
-import CatalogoFiltros from '@/components/marketplace/CatalogoFiltros'
-import { getCategorias, getProductos } from '@/lib/data'
+import CatalogoFiltros, { type OrdenCatalogo } from '@/components/marketplace/CatalogoFiltros'
+import { getCategorias, getProductos, getProveedores, getSubcategorias } from '@/lib/data'
 
 interface CatalogoPageProps {
   searchParams: Promise<{
     busqueda?: string
     categoria?: string
-    proveedor?: string
+    subcategoria?: string
+    proveedor?: string | string[]
     precioMin?: string
     precioMax?: string
     conStock?: string
+    orden?: string
   }>
 }
+
+const ORDENES: readonly OrdenCatalogo[] = ['precio_asc', 'precio_desc', 'nombre_asc']
 
 function parsePrecioParam(value?: string): number | undefined {
   if (!value) return undefined
@@ -20,20 +24,35 @@ function parsePrecioParam(value?: string): number | undefined {
   return Number.isNaN(n) ? undefined : n
 }
 
+function parseOrden(value?: string): OrdenCatalogo {
+  return ORDENES.includes(value as OrdenCatalogo) ? (value as OrdenCatalogo) : 'precio_asc'
+}
+
 export default async function CatalogoPage({ searchParams }: CatalogoPageProps) {
   const params = await searchParams
-  const { busqueda, categoria, proveedor, precioMin, precioMax, conStock } = params
+  const { busqueda, categoria, subcategoria, proveedor, precioMin, precioMax, conStock } = params
 
-  const [productos, categorias] = await Promise.all([
+  const proveedorIds = proveedor
+    ? Array.isArray(proveedor)
+      ? proveedor
+      : [proveedor]
+    : undefined
+  const orden = parseOrden(params.orden)
+
+  const [productos, categorias, subcategorias, proveedores] = await Promise.all([
     getProductos({
       busqueda,
       categoriaSlug: categoria,
-      proveedorId: proveedor,
+      subcategoriaSlug: subcategoria,
+      proveedorIds,
       precioMin: parsePrecioParam(precioMin),
       precioMax: parsePrecioParam(precioMax),
       conStock: conStock === '1' ? true : undefined,
+      orden,
     }),
     getCategorias(),
+    getSubcategorias(),
+    getProveedores(),
   ])
 
   const proveedoresUnicos = new Set(productos.map((p) => p.proveedor_id)).size
@@ -49,11 +68,16 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
 
       <CatalogoFiltros
         categorias={categorias}
+        subcategorias={subcategorias}
+        proveedores={proveedores}
         busquedaInicial={busqueda}
         categoriaInicial={categoria}
+        subcategoriaInicial={subcategoria}
+        proveedorInicialIds={proveedorIds}
         precioMinInicial={precioMin}
         precioMaxInicial={precioMax}
         conStockInicial={conStock === '1'}
+        ordenInicial={orden}
       />
 
       <Suspense fallback={<GridSkeleton />}>
