@@ -44,11 +44,53 @@ create table if not exists public.categorias (
   icono  text
 );
 
+-- ─── subcategorias ──────────────────────────────────────────
+create table if not exists public.subcategorias (
+  id text primary key,
+  categoria_id uuid not null references public.categorias(id),
+  nombre text not null,
+  slug text not null unique,
+  unique (categoria_id, id)
+);
+
+insert into public.subcategorias (id, categoria_id, nombre, slug)
+select c.slug || '-' || s.slug_nombre, c.id, s.nombre, c.slug || '-' || s.slug_nombre
+from (values
+  ('electricidad', 'cables-y-conductores', 'Cables y conductores'),
+  ('electricidad', 'tomacorrientes-e-interruptores', 'Tomacorrientes e interruptores'),
+  ('electricidad', 'iluminacion', 'Iluminación'),
+  ('electricidad', 'breakers-y-paneles', 'Breakers y paneles'),
+  ('electricidad', 'canalizacion-y-accesorios', 'Canalización y accesorios'),
+  ('ferreteria', 'herramientas-manuales', 'Herramientas manuales'),
+  ('ferreteria', 'herramientas-electricas', 'Herramientas eléctricas'),
+  ('ferreteria', 'tornilleria-y-fijaciones', 'Tornillería y fijaciones'),
+  ('ferreteria', 'pinturas-y-esmaltes', 'Pinturas y esmaltes'),
+  ('ferreteria', 'brochas-y-accesorios', 'Brochas y accesorios'),
+  ('materiales', 'cemento-y-mezclas', 'Cemento y mezclas'),
+  ('materiales', 'bloques-y-ladrillos', 'Bloques y ladrillos'),
+  ('materiales', 'acero-y-varillas', 'Acero y varillas'),
+  ('materiales', 'madera-y-paneles', 'Madera y paneles'),
+  ('materiales', 'arena-grava-y-agregados', 'Arena, grava y agregados'),
+  ('plomeria', 'tuberias', 'Tuberías'),
+  ('plomeria', 'conexiones-y-accesorios', 'Conexiones y accesorios'),
+  ('plomeria', 'griferia', 'Grifería'),
+  ('plomeria', 'sanitarios-y-lavamanos', 'Sanitarios y lavamanos'),
+  ('plomeria', 'tanques-y-bombas', 'Tanques y bombas'),
+  ('automotriz', 'mecanica-general', 'Mecánica general'),
+  ('automotriz', 'aceite-y-filtros', 'Aceite y filtros'),
+  ('automotriz', 'frenos-y-suspension', 'Frenos y suspensión'),
+  ('automotriz', 'baterias-y-electricidad-automotriz', 'Baterías y electricidad automotriz'),
+  ('automotriz', 'lavado-y-estetica', 'Lavado y estética')
+) as s(categoria_slug, slug_nombre, nombre)
+join public.categorias c on c.slug = s.categoria_slug
+on conflict (slug) do nothing;
+
 -- ─── productos ──────────────────────────────────────────────
 create table if not exists public.productos (
   id            uuid primary key default uuid_generate_v4(),
   proveedor_id  uuid not null references public.proveedores(id) on delete cascade,
   categoria_id  uuid not null references public.categorias(id),
+  subcategoria_id text,
   nombre        text not null,
   descripcion   text,
   precio        numeric(12,2) not null check (precio >= 0),
@@ -58,6 +100,8 @@ create table if not exists public.productos (
   activo        boolean not null default true,
   created_at    timestamptz not null default now()
 );
+
+alter table public.productos add column if not exists subcategoria_id text null;
 
 -- ─── cotizaciones ───────────────────────────────────────────
 create table if not exists public.cotizaciones (
@@ -78,6 +122,11 @@ create table if not exists public.items_cotizacion (
   cantidad        integer not null check (cantidad > 0),
   precio_unitario numeric(12,2)
 );
+
+alter table public.productos drop constraint if exists productos_categoria_subcategoria_fkey;
+alter table public.productos
+  add constraint productos_categoria_subcategoria_fkey
+  foreign key (categoria_id, subcategoria_id) references public.subcategorias(categoria_id, id);
 
 -- =============================================================
 -- ÍNDICES
@@ -143,6 +192,9 @@ grant execute on function public.is_admin() to anon, authenticated;
 alter table public.profiles          enable row level security;
 alter table public.proveedores       enable row level security;
 alter table public.categorias        enable row level security;
+alter table public.subcategorias     enable row level security;
+revoke all on public.subcategorias from public, anon, authenticated;
+grant select on public.subcategorias to anon, authenticated;
 alter table public.productos         enable row level security;
 alter table public.cotizaciones      enable row level security;
 alter table public.items_cotizacion  enable row level security;
@@ -181,6 +233,11 @@ drop policy if exists "proveedores: proveedor actualiza el suyo" on public.prove
 create policy "proveedores: proveedor actualiza el suyo"
   on public.proveedores for update
   using (auth.uid() = user_id);
+
+-- ─── subcategorias ──────────────────────────────────────────
+drop policy if exists "subcategorias: lectura pública" on public.subcategorias;
+create policy "subcategorias: lectura pública"
+  on public.subcategorias for select using (true);
 
 -- ─── categorias ─────────────────────────────────────────────
 drop policy if exists "categorias: lectura pública" on public.categorias;

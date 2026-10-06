@@ -26,7 +26,54 @@ insert into public.categorias (id, nombre, slug, icono) values
   ('c1000000-0000-0000-0000-000000000001', 'Materiales de construcción', 'materiales',   '🧱'),
   ('c1000000-0000-0000-0000-000000000002', 'Electricidad',               'electricidad', '⚡'),
   ('c1000000-0000-0000-0000-000000000003', 'Plomería',                   'plomeria',     '🔧'),
-  ('c1000000-0000-0000-0000-000000000004', 'Ferretería y pinturas',      'ferreteria',   '🔨')
+  ('c1000000-0000-0000-0000-000000000004', 'Ferretería y pinturas',      'ferreteria',   '🔨'),
+  ('c1000000-0000-0000-0000-000000000005', 'Servicios automotrices',     'automotriz',   '🚗')
+on conflict (slug) do nothing;
+
+-- Catálogo fijo de subcategorías asociado a los slugs vigentes.
+do $$
+begin
+  if exists (
+    select expected.slug
+    from (values ('materiales'), ('electricidad'), ('plomeria'), ('ferreteria'), ('automotriz')) expected(slug)
+    left join public.categorias c on c.slug = expected.slug
+    where c.id is null
+  ) then
+    raise exception 'Falta una categoría requerida para el catálogo fijo de subcategorías.';
+  end if;
+end;
+$$;
+
+insert into public.subcategorias (id, categoria_id, nombre, slug)
+select c.slug || '-' || s.slug_nombre, c.id, s.nombre, c.slug || '-' || s.slug_nombre
+from (values
+  ('electricidad', 'cables-y-conductores', 'Cables y conductores'),
+  ('electricidad', 'tomacorrientes-e-interruptores', 'Tomacorrientes e interruptores'),
+  ('electricidad', 'iluminacion', 'Iluminación'),
+  ('electricidad', 'breakers-y-paneles', 'Breakers y paneles'),
+  ('electricidad', 'canalizacion-y-accesorios', 'Canalización y accesorios'),
+  ('ferreteria', 'herramientas-manuales', 'Herramientas manuales'),
+  ('ferreteria', 'herramientas-electricas', 'Herramientas eléctricas'),
+  ('ferreteria', 'tornilleria-y-fijaciones', 'Tornillería y fijaciones'),
+  ('ferreteria', 'pinturas-y-esmaltes', 'Pinturas y esmaltes'),
+  ('ferreteria', 'brochas-y-accesorios', 'Brochas y accesorios'),
+  ('materiales', 'cemento-y-mezclas', 'Cemento y mezclas'),
+  ('materiales', 'bloques-y-ladrillos', 'Bloques y ladrillos'),
+  ('materiales', 'acero-y-varillas', 'Acero y varillas'),
+  ('materiales', 'madera-y-paneles', 'Madera y paneles'),
+  ('materiales', 'arena-grava-y-agregados', 'Arena, grava y agregados'),
+  ('plomeria', 'tuberias', 'Tuberías'),
+  ('plomeria', 'conexiones-y-accesorios', 'Conexiones y accesorios'),
+  ('plomeria', 'griferia', 'Grifería'),
+  ('plomeria', 'sanitarios-y-lavamanos', 'Sanitarios y lavamanos'),
+  ('plomeria', 'tanques-y-bombas', 'Tanques y bombas'),
+  ('automotriz', 'mecanica-general', 'Mecánica general'),
+  ('automotriz', 'aceite-y-filtros', 'Aceite y filtros'),
+  ('automotriz', 'frenos-y-suspension', 'Frenos y suspensión'),
+  ('automotriz', 'baterias-y-electricidad-automotriz', 'Baterías y electricidad automotriz'),
+  ('automotriz', 'lavado-y-estetica', 'Lavado y estética')
+) as s(categoria_slug, slug_nombre, nombre)
+join public.categorias c on c.slug = s.categoria_slug
 on conflict (slug) do nothing;
 
 -- =============================================================
@@ -101,31 +148,31 @@ on conflict (id) do nothing;
 -- =============================================================
 -- PRODUCTOS
 -- =============================================================
-insert into public.productos (id, proveedor_id, categoria_id, nombre, descripcion, precio, unidad, stock) values
+insert into public.productos (id, proveedor_id, categoria_id, nombre, descripcion, precio, unidad, stock, subcategoria_id) values
   -- Promeria — plomería
   ('d0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003',
-   'Tubo PVC 4" x 6m (sanitario)', 'Tubería PVC sanitaria cédula 40, para desagüe y alcantarillado.', 680.00, 'unidad', 120),
+   'Tubo PVC 4" x 6m (sanitario)', 'Tubería PVC sanitaria cédula 40, para desagüe y alcantarillado.', 680.00, 'unidad', 120, 'plomeria-tuberias'),
   ('d0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003',
-   'Tubo PVC 1/2" x 6m (presión)', null, 180.00, 'unidad', 350),
+   'Tubo PVC 1/2" x 6m (presión)', null, 180.00, 'unidad', 350, 'plomeria-tuberias'),
   ('d0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003',
-   'Llave de paso esférica 1/2" (bronce)', null, 320.00, 'unidad', 200),
+   'Llave de paso esférica 1/2" (bronce)', null, 320.00, 'unidad', 200, 'plomeria-griferia'),
   ('d0000000-0000-0000-0000-000000000004', 'b0000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003',
-   'Pegamento PVC Tangit 237ml', null, 290.00, 'frasco', 0),
+   'Pegamento PVC Tangit 237ml', null, 290.00, 'frasco', 0, 'plomeria-conexiones-y-accesorios'),
   -- Ferretería López — electricidad y ferretería
   ('d0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000002',
-   'Cable eléctrico THHN 12 AWG (rollo 100m)', null, 3200.00, 'rollo', 45),
+   'Cable eléctrico THHN 12 AWG (rollo 100m)', null, 3200.00, 'rollo', 45, 'electricidad-cables-y-conductores'),
   ('d0000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000002',
-   'Breaker Square D 20A 1 polo', null, 580.00, 'unidad', 80),
+   'Breaker Square D 20A 1 polo', null, 580.00, 'unidad', 80, 'electricidad-breakers-y-paneles'),
   ('d0000000-0000-0000-0000-000000000007', 'b0000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000004',
-   'Pintura acrílica interior (cubo 5 galones)', null, 2800.00, 'cubo', 25),
+   'Pintura acrílica interior (cubo 5 galones)', null, 2800.00, 'cubo', 25, 'ferreteria-pinturas-y-esmaltes'),
   -- Materiales del Norte — construcción
   ('d0000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000001',
-   'Cemento Portland Tipo I (42.5 kg)', 'Saco de cemento Portland gris, resistencia mínima 42.5 MPa.', 850.00, 'saco', 500),
+   'Cemento Portland Tipo I (42.5 kg)', 'Saco de cemento Portland gris, resistencia mínima 42.5 MPa.', 850.00, 'saco', 500, 'materiales-cemento-y-mezclas'),
   ('d0000000-0000-0000-0000-000000000009', 'b0000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000001',
-   'Varilla de hierro 3/8" x 6m', null, 420.00, 'unidad', 300),
+   'Varilla de hierro 3/8" x 6m', null, 420.00, 'unidad', 300, 'materiales-acero-y-varillas'),
   ('d0000000-0000-0000-0000-000000000010', 'b0000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000001',
-   'Bloques de hormigón 6" (pallet x 100)', null, 4800.00, 'pallet', 30)
-on conflict (id) do nothing;
+   'Bloques de hormigón 6" (pallet x 100)', null, 4800.00, 'pallet', 30, 'materiales-bloques-y-ladrillos')
+on conflict (id) do update set subcategoria_id = excluded.subcategoria_id;
 
 -- =============================================================
 -- COTIZACIONES DE EJEMPLO  (comprador → proveedores, varios estados)
@@ -169,11 +216,6 @@ on conflict (id) do nothing;
 --   solartech@demo.com   (proveedor)
 --   autochequeo@demo.com (proveedor)
 -- =============================================================
-
--- Categoría nueva: Automotriz
-insert into public.categorias (id, nombre, slug, icono) values
-  ('c1000000-0000-0000-0000-000000000005', 'Servicios automotrices', 'automotriz', '🚗')
-on conflict (slug) do nothing;
 
 -- Usuarios de Auth
 insert into auth.users (
@@ -220,29 +262,29 @@ insert into public.proveedores (id, user_id, nombre_empresa, descripcion, ciudad
 on conflict (id) do nothing;
 
 -- Productos / servicios — SolarTech RD (categoría: electricidad)
-insert into public.productos (id, proveedor_id, categoria_id, nombre, descripcion, precio, unidad, stock) values
+insert into public.productos (id, proveedor_id, categoria_id, nombre, descripcion, precio, unidad, stock, subcategoria_id) values
   ('d0000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Evaluación de sistema eléctrico y consumo', 'Visita técnica para evaluar instalación y dimensionar el sistema solar.', 2500.00, 'servicio', 50),
+   'Evaluación de sistema eléctrico y consumo', 'Visita técnica para evaluar instalación y dimensionar el sistema solar.', 2500.00, 'servicio', 50, 'electricidad-iluminacion'),
   ('d0000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Inversor híbrido 5kW (instalación incluida)', 'Inversor híbrido con instalación y configuración profesional.', 78000.00, 'unidad', 12),
+   'Inversor híbrido 5kW (instalación incluida)', 'Inversor híbrido con instalación y configuración profesional.', 78000.00, 'unidad', 12, 'electricidad-canalizacion-y-accesorios'),
   ('d0000000-0000-0000-0000-000000000013', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Panel solar monocristalino 550W', 'Panel de alta eficiencia con 25 años de garantía.', 12500.00, 'unidad', 80),
+   'Panel solar monocristalino 550W', 'Panel de alta eficiencia con 25 años de garantía.', 12500.00, 'unidad', 80, 'electricidad-iluminacion'),
   ('d0000000-0000-0000-0000-000000000014', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Batería de litio 5kWh', 'Banco de baterías de litio para respaldo de energía.', 95000.00, 'unidad', 15),
+   'Batería de litio 5kWh', 'Banco de baterías de litio para respaldo de energía.', 95000.00, 'unidad', 15, 'electricidad-iluminacion'),
   ('d0000000-0000-0000-0000-000000000015', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Kit solar residencial 3kW llave en mano', 'Paneles, inversor, estructura e instalación completa.', 285000.00, 'kit', 6)
-on conflict (id) do nothing;
+   'Kit solar residencial 3kW llave en mano', 'Paneles, inversor, estructura e instalación completa.', 285000.00, 'kit', 6, 'electricidad-canalizacion-y-accesorios')
+on conflict (id) do update set subcategoria_id = excluded.subcategoria_id;
 
 -- Productos / servicios — AutoChequeo RD (categoría: automotriz)
-insert into public.productos (id, proveedor_id, categoria_id, nombre, descripcion, precio, unidad, stock) values
+insert into public.productos (id, proveedor_id, categoria_id, nombre, descripcion, precio, unidad, stock, subcategoria_id) values
   ('d0000000-0000-0000-0000-000000000016', 'b0000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000005',
-   'Chequeo pre-compra de vehículo', 'Inspección completa antes de comprar un carro usado.', 3500.00, 'servicio', 100),
+   'Chequeo pre-compra de vehículo', 'Inspección completa antes de comprar un carro usado.', 3500.00, 'servicio', 100, 'automotriz-mecanica-general'),
   ('d0000000-0000-0000-0000-000000000017', 'b0000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000005',
-   'Diagnóstico computarizado (scanner OBD-II)', 'Lectura y análisis de códigos de falla del vehículo.', 1800.00, 'servicio', 100),
+   'Diagnóstico computarizado (scanner OBD-II)', 'Lectura y análisis de códigos de falla del vehículo.', 1800.00, 'servicio', 100, 'automotriz-mecanica-general'),
   ('d0000000-0000-0000-0000-000000000018', 'b0000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000005',
-   'Inspección técnica de motocicleta', 'Revisión de frenos, motor, transmisión y eléctrico.', 1200.00, 'servicio', 100),
+   'Inspección técnica de motocicleta', 'Revisión de frenos, motor, transmisión y eléctrico.', 1200.00, 'servicio', 100, 'automotriz-mecanica-general'),
   ('d0000000-0000-0000-0000-000000000019', 'b0000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000005',
-   'Evaluación de chasis y suspensión', 'Diagnóstico de tren delantero, amortiguadores y alineación.', 2200.00, 'servicio', 100),
+   'Evaluación de chasis y suspensión', 'Diagnóstico de tren delantero, amortiguadores y alineación.', 2200.00, 'servicio', 100, 'automotriz-frenos-y-suspension'),
   ('d0000000-0000-0000-0000-000000000020', 'b0000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000005',
-   'Cambio de aceite y filtros (mano de obra)', 'Servicio de mantenimiento preventivo, no incluye insumos.', 1500.00, 'servicio', 100)
-on conflict (id) do nothing;
+   'Cambio de aceite y filtros (mano de obra)', 'Servicio de mantenimiento preventivo, no incluye insumos.', 1500.00, 'servicio', 100, 'automotriz-aceite-y-filtros')
+on conflict (id) do update set subcategoria_id = excluded.subcategoria_id;

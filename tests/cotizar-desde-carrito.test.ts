@@ -105,6 +105,7 @@ function item(overrides: {
       id: overrides.id ?? 'prod-1',
       proveedor_id: overrides.proveedor_id ?? 'prov-cliente',
       categoria_id: 'cat-1',
+      subcategoria_id: null,
       nombre: overrides.nombre ?? 'Tubo PVC',
       precio: overrides.precio ?? 1,
       unidad: 'unidad',
