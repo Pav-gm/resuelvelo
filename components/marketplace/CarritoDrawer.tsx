@@ -74,8 +74,11 @@ export default function CarritoDrawer() {
             </div>
 
             {items.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center text-gray-400 text-sm">
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-5 text-center text-sm text-gray-400">
                 El carrito está vacío.
+                {error && (
+                  <p className="text-xs text-red-600">{error}</p>
+                )}
               </div>
             ) : (
               <>
