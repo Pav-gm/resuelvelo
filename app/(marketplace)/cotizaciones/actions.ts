@@ -10,7 +10,9 @@ import type { ItemCarrito } from '@/types'
 
 export type CotizarError = { error: string; noDisponibles?: string[] } | null
 
-const UUID_PRODUCTO = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+// Forma de un uuid de Postgres, sin exigir versión ni variante: los productos del
+// seed (y de producción) usan ids como d0000000-0000-0000-0000-000000000001.
+const UUID_PRODUCTO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function cotizarDesdeCarrito(
   _prevState: CotizarError,

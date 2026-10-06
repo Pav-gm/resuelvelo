@@ -256,6 +256,17 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
     expect(h.state.inserts).toEqual([])
   })
 
+  it('un producto con id del seed (sin versión de uuid) se cotiza normalmente', async () => {
+    const id = 'd0000000-0000-0000-0000-000000000001'
+    h.state.productos = [productoDb({ id, stock: 5 })]
+
+    const outcome = await ejecutar(formConItems([item({ id, cantidad: 1, nombre: 'Tubo PVC 4"' })]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.selects.flatMap((s) => s.ids)).toEqual([id])
+    expect(h.state.inserts).not.toEqual([])
+  })
+
   it('un producto real inactivo se devuelve como no disponible sin insertar', async () => {
     const id = '11111111-1111-4111-8111-111111111111'
     h.state.productos = [productoDb({ id, activo: false })]

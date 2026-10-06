@@ -189,4 +189,23 @@ describe('CarritoDrawer — envío de cotización', () => {
     expect(useCarritoStore.getState().items.map((i) => i.producto.id)).toEqual(['prod-real'])
     expect(screen.getByText('Cemento')).toBeInTheDocument()
   })
+
+  it('si todos los productos dejaron de estar disponibles, el aviso se ve con el carrito vacío', async () => {
+    cotizarDesdeCarrito.mockResolvedValue({
+      error: 'Estos productos ya no están disponibles: Tubo PVC. Los quitamos del carrito.',
+      noDisponibles: ['1'],
+    })
+    useCarritoStore.getState().agregar(producto({ id: '1', nombre: 'Tubo PVC' }), 1)
+    abrirCarrito()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Solicitar cotización' }))
+    })
+
+    expect(useCarritoStore.getState().items).toHaveLength(0)
+    expect(screen.getByText('El carrito está vacío.')).toBeInTheDocument()
+    expect(screen.getByText(
+      'Estos productos ya no están disponibles: Tubo PVC. Los quitamos del carrito.'
+    )).toBeInTheDocument()
+  })
 })
