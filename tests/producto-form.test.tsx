@@ -84,6 +84,16 @@ describe('ProductoForm — obligatoriedad de subcategoría', () => {
     expect(subcategoria.checkValidity()).toBe(false)
   })
 
+  it('muestra mensaje en español al enviar sin subcategoría', () => {
+    render(<ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} />)
+
+    fireEvent.change(selectCategoria(), { target: { value: 'cat-elec' } })
+
+    const subcategoria = selectSubcategoria()
+    subcategoria.checkValidity()
+    expect(subcategoria.validationMessage).toBe('Selecciona una subcategoría.')
+  })
+
   it('permite completar subcategoría en producto legacy antes de editar', async () => {
     mocks.actualizarMock.mockResolvedValue(null)
 

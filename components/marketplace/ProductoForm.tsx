@@ -93,7 +93,11 @@ export default function ProductoForm({ categorias, subcategorias, producto }: Pr
           required
           value={subcategoriaId}
           disabled={!categoriaId}
-          onChange={(e) => setSubcategoriaId(e.target.value)}
+          onInvalid={(e) => e.currentTarget.setCustomValidity('Selecciona una subcategoría.')}
+          onChange={(e) => {
+            e.currentTarget.setCustomValidity('')
+            setSubcategoriaId(e.target.value)
+          }}
           className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 bg-white disabled:bg-gray-50 disabled:text-gray-400"
         >
           <option value="">Seleccionar subcategoría</option>
