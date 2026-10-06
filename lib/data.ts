@@ -6,8 +6,9 @@ import type {
   Producto,
   Proveedor,
   ResumenFeedbackProveedor,
+  Subcategoria,
 } from '@/types'
-import { CATEGORIAS_MOCK, FEEDBACK_MOCK, PRODUCTOS_MOCK } from '@/lib/mock'
+import { CATEGORIAS_MOCK, FEEDBACK_MOCK, PRODUCTOS_MOCK, SUBCATEGORIAS_MOCK } from '@/lib/mock'
 
 const SUPABASE_DISPONIBLE =
   !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -33,114 +34,96 @@ export async function getCategorias(): Promise<Categoria[]> {
   return data as Categoria[]
 }
 
+// ─── Subcategorías ───────────────────────────────────────────
+
+export async function getSubcategorias(categoriaId?: string): Promise<Subcategoria[]> {
+  if (!SUPABASE_DISPONIBLE) {
+    return SUBCATEGORIAS_MOCK.filter((s) => !categoriaId || s.categoria_id === categoriaId)
+      .slice().sort((a, b) => compareNames(a.nombre, b.nombre) || a.id.localeCompare(b.id))
+  }
+
+  const supabase = await getServerClient()
+  let query = supabase.from('subcategorias').select('*').order('nombre')
+  if (categoriaId) query = query.eq('categoria_id', categoriaId)
+  const { data, error } = await query
+  if (error || !data) {
+    return SUBCATEGORIAS_MOCK.filter((s) => !categoriaId || s.categoria_id === categoriaId)
+      .slice().sort((a, b) => compareNames(a.nombre, b.nombre) || a.id.localeCompare(b.id))
+  }
+  return data as Subcategoria[]
+}
+
 // ─── Productos ───────────────────────────────────────────────
 
 export interface FiltrosProductos {
   busqueda?: string
   categoriaSlug?: string
+  subcategoriaSlug?: string
+  proveedorIds?: string[]
+  /** Compatibilidad temporal con consumidores existentes de un solo proveedor. */
   proveedorId?: string
   precioMin?: number
   precioMax?: number
   /** true: solo productos con stock > 0; false u omitido: sin filtro por stock */
   conStock?: boolean
+  orden?: 'precio_asc' | 'precio_desc' | 'nombre_asc'
 }
 
-function normalizePrecioRange(
-  precioMin?: number,
-  precioMax?: number
-): { min?: number; max?: number } {
-  let min =
-    precioMin !== undefined && !Number.isNaN(precioMin) ? precioMin : undefined
-  let max =
-    precioMax !== undefined && !Number.isNaN(precioMax) ? precioMax : undefined
-  if (min !== undefined && max !== undefined && min > max) {
-    ;[min, max] = [max, min]
+const collator = new Intl.Collator('es', { sensitivity: 'base' })
+
+function compareNames(a: string, b: string): number {
+  return collator.compare(a, b)
+}
+
+function ordenarProductos(productos: Producto[], orden: FiltrosProductos['orden']): Producto[] {
+  const direccion = orden === 'precio_desc' ? -1 : 1
+  return productos.slice().sort((a, b) => {
+    if (orden === 'nombre_asc') return compareNames(a.nombre, b.nombre) || a.id.localeCompare(b.id)
+    return (a.precio - b.precio) * direccion || compareNames(a.nombre, b.nombre) || a.id.localeCompare(b.id)
+  })
+}
+
+function filtrarProductos(productos: Producto[], filtros?: FiltrosProductos): Producto[] {
+  let resultado = productos
+  if (filtros?.busqueda) {
+    const q = filtros.busqueda.toLocaleLowerCase('es')
+    resultado = resultado.filter((p) =>
+      p.nombre.toLocaleLowerCase('es').includes(q) || p.descripcion?.toLocaleLowerCase('es').includes(q)
+    )
   }
+  if (filtros?.categoriaSlug && filtros.categoriaSlug !== 'todos') {
+    resultado = resultado.filter((p) => p.categoria?.slug === filtros.categoriaSlug)
+  }
+  if (filtros?.subcategoriaSlug) {
+    resultado = resultado.filter((p) => p.subcategoria?.slug === filtros.subcategoriaSlug)
+  }
+  const proveedorIds = filtros?.proveedorIds?.length ? filtros.proveedorIds : filtros?.proveedorId ? [filtros.proveedorId] : undefined
+  if (proveedorIds) resultado = resultado.filter((p) => proveedorIds.includes(p.proveedor_id))
+  const { min, max } = normalizePrecioRange(filtros?.precioMin, filtros?.precioMax)
+  if (min !== undefined) resultado = resultado.filter((p) => p.precio >= min)
+  if (max !== undefined) resultado = resultado.filter((p) => p.precio <= max)
+  if (filtros?.conStock === true) resultado = resultado.filter((p) => p.stock > 0)
+  return ordenarProductos(resultado, filtros?.orden ?? 'precio_asc')
+}
+
+function normalizePrecioRange(precioMin?: number, precioMax?: number): { min?: number; max?: number } {
+  let min = precioMin !== undefined && !Number.isNaN(precioMin) ? precioMin : undefined
+  let max = precioMax !== undefined && !Number.isNaN(precioMax) ? precioMax : undefined
+  if (min !== undefined && max !== undefined && min > max) [min, max] = [max, min]
   return { min, max }
 }
 
 export async function getProductos(filtros?: FiltrosProductos): Promise<Producto[]> {
-  if (!SUPABASE_DISPONIBLE) {
-    let productos = PRODUCTOS_MOCK
-    if (filtros?.busqueda) {
-      const q = filtros.busqueda.toLowerCase()
-      productos = productos.filter(
-        (p) =>
-          p.nombre.toLowerCase().includes(q) ||
-          p.descripcion?.toLowerCase().includes(q)
-      )
-    }
-    if (filtros?.categoriaSlug && filtros.categoriaSlug !== 'todos') {
-      productos = productos.filter(
-        (p) => p.categoria?.slug === filtros.categoriaSlug
-      )
-    }
-    if (filtros?.proveedorId) {
-      productos = productos.filter((p) => p.proveedor_id === filtros.proveedorId)
-    }
-    const { min: precioMin, max: precioMax } = normalizePrecioRange(
-      filtros?.precioMin,
-      filtros?.precioMax
-    )
-    if (precioMin !== undefined) {
-      productos = productos.filter((p) => p.precio >= precioMin)
-    }
-    if (precioMax !== undefined) {
-      productos = productos.filter((p) => p.precio <= precioMax)
-    }
-    if (filtros?.conStock === true) {
-      productos = productos.filter((p) => p.stock > 0)
-    }
-    return productos
-  }
+  if (!SUPABASE_DISPONIBLE) return filtrarProductos(PRODUCTOS_MOCK, filtros)
 
   const supabase = await getServerClient()
-  let query = supabase
+  const { data, error } = await supabase
     .from('productos')
-    .select(`
-      *,
-      proveedor:proveedores(*),
-      categoria:categorias(*)
-    `)
+    .select(`*, proveedor:proveedores(*), categoria:categorias(*), subcategoria:subcategorias(*)`)
     .eq('activo', true)
-    .order('created_at', { ascending: false })
 
-  if (filtros?.busqueda) {
-    query = query.ilike('nombre', `%${filtros.busqueda}%`)
-  }
-
-  if (filtros?.categoriaSlug && filtros.categoriaSlug !== 'todos') {
-    const { data: cat } = await supabase
-      .from('categorias')
-      .select('id')
-      .eq('slug', filtros.categoriaSlug)
-      .single()
-    if (cat) {
-      query = query.eq('categoria_id', cat.id)
-    }
-  }
-
-  if (filtros?.proveedorId) {
-    query = query.eq('proveedor_id', filtros.proveedorId)
-  }
-
-  const { min: precioMin, max: precioMax } = normalizePrecioRange(
-    filtros?.precioMin,
-    filtros?.precioMax
-  )
-  if (precioMin !== undefined) {
-    query = query.gte('precio', precioMin)
-  }
-  if (precioMax !== undefined) {
-    query = query.lte('precio', precioMax)
-  }
-  if (filtros?.conStock === true) {
-    query = query.gt('stock', 0)
-  }
-
-  const { data, error } = await query
-  if (error || !data) return PRODUCTOS_MOCK
-  return data as unknown as Producto[]
+  if (error || !data) return filtrarProductos(PRODUCTOS_MOCK, filtros)
+  return filtrarProductos(data as unknown as Producto[], filtros)
 }
 
 // ─── Productos de un proveedor específico ────────────────────

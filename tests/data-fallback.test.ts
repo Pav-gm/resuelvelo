@@ -114,10 +114,10 @@ describe('getProductos — fallback a mock', () => {
 })
 
 describe('getCategorias — fallback a mock', () => {
-  it('devuelve las 4 categorías mock', async () => {
+  it('devuelve las cinco categorías mock', async () => {
     const { getCategorias } = await import('@/lib/data')
     const cats = await getCategorias()
-    expect(cats.length).toBe(4)
+    expect(cats.length).toBe(5)
   })
 
   it('cada categoría tiene slug', async () => {
@@ -158,5 +158,48 @@ describe('getProducto — fallback a mock', () => {
     const { getProducto } = await import('@/lib/data')
     const producto = await getProducto('id-que-no-existe')
     expect(producto).toBeNull()
+  })
+})
+
+
+describe('filtros nuevos de catálogo — fallback a mock', () => {
+  it('filtra por subcategoría sin ocultar productos legacy al filtrar categoría', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const { PRODUCTOS_MOCK } = await import('@/lib/mock')
+    const originales = PRODUCTOS_MOCK.splice(0)
+    const producto = originales.find((p) => p.id === '1')!
+    const legacy = { ...producto, subcategoria_id: null, subcategoria: null }
+    PRODUCTOS_MOCK.push(producto, legacy)
+    try {
+      const porCategoria = await getProductos({ categoriaSlug: 'plomeria' })
+      expect(porCategoria).toHaveLength(2)
+      expect(porCategoria.some((p) => p.subcategoria_id === 'plomeria-tuberias')).toBe(true)
+      expect(porCategoria.some((p) => p.subcategoria_id === null)).toBe(true)
+      const porSubcategoria = await getProductos({ categoriaSlug: 'plomeria', subcategoriaSlug: 'plomeria-tuberias' })
+      expect(porSubcategoria.map((p) => p.id)).toEqual(['1'])
+    } finally {
+      PRODUCTOS_MOCK.splice(0, PRODUCTOS_MOCK.length, ...originales)
+    }
+  })
+
+  it('filtra por varios proveedores', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const productos = await getProductos({ proveedorIds: ['p1', 'p2'] })
+    expect(productos.every((p) => ['p1', 'p2'].includes(p.proveedor_id))).toBe(true)
+    expect(productos.some((p) => p.proveedor_id === 'p3')).toBe(false)
+  })
+
+  it('ordena por precio ascendente, descendente y nombre', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const asc = await getProductos({ orden: 'precio_asc' })
+    const desc = await getProductos({ orden: 'precio_desc' })
+    const nombre = await getProductos({ orden: 'nombre_asc' })
+    expect(asc.map((p) => p.precio)).toEqual([...asc.map((p) => p.precio)].sort((a, b) => a - b))
+    expect(desc.map((p) => p.precio)).toEqual([...desc.map((p) => p.precio)].sort((a, b) => b - a))
+    const collator = new Intl.Collator('es', { sensitivity: 'base' })
+    expect(nombre.map((p) => p.nombre)).toEqual([...nombre.map((p) => p.nombre)].sort((a, b) => collator.compare(a, b)))
+    expect(asc.filter((p) => p.precio === asc[0].precio).map((p) => p.id)).toEqual(
+      [...asc.filter((p) => p.precio === asc[0].precio)].map((p) => p.id).sort()
+    )
   })
 })

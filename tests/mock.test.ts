@@ -3,11 +3,11 @@
  * Validan integridad: estructura, tipos, relaciones entre productos y categorías
  */
 import { describe, it, expect } from 'vitest'
-import { PRODUCTOS_MOCK, CATEGORIAS_MOCK } from '@/lib/mock'
+import { PRODUCTOS_MOCK, CATEGORIAS_MOCK, SUBCATEGORIAS_MOCK } from '@/lib/mock'
 
 describe('Datos mock — categorías', () => {
-  it('existen exactamente 4 categorías', () => {
-    expect(CATEGORIAS_MOCK).toHaveLength(4)
+  it('existen cinco categorías mock incluyendo automotriz', () => {
+    expect(CATEGORIAS_MOCK).toHaveLength(5)
   })
 
   it('cada categoría tiene id, nombre y slug únicos', () => {
@@ -23,6 +23,21 @@ describe('Datos mock — categorías', () => {
     expect(slugs).toContain('electricidad')
     expect(slugs).toContain('plomeria')
     expect(slugs).toContain('ferreteria')
+    expect(slugs).toContain('automotriz')
+  })
+})
+
+describe('Datos mock — subcategorías', () => {
+  it('cada producto mock tiene subcategoría de su categoría', () => {
+    expect(SUBCATEGORIAS_MOCK).toHaveLength(25)
+    for (const categoria of CATEGORIAS_MOCK) {
+      expect(SUBCATEGORIAS_MOCK.filter((s) => s.categoria_id === categoria.id)).toHaveLength(5)
+    }
+    for (const producto of PRODUCTOS_MOCK) {
+      expect(producto.subcategoria_id).toBeTruthy()
+      expect(producto.subcategoria).toBeDefined()
+      expect(producto.subcategoria?.categoria_id).toBe(producto.categoria_id)
+    }
   })
 })
 

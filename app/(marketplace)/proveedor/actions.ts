@@ -33,6 +33,8 @@ export async function crearProducto(
   const unidad       = (formData.get('unidad')       as string)?.trim()
   const stock        = parseInt(formData.get('stock')        as string, 10)
   const categoria_id = formData.get('categoria_id')  as string
+  const subcategoria_id = (formData.get('subcategoria_id') as string)?.trim()
+  if (!subcategoria_id) return { error: 'Selecciona una subcategoría.' }
 
   if (!nombre || !unidad || !categoria_id || isNaN(precio) || isNaN(stock)) {
     return { error: 'Completa todos los campos obligatorios.' }
@@ -46,6 +48,7 @@ export async function crearProducto(
   const { error } = await supabase.from('productos').insert({
     proveedor_id,
     categoria_id,
+    subcategoria_id,
     nombre,
     descripcion,
     precio,
@@ -74,6 +77,8 @@ export async function actualizarProducto(
   const unidad       = (formData.get('unidad')       as string)?.trim()
   const stock        = parseInt(formData.get('stock')        as string, 10)
   const categoria_id = formData.get('categoria_id')  as string
+  const subcategoria_id = (formData.get('subcategoria_id') as string)?.trim()
+  if (!subcategoria_id) return { error: 'Selecciona una subcategoría.' }
 
   if (!id || !nombre || !unidad || !categoria_id || isNaN(precio) || isNaN(stock)) {
     return { error: 'Completa todos los campos obligatorios.' }
@@ -84,7 +89,7 @@ export async function actualizarProducto(
 
   const { error } = await supabase
     .from('productos')
-    .update({ nombre, descripcion, precio, unidad, stock, categoria_id })
+    .update({ nombre, descripcion, precio, unidad, stock, categoria_id, subcategoria_id })
     .eq('id', id)
     .eq('proveedor_id', proveedor_id)
 
