@@ -1,6 +1,6 @@
 /**
  * Lecturas de feedback con Supabase disponible: columnas públicas,
- * promedio, conteo y fallback si la consulta falla.
+ * promedio, conteo y propagación de errores de consulta.
  */
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -60,6 +60,7 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
+  vi.restoreAllMocks()
   h.state.selects.length = 0
   h.state.filtros.length = 0
   h.state.orden.length = 0
@@ -103,14 +104,12 @@ describe('getFeedbackDeProveedor', () => {
     expect(resumen.reseñas).toHaveLength(50)
   })
 
-  it('si la consulta falla, usa el fallback vacío', async () => {
+  it('si la consulta falla, propaga el error', async () => {
     h.state.publico = { data: null, error: { message: 'relation missing' } }
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await expect(getFeedbackDeProveedor('prov-1')).resolves.toEqual({
-      reseñas: [],
-      promedio: 0,
-      conteo: 0,
-    })
+    await expect(getFeedbackDeProveedor('prov-1')).rejects.toEqual({ message: 'relation missing' })
+    expect(errorLog).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -146,9 +145,11 @@ describe('getFeedbackPorCotizacion', () => {
     await expect(getFeedbackPorCotizacion('cot-1')).resolves.toBeNull()
   })
 
-  it('si la consulta falla, usa el fallback', async () => {
+  it('si la consulta falla, propaga el error', async () => {
     h.state.porCotizacion = { data: null, error: { message: 'timeout' } }
-    await expect(getFeedbackPorCotizacion('cot-1')).resolves.toBeNull()
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(getFeedbackPorCotizacion('cot-1')).rejects.toEqual({ message: 'timeout' })
+    expect(errorLog).toHaveBeenCalledTimes(1)
   })
 })
 
