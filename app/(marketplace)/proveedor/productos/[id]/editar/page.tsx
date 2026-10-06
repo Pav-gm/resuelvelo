@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
-import { getCategorias, getProducto } from '@/lib/data'
+import { getCategorias, getProducto, getSubcategorias } from '@/lib/data'
 import ProductoForm from '@/components/marketplace/ProductoForm'
 
 interface EditarProductoPageProps {
@@ -17,9 +17,10 @@ export default async function EditarProductoPage({ params }: EditarProductoPageP
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [producto, categorias] = await Promise.all([
+  const [producto, categorias, subcategorias] = await Promise.all([
     getProducto(id),
     getCategorias(),
+    getSubcategorias(),
   ])
 
   if (!producto) notFound()
@@ -35,7 +36,11 @@ export default async function EditarProductoPage({ params }: EditarProductoPageP
         </Link>
         <h1 className="text-xl font-bold text-gray-900">Editar producto</h1>
       </div>
-      <ProductoForm categorias={categorias} producto={producto} />
+      <ProductoForm
+        categorias={categorias}
+        subcategorias={subcategorias}
+        producto={producto}
+      />
     </div>
   )
 }

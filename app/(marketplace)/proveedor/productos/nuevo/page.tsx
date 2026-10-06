@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
-import { getCategorias } from '@/lib/data'
+import { getCategorias, getSubcategorias } from '@/lib/data'
 import ProductoForm from '@/components/marketplace/ProductoForm'
 
 export default async function NuevoProductoPage() {
@@ -11,7 +11,10 @@ export default async function NuevoProductoPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const categorias = await getCategorias()
+  const [categorias, subcategorias] = await Promise.all([
+    getCategorias(),
+    getSubcategorias(),
+  ])
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
@@ -24,7 +27,7 @@ export default async function NuevoProductoPage() {
         </Link>
         <h1 className="text-xl font-bold text-gray-900">Nuevo producto</h1>
       </div>
-      <ProductoForm categorias={categorias} />
+      <ProductoForm categorias={categorias} subcategorias={subcategorias} />
     </div>
   )
 }
