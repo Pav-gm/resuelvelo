@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getCategorias, getSubcategorias } from '@/lib/data'
+import AdminProductoSubcategoria from '@/components/marketplace/AdminProductoSubcategoria'
 import ToggleActivoButton from './ToggleActivoButton'
 
 const estadoBadge: Record<string, string> = {
@@ -43,14 +45,14 @@ export default async function AdminPage() {
 
   if (profile?.rol !== 'admin') redirect('/catalogo')
 
-  const [proveedoresRes, productosRes, cotizacionesRes] = await Promise.all([
+  const [proveedoresRes, productosRes, cotizacionesRes, categorias, subcategorias] = await Promise.all([
     supabase
       .from('proveedores')
       .select('id, nombre_empresa, ciudad, verificado')
       .order('nombre_empresa', { ascending: true }),
     supabase
       .from('productos')
-      .select('id, nombre, precio, stock, activo, proveedor:proveedores(nombre_empresa)')
+      .select('id, nombre, precio, stock, activo, categoria_id, subcategoria_id, proveedor:proveedores(nombre_empresa)')
       .order('nombre', { ascending: true }),
     supabase
       .from('cotizaciones')
@@ -67,11 +69,14 @@ export default async function AdminPage() {
         )
       `)
       .order('created_at', { ascending: false }),
+    getCategorias(),
+    getSubcategorias(),
   ])
 
   const proveedores = proveedoresRes.data ?? []
   const productos = productosRes.data ?? []
   const cotizaciones = cotizacionesRes.data ?? []
+  const categoriaPorId = new Map(categorias.map((cat) => [cat.id, cat.nombre]))
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -121,7 +126,7 @@ export default async function AdminPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">{p.nombre}</p>
                   <p className="text-xs text-gray-400">
-                    {proveedorNombre} · {formatoMoneda(p.precio)} · Stock: {p.stock}
+                    {proveedorNombre} · {categoriaPorId.get(p.categoria_id) ?? 'Sin categoría'} · {formatoMoneda(p.precio)} · Stock: {p.stock}
                   </p>
                 </div>
                 <span
@@ -131,6 +136,12 @@ export default async function AdminPage() {
                 >
                   {p.activo ? 'Activo' : 'Inactivo'}
                 </span>
+                <AdminProductoSubcategoria
+                  productoId={p.id}
+                  categoriaId={p.categoria_id}
+                  subcategoriaId={p.subcategoria_id}
+                  subcategorias={subcategorias}
+                />
                 <ToggleActivoButton id={p.id} activo={p.activo} />
               </div>
             )

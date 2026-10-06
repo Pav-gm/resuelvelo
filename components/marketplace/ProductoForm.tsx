@@ -1,18 +1,24 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { crearProducto, actualizarProducto } from '@/app/(marketplace)/proveedor/actions'
-import type { Categoria, Producto } from '@/types'
+import type { Categoria, Producto, Subcategoria } from '@/types'
 
 interface ProductoFormProps {
   categorias: Categoria[]
+  subcategorias: Subcategoria[]
   producto?: Producto
 }
 
-export default function ProductoForm({ categorias, producto }: ProductoFormProps) {
+export default function ProductoForm({ categorias, subcategorias, producto }: ProductoFormProps) {
   const action = producto ? actualizarProducto : crearProducto
   const [state, formAction, pending] = useActionState(action, null)
+  const [categoriaId, setCategoriaId] = useState(producto?.categoria_id ?? '')
+  const [subcategoriaId, setSubcategoriaId] = useState(producto?.subcategoria_id ?? '')
+  const subcategoriasDeCategoria = subcategorias.filter(
+    (sub) => sub.categoria_id === categoriaId
+  )
 
   return (
     <form action={formAction} className="space-y-5 rounded-2xl bg-white border p-6 shadow-sm">
@@ -61,13 +67,39 @@ export default function ProductoForm({ categorias, producto }: ProductoFormProps
           id="categoria_id"
           name="categoria_id"
           required
-          defaultValue={producto?.categoria_id}
+          value={categoriaId}
+          onChange={(e) => {
+            setCategoriaId(e.target.value)
+            setSubcategoriaId('')
+          }}
           className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 bg-white"
         >
           <option value="">Seleccionar categoría</option>
           {categorias.map((cat) => (
             <option key={cat.id} value={cat.id}>
               {cat.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="subcategoria_id" className="block text-sm font-medium text-gray-700 mb-1">
+          Subcategoría <span className="text-red-500">*</span>
+        </label>
+        <select
+          id="subcategoria_id"
+          name="subcategoria_id"
+          required
+          value={subcategoriaId}
+          disabled={!categoriaId}
+          onChange={(e) => setSubcategoriaId(e.target.value)}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 bg-white disabled:bg-gray-50 disabled:text-gray-400"
+        >
+          <option value="">Seleccionar subcategoría</option>
+          {subcategoriasDeCategoria.map((sub) => (
+            <option key={sub.id} value={sub.id}>
+              {sub.nombre}
             </option>
           ))}
         </select>

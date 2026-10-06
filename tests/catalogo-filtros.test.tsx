@@ -1,0 +1,185 @@
+/**
+ * Tests de CatalogoFiltros — subcategorías dependientes de categoría,
+ * proveedores múltiples, orden, chips y limpieza de filtros.
+ */
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import CatalogoFiltros from '@/components/marketplace/CatalogoFiltros'
+import type { Categoria, Subcategoria } from '@/types'
+import type { ProveedorConConteo } from '@/lib/data'
+
+const mocks = vi.hoisted(() => ({
+  pushMock: vi.fn(),
+  paramsState: { value: '' },
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mocks.pushMock }),
+  usePathname: () => '/catalogo',
+  useSearchParams: () => new URLSearchParams(mocks.paramsState.value),
+}))
+
+const CATEGORIAS: Categoria[] = [
+  { id: 'c1', nombre: 'Plomería', slug: 'plomeria' },
+  { id: 'c2', nombre: 'Electricidad', slug: 'electricidad' },
+]
+
+const NOMBRES_ELECTRICIDAD = [
+  'Cables y conductores',
+  'Tomacorrientes e interruptores',
+  'Iluminación',
+  'Breakers y paneles',
+  'Canalización y accesorios',
+]
+
+const NOMBRES_PLOMERIA = [
+  'Tuberías',
+  'Conexiones y accesorios',
+  'Grifería',
+  'Sanitarios y lavamanos',
+  'Tanques y bombas',
+]
+
+const SUBCATEGORIAS: Subcategoria[] = [
+  ...NOMBRES_ELECTRICIDAD.map((nombre, i) => ({
+    id: `electricidad-${i}`,
+    categoria_id: 'c2',
+    nombre,
+    slug: `electricidad-${i}`,
+  })),
+  ...NOMBRES_PLOMERIA.map((nombre, i) => ({
+    id: `plomeria-${i}`,
+    categoria_id: 'c1',
+    nombre,
+    slug: `plomeria-${i}`,
+  })),
+]
+
+const PROVEEDORES: ProveedorConConteo[] = [
+  {
+    id: 'p1',
+    user_id: 'u1',
+    nombre_empresa: 'Promeria',
+    verificado: true,
+    created_at: '',
+    productos_count: 4,
+  },
+  {
+    id: 'p2',
+    user_id: 'u2',
+    nombre_empresa: 'Ferretería López',
+    verificado: true,
+    created_at: '',
+    productos_count: 3,
+  },
+]
+
+function ultimoPush(): URLSearchParams {
+  const llamada = mocks.pushMock.mock.calls.at(-1)
+  const url = new URL(llamada![0] as string, 'http://localhost')
+  return url.searchParams
+}
+
+afterEach(() => {
+  cleanup()
+  mocks.pushMock.mockReset()
+  mocks.paramsState.value = ''
+})
+
+describe('CatalogoFiltros — subcategorías', () => {
+  it('muestra exactamente las subcategorías de la categoría seleccionada', () => {
+    mocks.paramsState.value = '?categoria=electricidad'
+    const { rerender } = render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        categoriaInicial="electricidad"
+      />
+    )
+
+    const selector = screen.getByLabelText('Subcategoría')
+    const opciones = within(selector)
+      .getAllByRole('option')
+      .map((opcion) => opcion.textContent)
+    expect(opciones).toEqual(NOMBRES_ELECTRICIDAD)
+    expect(screen.queryByText('Tuberías')).not.toBeInTheDocument()
+
+    rerender(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+      />
+    )
+    expect(screen.queryByLabelText('Subcategoría')).not.toBeInTheDocument()
+  })
+})
+
+describe('CatalogoFiltros — proveedores y orden', () => {
+  it('mantiene proveedores múltiples y orden al cambiar otros filtros', () => {
+    mocks.paramsState.value = '?proveedor=p1&proveedor=p2&orden=precio_desc'
+    render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        proveedorInicialIds={['p1', 'p2']}
+        ordenInicial="precio_desc"
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Electricidad' }))
+
+    const params = ultimoPush()
+    expect(params.getAll('proveedor')).toEqual(['p1', 'p2'])
+    expect(params.get('orden')).toBe('precio_desc')
+    expect(params.get('categoria')).toBe('electricidad')
+  })
+})
+
+describe('CatalogoFiltros — chips y limpieza', () => {
+  it('quita un chip sin borrar otros filtros y limpia todos los filtros', () => {
+    mocks.paramsState.value =
+      '?busqueda=cable&categoria=electricidad&subcategoria=electricidad-0&proveedor=p1&proveedor=p2&precioMin=10&precioMax=30&conStock=1&orden=nombre_asc'
+    render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        busquedaInicial="cable"
+        categoriaInicial="electricidad"
+        subcategoriaInicial="electricidad-0"
+        proveedorInicialIds={['p1', 'p2']}
+        precioMinInicial="10"
+        precioMaxInicial="30"
+        conStockInicial
+        ordenInicial="nombre_asc"
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar filtro Proveedor: Promeria' }))
+
+    const trasQuitar = ultimoPush()
+    expect(trasQuitar.getAll('proveedor')).toEqual(['p2'])
+    expect(trasQuitar.get('busqueda')).toBe('cable')
+    expect(trasQuitar.get('categoria')).toBe('electricidad')
+    expect(trasQuitar.get('subcategoria')).toBe('electricidad-0')
+    expect(trasQuitar.get('precioMin')).toBe('10')
+    expect(trasQuitar.get('precioMax')).toBe('30')
+    expect(trasQuitar.get('conStock')).toBe('1')
+    expect(trasQuitar.get('orden')).toBe('nombre_asc')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+
+    const trasLimpiar = ultimoPush()
+    expect(trasLimpiar.has('busqueda')).toBe(false)
+    expect(trasLimpiar.has('categoria')).toBe(false)
+    expect(trasLimpiar.has('subcategoria')).toBe(false)
+    expect(trasLimpiar.has('proveedor')).toBe(false)
+    expect(trasLimpiar.has('precioMin')).toBe(false)
+    expect(trasLimpiar.has('precioMax')).toBe(false)
+    expect(trasLimpiar.has('conStock')).toBe(false)
+    expect(trasLimpiar.get('orden')).toBe('nombre_asc')
+  })
+})
