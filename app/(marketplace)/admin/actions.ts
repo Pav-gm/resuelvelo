@@ -31,3 +31,29 @@ export async function setProductoActivo(
 
   revalidatePath('/admin')
 }
+
+
+export async function setProductoSubcategoria(
+  id: string,
+  subcategoriaId: string
+): Promise<{ error?: string } | void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autorizado.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('rol')
+    .eq('id', user.id)
+    .single()
+  if (profile?.rol !== 'admin') return { error: 'No autorizado.' }
+
+  const { error } = await supabase
+    .from('productos')
+    .update({ subcategoria_id: subcategoriaId || null })
+    .eq('id', id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/admin')
+  revalidatePath('/catalogo')
+}
