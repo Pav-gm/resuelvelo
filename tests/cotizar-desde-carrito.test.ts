@@ -453,6 +453,30 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
     ])
   })
 
+  it('conserva el comportamiento parcial cuando falta un id', async () => {
+    h.state.productos = [productoDb({
+      id: '11111111-1111-4111-8111-111111111111',
+      precio: 15,
+      stock: 6,
+      proveedor_id: 'prov-db',
+    })]
+
+    const outcome = await ejecutar(formConItems([
+      item({ id: '11111111-1111-4111-8111-111111111111', cantidad: 2, nombre: 'Cemento' }),
+      item({ id: '22222222-2222-4222-8222-222222222222', cantidad: 1, nombre: 'Arena' }),
+    ]))
+
+    expect(outcome).toEqual({
+      kind: 'returned',
+      result: {
+        error: 'Estos productos ya no están disponibles: Arena. Los quitamos del carrito.',
+        noDisponibles: ['22222222-2222-4222-8222-222222222222'],
+      },
+    })
+    expect(h.state.inserts).toEqual([])
+    expect(h.redirect).not.toHaveBeenCalled()
+  })
+
   it('si un ítem no está disponible, no inserta los otros ítems válidos', async () => {
     h.state.productos = [productoDb({ id: '11111111-1111-4111-8111-111111111111', precio: 15, stock: 6, proveedor_id: 'prov-db' })]
 

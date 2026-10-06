@@ -15,7 +15,10 @@ const h = vi.hoisted(() => {
         },
         eq(column: string, value: unknown) {
           state.filtros.push({ table, column, value })
-          return table === 'productos' ? Promise.resolve(state.result) : api
+          if (table !== 'productos') return api
+          return Object.assign(Promise.resolve(state.result), {
+            maybeSingle: () => Promise.resolve(state.result),
+          })
         },
         order() {
           return Promise.resolve(state.result)
@@ -31,6 +34,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: h.createClient }))
 
 let getCategorias!: typeof import('@/lib/data').getCategorias
 let getProductos!: typeof import('@/lib/data').getProductos
+let getProducto!: typeof import('@/lib/data').getProducto
 let getProveedores!: typeof import('@/lib/data').getProveedores
 let getSubcategorias!: typeof import('@/lib/data').getSubcategorias
 
@@ -38,6 +42,7 @@ beforeAll(async () => {
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://proyecto.supabase.co')
   const data = await import('@/lib/data')
   getCategorias = data.getCategorias
+  getProducto = data.getProducto
   getProductos = data.getProductos
   getProveedores = data.getProveedores
   getSubcategorias = data.getSubcategorias
@@ -86,5 +91,12 @@ describe('lecturas de datos con Supabase configurado', () => {
 
     expect(h.state.filtros).toContainEqual({ table: 'proveedores', column: 'productos.activo', value: true })
     expect(proveedores).toContainEqual(expect.objectContaining({ nombre_empresa: 'Ferretería A', productos_count: 2 }))
+  })
+
+  it('getProducto devuelve null si no existe la fila', async () => {
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(getProducto('11111111-1111-4111-8111-111111111111')).resolves.toBeNull()
+    expect(errorLog).not.toHaveBeenCalled()
   })
 })
