@@ -5,6 +5,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Cotizacion, Feedback, Proveedor } from '@/types'
+import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 
 const COT_RECIBIDA = 'ffffffff-1111-4111-8111-111111111111'
 const COT_RECIBIDA_CON_RESENA = 'eeeeeeee-1111-4111-8111-111111111111'
@@ -135,6 +136,11 @@ function fechaDespacho(iso: string) {
   })
 }
 
+/** Número estable y distinto por UUID para los fixtures que no fijan uno explícito. */
+function numeroDeId(id: string): number {
+  return Number.parseInt(id.replace(/-/g, '').slice(0, 8), 16)
+}
+
 function cotizacion(
   estado: Cotizacion['estado'],
   id: string,
@@ -148,6 +154,7 @@ function cotizacion(
     created_at: '2026-03-15T15:00:00.000Z',
     items: [],
     ...extra,
+    numero: extra.numero ?? numeroDeId(id),
   }
 }
 
@@ -175,7 +182,11 @@ function resena(overrides: Partial<Feedback> = {}): Feedback {
 }
 
 function tarjeta(prefijo: string) {
-  const titulo = screen.getByText(`Cotización #${prefijo}`)
+  const cot = [...h.cotizaciones, ...h.cotizacionesProveedor].find((c) =>
+    c.id.toLowerCase().startsWith(prefijo.toLowerCase())
+  )
+  if (!cot) throw new Error(`Sin cotización para el prefijo ${prefijo}`)
+  const titulo = screen.getByText(`Cotización #${formatNumeroCotizacion(cot.numero)}`)
   const contenedor = titulo.closest('.rounded-2xl')
   if (!contenedor) throw new Error(`Sin tarjeta para ${prefijo}`)
   return contenedor as HTMLElement
@@ -714,5 +725,33 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
     expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
     expect(within(card).queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
     expect(within(card).queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Número uniforme de cotización', () => {
+  it('muestra números distintos y con formato uniforme para cotizaciones con el mismo prefijo de UUID en las tres pantallas', async () => {
+    const ID_1 = 'e0000000-0000-0000-0000-000000000001'
+    const ID_2 = 'e0000000-0000-0000-0000-000000000002'
+    const cotizaciones = [
+      cotizacion('rechazada', ID_1, { numero: 123 }),
+      cotizacion('respondida', ID_2, { numero: 124 }),
+    ]
+    h.cotizaciones.push(...cotizaciones)
+    h.cotizacionesProveedor.push(...cotizaciones)
+
+    const pantallas: (() => Promise<ReturnType<typeof render>>)[] = [
+      async () => render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) })),
+      async () => render(await PedidosPage()),
+      async () => render(await PanelProveedorPage()),
+    ]
+
+    for (const renderizar of pantallas) {
+      const { unmount } = await renderizar()
+      expect(screen.getAllByText('Cotización #COT-000123')).toHaveLength(1)
+      expect(screen.getAllByText('Cotización #COT-000124')).toHaveLength(1)
+      expect(screen.queryByText('Cotización #E0000000')).not.toBeInTheDocument()
+      expect(screen.queryByText('Cotización #e0000000')).not.toBeInTheDocument()
+      unmount()
+    }
   })
 })

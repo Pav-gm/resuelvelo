@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCotizacionesDelComprador, getFeedbackPorCotizacion } from '@/lib/data'
+import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import type { Feedback } from '@/types'
 import LimpiarCarritoEnEnviada from '@/components/marketplace/LimpiarCarritoEnEnviada'
 import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
@@ -74,7 +75,7 @@ export default async function MisCotizacionesPage({
                 <div className="flex items-center justify-between px-6 py-4 border-b">
                   <div>
                     <p className="font-semibold text-gray-900">
-                      Cotización #{cot.id.slice(0, 8).toUpperCase()}
+                      Cotización #{formatNumeroCotizacion(cot.numero)}
                     </p>
                     <p className="text-xs text-gray-400">
                       {new Date(cot.created_at).toLocaleDateString('es-DO', {

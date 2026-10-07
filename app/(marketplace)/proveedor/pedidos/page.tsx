@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getCotizacionesDeProveedor } from '@/lib/data'
+import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
 import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 import AccionesVentaProveedor from '@/components/marketplace/AccionesVentaProveedor'
@@ -47,7 +48,7 @@ export default async function PedidosPage() {
                 <div className="flex items-center justify-between px-6 py-4 border-b">
                   <div>
                     <p className="font-semibold text-gray-900">
-                      Cotización #{cot.id.slice(0, 8).toUpperCase()}
+                      Cotización #{formatNumeroCotizacion(cot.numero)}
                     </p>
                     <p className="text-xs text-gray-400">
                       {new Date(cot.created_at).toLocaleDateString('es-DO', {
