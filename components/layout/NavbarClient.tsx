@@ -49,41 +49,40 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           )}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
-          {usuario ? (
-            <>
-              <Link href={panelHref}>
-                <Button variant="ghost" size="sm" className="gap-1.5">
-                  <LayoutDashboard className="h-4 w-4" />
-                  {usuario.nombre}
-                </Button>
-              </Link>
-              <form action={cerrarSesion}>
-                <Button variant="outline" size="sm" type="submit" className="gap-1.5">
-                  <LogOut className="h-4 w-4" />
-                  Salir
-                </Button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  <User className="mr-1.5 h-4 w-4" />
-                  Ingresar
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                  Registrarse
-                </Button>
-              </Link>
-            </>
-          )}
-        </div>
-
         <div className="flex items-center gap-3">
           <CarritoDrawer />
+          <div className="hidden items-center gap-3 md:flex">
+            {usuario ? (
+              <>
+                <Link href={panelHref}>
+                  <Button variant="ghost" size="sm" className="gap-1.5">
+                    <LayoutDashboard className="h-4 w-4" />
+                    {usuario.nombre}
+                  </Button>
+                </Link>
+                <form action={cerrarSesion}>
+                  <Button variant="outline" size="sm" type="submit" className="gap-1.5">
+                    <LogOut className="h-4 w-4" />
+                    Salir
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="sm">
+                    <User className="mr-1.5 h-4 w-4" />
+                    Ingresar
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+                    Registrarse
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
           <button
             className="md:hidden"
             onClick={() => setMenuAbierto(!menuAbierto)}

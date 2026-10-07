@@ -64,4 +64,20 @@ describe('NavbarClient — carrito en móvil', () => {
     expect(screen.getByText('Tubo PVC 4"')).toBeInTheDocument()
     expect(screen.getByText('$1,360.00')).toBeInTheDocument()
   })
+
+  it('mantiene en escritorio el carrito delante de los controles de usuario', () => {
+    const { container } = render(<NavbarClient usuario={null} />)
+
+    const fila = container.querySelector('header > div') as HTMLElement
+    expect(fila.children).toHaveLength(3)
+
+    const grupo = fila.lastElementChild as HTMLElement
+    const carrito = screen.getByRole('button', { name: 'Carrito' })
+    const ingresar = within(grupo).getByRole('link', { name: /Ingresar/ })
+
+    expect(grupo).toContainElement(carrito)
+    expect(
+      carrito.compareDocumentPosition(ingresar) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+  })
 })
