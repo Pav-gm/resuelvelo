@@ -252,6 +252,31 @@ describe('CatalogoFiltros — validación de precios', () => {
     expect(precioMax).toHaveAttribute('min', '0')
     expect(precioMin.closest('form')).toHaveAttribute('novalidate')
   })
+
+  it('el aviso de precios desaparece al limpiar filtros o quitar un chip', () => {
+    mocks.paramsState.value = '?busqueda=cable&conStock=1'
+    render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        busquedaInicial="cable"
+        conStockInicial
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Precio mínimo (DOP)'), { target: { value: '-5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Limpiar filtros/ }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Precio mínimo (DOP)'), { target: { value: '-5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: /Quitar/ })[0])
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })
 
 describe('CatalogoFiltros — chips y limpieza', () => {

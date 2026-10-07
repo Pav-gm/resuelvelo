@@ -19,10 +19,11 @@ interface CatalogoPageProps {
 
 const ORDENES: readonly OrdenCatalogo[] = ['precio_asc', 'precio_desc', 'nombre_asc']
 
+// Un precio de la URL que no es un número finito y no negativo se ignora: ni filtra ni aparece en chips o campos.
 function parsePrecioParam(value?: string): number | undefined {
-  if (!value) return undefined
+  if (!value?.trim()) return undefined
   const n = Number(value)
-  return Number.isNaN(n) ? undefined : n
+  return Number.isFinite(n) && n >= 0 ? n : undefined
 }
 
 function parseOrden(value?: string): OrdenCatalogo {
@@ -79,8 +80,8 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
         categoriaInicial={categoria}
         subcategoriaInicial={subcategoria}
         proveedorInicialIds={proveedorIds}
-        precioMinInicial={precioMin}
-        precioMaxInicial={precioMax}
+        precioMinInicial={parsePrecioParam(precioMin) === undefined ? undefined : precioMin}
+        precioMaxInicial={parsePrecioParam(precioMax) === undefined ? undefined : precioMax}
         conStockInicial={conStock === '1'}
         ordenInicial={orden}
       />
