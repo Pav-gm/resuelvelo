@@ -27,7 +27,7 @@ export default function EliminarProductoButton({ id, nombre }: Props) {
       size="sm"
       disabled={pending}
       onClick={handleEliminar}
-      className="text-red-500 border-red-200 hover:bg-red-50"
+      className="text-red-500 border-red-200 hover:bg-red-50 min-h-11 sm:min-h-0 sm:h-7"
       aria-label={`Eliminar ${nombre}`}
     >
       <Trash2 className="h-3.5 w-3.5" />
