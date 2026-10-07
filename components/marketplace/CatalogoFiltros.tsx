@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Categoria, Subcategoria } from '@/types'
@@ -73,10 +73,18 @@ export default function CatalogoFiltros({
     [busqueda]
   )
 
+  // La URL que ya se pidió pero que searchParams todavía no refleja: si dos filtros se aplican seguidos
+  // (por ejemplo, cambiar el orden y pulsar «Aplicar filtros» enseguida), el segundo parte de ella y no pierde el primero.
+  const paramsPendientes = useRef<string | null>(null)
+  useEffect(() => {
+    paramsPendientes.current = null
+  }, [searchParams])
+
   const updateParams = useCallback(
     (mutate: (params: URLSearchParams) => void) => {
-      const params = new URLSearchParams(searchParams.toString())
+      const params = new URLSearchParams(paramsPendientes.current ?? searchParams.toString())
       mutate(params)
+      paramsPendientes.current = params.toString()
       router.push(`${pathname}?${params.toString()}`)
     },
     [router, pathname, searchParams]
