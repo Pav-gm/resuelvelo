@@ -50,8 +50,6 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <CarritoDrawer />
-
           {usuario ? (
             <>
               <Link href={panelHref}>
@@ -84,13 +82,16 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           )}
         </div>
 
-        <button
-          className="md:hidden"
-          onClick={() => setMenuAbierto(!menuAbierto)}
-          aria-label="Menú"
-        >
-          {menuAbierto ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-3">
+          <CarritoDrawer />
+          <button
+            className="md:hidden"
+            onClick={() => setMenuAbierto(!menuAbierto)}
+            aria-label="Menú"
+          >
+            {menuAbierto ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       <div className={cn('md:hidden border-t bg-white', menuAbierto ? 'block' : 'hidden')}>

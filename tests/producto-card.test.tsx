@@ -46,10 +46,17 @@ describe('ProductoCard — diseño responsive', () => {
 
     expect(contenedor.className).toContain('flex-col')
     expect(contenedor.className).toContain('sm:flex-row')
+    expect(contenedor.className).toContain('min-w-0')
     expect(boton.className).toContain('w-full')
     expect(boton.className).toContain('sm:w-auto')
     expect(boton.className).toContain('whitespace-normal')
     expect(boton.className).toContain('sm:whitespace-nowrap')
+    expect(boton.className).toContain('min-w-0')
+    expect(boton.className).toContain('max-w-full')
+    expect(boton.className).toContain('justify-center')
+
+    const icono = boton.querySelector('svg')
+    expect(icono?.getAttribute('class')).toContain('shrink-0')
   })
 })
 

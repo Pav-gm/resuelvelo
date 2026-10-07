@@ -80,7 +80,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
           <h3 className="mt-0.5 font-semibold text-gray-900 leading-tight line-clamp-2">{producto.nombre}</h3>
         </div>
 
-        <div className="mt-auto flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mt-auto flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="text-lg font-bold text-gray-900">
               ${producto.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
@@ -89,11 +89,11 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
           </div>
           <Button
             size="sm"
-            className="h-auto min-h-7 w-full whitespace-normal bg-orange-500 py-1 text-white hover:bg-orange-600 sm:h-7 sm:w-auto sm:whitespace-nowrap sm:py-0"
+            className="h-auto min-h-7 w-full min-w-0 max-w-full justify-center whitespace-normal bg-orange-500 py-1 text-white hover:bg-orange-600 sm:h-7 sm:w-auto sm:whitespace-nowrap sm:py-0"
             disabled={sinStock || alMaximo}
             onClick={handleAgregar}
           >
-            <ShoppingCart className="mr-1.5 h-4 w-4" />
+            <ShoppingCart className="mr-1.5 h-4 w-4 shrink-0" />
             {alMaximo ? 'Máximo en carrito' : agregado ? 'Agregado' : 'Agregar'}
           </Button>
         </div>
