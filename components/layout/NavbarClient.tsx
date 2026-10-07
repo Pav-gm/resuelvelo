@@ -50,7 +50,9 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
         </nav>
 
         <div className="flex items-center gap-3">
+          {/* Carrito siempre visible, también en móvil, junto al menú hamburguesa. */}
           <CarritoDrawer />
+          {/* Nombre y acciones de cuenta: solo desde el breakpoint md. */}
           <div className="hidden items-center gap-3 md:flex">
             {usuario ? (
               <>

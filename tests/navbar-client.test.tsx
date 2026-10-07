@@ -5,6 +5,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+// Acción de sesión mockeada como no-op para no acoplar la prueba a la autenticación.
 vi.mock('@/app/(auth)/actions', () => ({
   cerrarSesion: vi.fn(),
 }))
@@ -48,6 +49,24 @@ afterEach(() => {
 
 describe('NavbarClient — carrito en móvil', () => {
   it('muestra el botón Carrito en la cabecera móvil y abre el drawer', () => {
+    render(<NavbarClient usuario={null} />)
+
+    // Una sola instancia del carrito: no se duplica entre móvil y escritorio.
+    const botones = screen.getAllByRole('button', { name: 'Carrito' })
+    expect(botones).toHaveLength(1)
+
+    const boton = botones[0]
+    // No debe quedar oculto en móvil: ningún ancestro con la clase `hidden`.
+    for (let ancestro = boton.parentElement; ancestro; ancestro = ancestro.parentElement) {
+      expect(ancestro.classList.contains('hidden')).toBe(false)
+    }
+
+    fireEvent.click(boton)
+
+    expect(screen.getByText('Mi carrito')).toBeInTheDocument()
+  })
+
+  it('muestra el número de productos en el botón Carrito y su contenido en el drawer', () => {
     useCarritoStore
       .getState()
       .agregar(producto({ id: 'prod-1', nombre: 'Tubo PVC 4"', precio: 680, stock: 5 }), 2)
@@ -55,7 +74,6 @@ describe('NavbarClient — carrito en móvil', () => {
     render(<NavbarClient usuario={null} />)
 
     const boton = screen.getByRole('button', { name: 'Carrito' })
-    expect(screen.getAllByRole('button', { name: 'Carrito' })).toHaveLength(1)
     expect(within(boton).getByText('2')).toBeInTheDocument()
 
     fireEvent.click(boton)
@@ -68,16 +86,17 @@ describe('NavbarClient — carrito en móvil', () => {
   it('mantiene en escritorio el carrito delante de los controles de usuario', () => {
     const { container } = render(<NavbarClient usuario={null} />)
 
-    const fila = container.querySelector('header > div') as HTMLElement
-    expect(fila.children).toHaveLength(3)
+    // La barra principal (logo, nav y grupo de acciones) mantiene sus tres hijos.
+    const barra = container.querySelector('header > div')
+    expect(barra?.children).toHaveLength(3)
 
-    const grupo = fila.lastElementChild as HTMLElement
-    const carrito = screen.getByRole('button', { name: 'Carrito' })
-    const ingresar = within(grupo).getByRole('link', { name: /Ingresar/ })
+    const grupoAcciones = barra?.lastElementChild as HTMLElement
+    const botonCarrito = within(grupoAcciones).getByRole('button', { name: 'Carrito' })
+    const enlaceIngresar = within(grupoAcciones).getByRole('link', { name: 'Ingresar' })
 
-    expect(grupo).toContainElement(carrito)
+    // El carrito se conserva por delante de los controles de cuenta.
     expect(
-      carrito.compareDocumentPosition(ingresar) & Node.DOCUMENT_POSITION_FOLLOWING
+      botonCarrito.compareDocumentPosition(enlaceIngresar) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
   })
 })
