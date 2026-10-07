@@ -27,7 +27,7 @@ export default async function EditarProductoPage({ params }: EditarProductoPageP
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <Link href="/proveedor">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-1.5 h-4 w-4" />
