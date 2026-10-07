@@ -2,7 +2,9 @@
 
 - `migrations/` — **fuente de verdad** del esquema `public`, en el formato de la CLI de Supabase (`<versión>_<nombre>.sql`, se aplican por orden). Las versiones y nombres son los que ya tiene registrados `resuelvelo-dev`.
 - `schema.sql` — instantánea consolidada de lo mismo, útil para leer o para un proyecto nuevo desde el SQL Editor. Si cambias el esquema, **añade una migración nueva** y actualiza este archivo; no edites las migraciones ya aplicadas.
-- `seed.sql` — datos de ejemplo.
+- `seed.sql` — datos de ejemplo. Solo se usa en local: lo que producción necesite (por ejemplo, rellenar una columna nueva en filas que ya existen) va en una migración.
+- `rollbacks/` — el *down* de cada migración nueva, con **el mismo nombre de archivo**. Es obligatorio desde `20261007000100`: sin él, el ensayo falla.
+- `checks/` — invariantes de datos (`do $$ … raise exception … $$`) que deben cumplirse después de las migraciones, por ejemplo «todo producto activo tiene subcategoría». Se comprueban en cada ensayo y en `resuelvelo-dev` después de aplicar.
 
 ## Estado de las migraciones
 
@@ -15,3 +17,9 @@ Las migraciones `20261003230000_feedback_verificado.sql` y `20261003235900_feedb
 ## Flujo de cambios
 
 `dev` primero (proyecto `resuelvelo-dev`), validación, y solo entonces producción. Antes de cualquier cambio de esquema en producción, un respaldo `pre-change` (ver el orquestador: `docs/HIGH_IMPACT_ACTIONS.md`).
+
+Desde el 2026-10-07 lo hace solo el servidor del orquestador (`deploy/migrations/` y `scripts/backup/rehearse_migrations.sh` en ese repositorio), con el check **Migraciones**:
+
+1. **PR a `dev`**: las migraciones que `main` todavía no tiene se ensayan sobre una copia de los datos de producción, en un Postgres desechable en memoria: se aplican, se comprueban los `checks/` y se aplica el rollback, que debe dejar esquema y datos exactamente como estaban. El resultado queda como check obligatorio y como comentario en el PR. Editar una migración ya aplicada también lo hace fallar.
+2. **Merge a `dev`**: se aplican solas a `resuelvelo-dev`, cada una en una transacción y registrada en `supabase_migrations.schema_migrations`. La ronda de QA con los bots espera a que terminen.
+3. **PR de `dev` a `main`**: el check exige que lo anterior haya salido bien, y el PR recibe un comentario con el SQL para producción (una transacción que también registra cada migración). **Producción sigue siendo manual**: respaldo `pre-change`, pegar ese bloque en el SQL Editor de `Resuelvelo_App` y después mergear.
