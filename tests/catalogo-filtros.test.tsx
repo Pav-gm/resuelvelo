@@ -11,12 +11,20 @@ import type { ProveedorConConteo } from '@/lib/data'
 const mocks = vi.hoisted(() => ({
   pushMock: vi.fn(),
   paramsState: { value: '' },
+  // Como en Next, el mismo objeto mientras la URL no cambia: un re-render por estado local no lo renueva.
+  cache: { value: null as string | null, params: new URLSearchParams() },
 }))
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.pushMock }),
   usePathname: () => '/catalogo',
-  useSearchParams: () => new URLSearchParams(mocks.paramsState.value),
+  useSearchParams: () => {
+    if (mocks.cache.value !== mocks.paramsState.value) {
+      mocks.cache.value = mocks.paramsState.value
+      mocks.cache.params = new URLSearchParams(mocks.paramsState.value)
+    }
+    return mocks.cache.params
+  },
 }))
 
 const CATEGORIAS: Categoria[] = [
@@ -193,6 +201,21 @@ describe('CatalogoFiltros — búsqueda y filtros', () => {
       />
     )
     expect(screen.getByText('Búsqueda: cable')).toBeInTheDocument()
+  })
+
+  it('Aplicar filtros justo después de cambiar el orden no pierde el orden', () => {
+    render(
+      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} />
+    )
+
+    // La URL del orden ya se pidió, pero searchParams todavía no cambió (la navegación no terminó).
+    fireEvent.change(screen.getByLabelText('Ordenar por'), { target: { value: 'nombre_asc' } })
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'cable' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+    const params = ultimoPush()
+    expect(params.get('orden')).toBe('nombre_asc')
+    expect(params.get('busqueda')).toBe('cable')
   })
 })
 

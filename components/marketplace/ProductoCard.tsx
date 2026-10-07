@@ -89,7 +89,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
           </div>
           <Button
             size="sm"
-            className="w-full whitespace-normal bg-orange-500 hover:bg-orange-600 text-white sm:w-auto sm:whitespace-nowrap"
+            className="h-auto min-h-7 w-full whitespace-normal bg-orange-500 py-1 text-white hover:bg-orange-600 sm:h-7 sm:w-auto sm:whitespace-nowrap sm:py-0"
             disabled={sinStock || alMaximo}
             onClick={handleAgregar}
           >
