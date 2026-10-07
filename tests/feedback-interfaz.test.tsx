@@ -148,6 +148,7 @@ function cotizacion(
     created_at: '2026-03-15T15:00:00.000Z',
     items: [],
     ...extra,
+    numero: extra.numero ?? 1,
   }
 }
 

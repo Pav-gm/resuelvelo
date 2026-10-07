@@ -61,6 +61,7 @@ export interface ItemCarrito {
 
 export interface Cotizacion {
   id: string
+  numero: number
   comprador_id: string
   proveedor_id: string
   estado: 'pendiente' | 'respondida' | 'aceptada' | 'rechazada' | 'despachada' | 'recibida' | 'cancelada'
