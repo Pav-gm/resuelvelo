@@ -80,7 +80,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
           <h3 className="mt-0.5 font-semibold text-gray-900 leading-tight line-clamp-2">{producto.nombre}</h3>
         </div>
 
-        <div className="mt-auto flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mt-auto flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="text-lg font-bold text-gray-900">
               ${producto.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
