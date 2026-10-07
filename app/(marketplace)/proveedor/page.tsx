@@ -135,7 +135,7 @@ export default async function PanelProveedorPage() {
         <div className="px-6 py-4 border-b">
           <h2 className="font-semibold text-gray-900">Mis productos</h2>
         </div>
-        <ListaProductosProveedor productos={productos} />
+        <ListaProductosProveedor productos={productos} enTarjeta={false} />
       </div>
     </div>
   )

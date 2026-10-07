@@ -6,6 +6,11 @@ import type { Producto } from '@/types'
 
 interface Props {
   productos: Producto[]
+  /**
+   * Envuelve la lista en su propia tarjeta. El panel la desactiva para
+   * conservar su tarjeta contenedora única («Mis productos» + `divide-y`).
+   */
+  enTarjeta?: boolean
 }
 
 /**
@@ -14,21 +19,23 @@ interface Props {
  * se lee completo (sin `truncate`) y las acciones quedan dentro de la tarjeta.
  * En escritorio conserva la disposición en una sola línea.
  */
-export default function ListaProductosProveedor({ productos }: Props) {
+export default function ListaProductosProveedor({ productos, enTarjeta = true }: Props) {
   return (
-    <div className="rounded-2xl bg-white border shadow-sm divide-y">
+    <div className={enTarjeta ? 'rounded-2xl bg-white border shadow-sm divide-y' : 'divide-y'}>
       {productos.map((p) => (
         <div
           key={p.id}
           data-testid="product-row"
           className="flex flex-wrap items-center gap-3 px-4 py-4 sm:flex-nowrap sm:gap-4 sm:px-6"
         >
-          <p className="min-w-0 flex-1 basis-full break-words [overflow-wrap:anywhere] font-medium text-gray-900 sm:basis-auto">
-            {p.nombre}
-          </p>
-          <p className="text-xs text-gray-400">
-            ${p.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {p.unidad} · Stock: {p.stock}
-          </p>
+          <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+            <p className="break-words [overflow-wrap:anywhere] font-medium text-gray-900">
+              {p.nombre}
+            </p>
+            <p className="text-xs text-gray-400">
+              ${p.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {p.unidad} · Stock: {p.stock}
+            </p>
+          </div>
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${p.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
             {p.activo ? 'Activo' : 'Inactivo'}
           </span>
