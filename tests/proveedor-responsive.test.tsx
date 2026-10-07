@@ -135,9 +135,13 @@ describe('Panel del proveedor — adaptación a móvil', () => {
 
     const fila = screen.getByTestId('product-row')
     expect(fila.className).toContain('flex-wrap')
+    // En el panel la lista no añade una tarjeta anidada: el panel conserva su
+    // tarjeta contenedora única.
+    expect(fila.parentElement?.className).not.toContain('rounded-2xl')
 
     const nombre = screen.getByText('Tubería PVC reforzada de dos pulgadas')
     expect(nombre.className).not.toContain('truncate')
+    expect(nombre.parentElement?.className).toContain('min-w-0')
 
     expect(screen.getByTestId('product-actions').className).toContain('flex-wrap')
 
@@ -165,7 +169,10 @@ describe('Ruta /proveedor/productos — lista compartida', () => {
       '/proveedor/productos/nuevo'
     )
     expect(screen.getByText('Tubería PVC reforzada de dos pulgadas')).toBeInTheDocument()
-    expect(screen.getByTestId('product-row').className).toContain('flex-wrap')
+    const fila = screen.getByTestId('product-row')
+    expect(fila.className).toContain('flex-wrap')
+    // La ruta de productos sí envuelve la lista en su propia tarjeta.
+    expect(fila.parentElement?.className).toContain('rounded-2xl')
   })
 })
 
