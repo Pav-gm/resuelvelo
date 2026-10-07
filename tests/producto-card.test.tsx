@@ -45,6 +45,31 @@ describe('ProductoCard — diseño responsive', () => {
     const boton = screen.getByRole('button', { name: 'Agregar' })
     expect(boton).toHaveClass('w-full', 'sm:w-auto')
   })
+
+  it('adapta el precio y el botón Agregar al ancho móvil de la tarjeta', () => {
+    render(<ProductoCard producto={producto({ stock: 5 })} />)
+
+    const boton = screen.getByRole('button', { name: 'Agregar' })
+    const contenedor = boton.parentElement as HTMLElement
+
+    // En móvil precio y botón se apilan y el botón ocupa el ancho de la tarjeta.
+    expect(contenedor).toHaveClass('flex-col', 'sm:flex-row', 'min-w-0')
+
+    // El texto puede partirse en móvil y el botón no se sale de la tarjeta.
+    expect(boton).toHaveClass(
+      'w-full',
+      'sm:w-auto',
+      'whitespace-normal',
+      'sm:whitespace-nowrap',
+      'min-w-0',
+      'max-w-full',
+      'justify-center'
+    )
+
+    // El icono no se encoge cuando el texto ocupa más espacio.
+    const icono = boton.querySelector('svg')
+    expect(icono?.getAttribute('class')).toContain('shrink-0')
+  })
 })
 
 describe('ProductoCard — estados de stock', () => {
