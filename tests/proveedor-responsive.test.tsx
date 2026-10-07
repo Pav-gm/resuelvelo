@@ -126,6 +126,9 @@ describe('Panel del proveedor — adaptación a móvil', () => {
 
     const titulo = within(fila).getByText('Cotización #aaaaaaaa')
     expect(titulo.parentElement?.className).toContain('min-w-0')
+    // En móvil el número se lee completo (puede pasar a otra línea); solo se recorta desde sm.
+    expect(titulo.className.split(' ')).not.toContain('truncate')
+    expect(titulo.className).toContain('sm:truncate')
   })
 
   it('el panel muestra el nombre completo del producto y contiene sus acciones en la fila', async () => {

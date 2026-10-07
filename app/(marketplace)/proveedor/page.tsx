@@ -111,7 +111,7 @@ export default async function PanelProveedorPage() {
                 <div className="flex-1 min-w-0">
                   {/* `numero` es el número visible de la cotización; si la lectura no lo
                       trae, se muestra el prefijo de su id. */}
-                  <p className="font-medium text-gray-900 truncate">
+                  <p className="font-medium text-gray-900 break-words sm:truncate">
                     Cotización #{cot.numero != null ? formatNumeroCotizacion(cot.numero) : cot.id.slice(0, 8)}
                   </p>
                   <p className="text-xs text-gray-400">
