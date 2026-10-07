@@ -219,6 +219,41 @@ describe('CatalogoFiltros — búsqueda y filtros', () => {
   })
 })
 
+describe('CatalogoFiltros — validación de precios', () => {
+  it('no aplica filtros y muestra un error si el precio mínimo supera el máximo', () => {
+    render(
+      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} />
+    )
+
+    fireEvent.change(screen.getByLabelText('Precio mínimo (DOP)'), { target: { value: '300' } })
+    fireEvent.change(screen.getByLabelText('Precio máximo (DOP)'), { target: { value: '200' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+    expect(mocks.pushMock).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'El precio mínimo no puede ser mayor que el máximo.'
+    )
+  })
+
+  it('no aplica filtros y muestra un error propio si un precio es negativo', () => {
+    render(
+      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} />
+    )
+
+    fireEvent.change(screen.getByLabelText('Precio mínimo (DOP)'), { target: { value: '-5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+    expect(mocks.pushMock).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert')).toHaveTextContent('Los precios no pueden ser negativos.')
+
+    const precioMin = screen.getByLabelText('Precio mínimo (DOP)')
+    const precioMax = screen.getByLabelText('Precio máximo (DOP)')
+    expect(precioMin).toHaveAttribute('min', '0')
+    expect(precioMax).toHaveAttribute('min', '0')
+    expect(precioMin.closest('form')).toHaveAttribute('novalidate')
+  })
+})
+
 describe('CatalogoFiltros — chips y limpieza', () => {
   it('quitar el chip de categoría elimina también la subcategoría', () => {
     mocks.paramsState.value =
