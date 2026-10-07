@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Building2, MapPin, BadgeCheck, Package } from 'lucide-react'
+import ErrorCarga from '@/components/marketplace/ErrorCarga'
 import { getProveedores } from '@/lib/data'
 
 export const metadata = {
@@ -8,7 +9,9 @@ export const metadata = {
 }
 
 export default async function ProveedoresPage() {
-  const proveedores = await getProveedores()
+  const proveedores = await getProveedores().catch(() => null)
+
+  if (!proveedores) return <ErrorCarga />
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">

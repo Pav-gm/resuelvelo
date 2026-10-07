@@ -19,6 +19,17 @@ async function getServerClient() {
   return createClient()
 }
 
+function propagarErrorLectura(funcion: string, error: unknown): never {
+  console.error(`[${funcion}] Error al consultar Supabase:`, error)
+  throw error
+}
+
+function errorSinDatos(funcion: string): never {
+  const error = new Error(`[${funcion}] Supabase no devolvió datos.`)
+  console.error(`[${funcion}] Error al consultar Supabase:`, error)
+  throw error
+}
+
 // ─── Categorías ──────────────────────────────────────────────
 
 export async function getCategorias(): Promise<Categoria[]> {
@@ -30,7 +41,8 @@ export async function getCategorias(): Promise<Categoria[]> {
     .select('*')
     .order('nombre')
 
-  if (error || !data) return CATEGORIAS_MOCK
+  if (error) propagarErrorLectura('getCategorias', error)
+  if (data === null) errorSinDatos('getCategorias')
   return data as Categoria[]
 }
 
@@ -46,10 +58,8 @@ export async function getSubcategorias(categoriaId?: string): Promise<Subcategor
   let query = supabase.from('subcategorias').select('*').order('nombre')
   if (categoriaId) query = query.eq('categoria_id', categoriaId)
   const { data, error } = await query
-  if (error || !data) {
-    return SUBCATEGORIAS_MOCK.filter((s) => !categoriaId || s.categoria_id === categoriaId)
-      .slice().sort((a, b) => compareNames(a.nombre, b.nombre) || a.id.localeCompare(b.id))
-  }
+  if (error) propagarErrorLectura('getSubcategorias', error)
+  if (data === null) errorSinDatos('getSubcategorias')
   return data as Subcategoria[]
 }
 
@@ -122,7 +132,8 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
     .select(`*, proveedor:proveedores(*), categoria:categorias(*), subcategoria:subcategorias(*)`)
     .eq('activo', true)
 
-  if (error || !data) return filtrarProductos(PRODUCTOS_MOCK, filtros)
+  if (error) propagarErrorLectura('getProductos', error)
+  if (data === null) errorSinDatos('getProductos')
   return filtrarProductos(data as unknown as Producto[], filtros)
 }
 
@@ -140,7 +151,8 @@ export async function getProductosDeProveedor(proveedorId: string): Promise<Prod
     .eq('proveedor_id', proveedorId)
     .order('created_at', { ascending: false })
 
-  if (error || !data) return []
+  if (error) propagarErrorLectura('getProductosDeProveedor', error)
+  if (data === null) errorSinDatos('getProductosDeProveedor')
   return data as unknown as Producto[]
 }
 
@@ -159,7 +171,7 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
     return [...map.values()].map((prov) => ({
       ...prov,
       productos_count: PRODUCTOS_MOCK.filter(
-        (p) => p.proveedor?.id === prov.id
+        (p) => p.proveedor?.id === prov.id && p.activo
       ).length,
     }))
   }
@@ -168,9 +180,11 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
   const { data, error } = await supabase
     .from('proveedores')
     .select('*, productos(count)')
+    .eq('productos.activo', true)
     .order('nombre_empresa')
 
-  if (error || !data) return []
+  if (error) propagarErrorLectura('getProveedores', error)
+  if (data === null) errorSinDatos('getProveedores')
 
   return data.map((prov) => {
     const { productos, ...rest } = prov as Proveedor & {
@@ -189,16 +203,18 @@ export async function getProveedorDelUsuario(): Promise<Proveedor | null> {
   if (!SUPABASE_DISPONIBLE) return null
 
   const supabase = await getServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError) propagarErrorLectura('getProveedorDelUsuario', userError)
   if (!user) return null
 
   const { data, error } = await supabase
     .from('proveedores')
     .select('*')
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (error || !data) return null
+  if (error) propagarErrorLectura('getProveedorDelUsuario', error)
+  if (!data) return null
   return data as Proveedor
 }
 
@@ -228,10 +244,13 @@ export async function getStatsProveedor(proveedorId: string): Promise<StatsProve
       .eq('estado', 'pendiente'),
   ])
 
-  const productos = productosRes.data ?? []
+  if (productosRes.error) propagarErrorLectura('getStatsProveedor', productosRes.error)
+  if (cotizacionesRes.error) propagarErrorLectura('getStatsProveedor', cotizacionesRes.error)
+  if (productosRes.data === null || cotizacionesRes.data === null) errorSinDatos('getStatsProveedor')
+  const productos = productosRes.data
   return {
     productosActivos: productos.filter((p) => p.activo).length,
-    cotizacionesPendientes: cotizacionesRes.data?.length ?? 0,
+    cotizacionesPendientes: cotizacionesRes.data.length,
     sinStock: productos.filter((p) => p.stock === 0).length,
   }
 }
@@ -255,7 +274,8 @@ export async function getCotizacionesDeProveedor(proveedorId: string): Promise<C
     .order('created_at', { ascending: false })
     .limit(20)
 
-  if (error || !data) return []
+  if (error) propagarErrorLectura('getCotizacionesDeProveedor', error)
+  if (data === null) errorSinDatos('getCotizacionesDeProveedor')
   return data as unknown as Cotizacion[]
 }
 
@@ -278,7 +298,8 @@ export async function getCotizacionesDelComprador(compradorId: string): Promise<
     .eq('comprador_id', compradorId)
     .order('created_at', { ascending: false })
 
-  if (error || !data) return []
+  if (error) propagarErrorLectura('getCotizacionesDelComprador', error)
+  if (data === null) errorSinDatos('getCotizacionesDelComprador')
   return data as unknown as Cotizacion[]
 }
 
@@ -287,8 +308,8 @@ export async function getCotizacionesDelComprador(compradorId: string): Promise<
 export async function getFeedbackDeProveedor(
   proveedorId: string
 ): Promise<ResumenFeedbackProveedor> {
-  const reseñasMock = FEEDBACK_MOCK.filter((feedback) => feedback.proveedor_id === proveedorId)
   if (!SUPABASE_DISPONIBLE) {
+    const reseñasMock = FEEDBACK_MOCK.filter((feedback) => feedback.proveedor_id === proveedorId)
     return resumirFeedback(reseñasMock)
   }
 
@@ -299,15 +320,17 @@ export async function getFeedbackDeProveedor(
     .eq('proveedor_id', proveedorId)
     .order('created_at', { ascending: false })
 
-  if (error || !data) return resumirFeedback(reseñasMock)
+  if (error) propagarErrorLectura('getFeedbackDeProveedor', error)
+  if (data === null) errorSinDatos('getFeedbackDeProveedor')
   return resumirFeedback(data as FeedbackPublico[])
 }
 
 export async function getFeedbackPorCotizacion(
   cotizacionId: string
 ): Promise<Feedback | null> {
-  const fallback = FEEDBACK_MOCK.find((feedback) => feedback.cotizacion_id === cotizacionId) ?? null
-  if (!SUPABASE_DISPONIBLE) return fallback
+  if (!SUPABASE_DISPONIBLE) {
+    return FEEDBACK_MOCK.find((feedback) => feedback.cotizacion_id === cotizacionId) ?? null
+  }
 
   const supabase = await getServerClient()
   const { data, error } = await supabase
@@ -316,7 +339,7 @@ export async function getFeedbackPorCotizacion(
     .eq('cotizacion_id', cotizacionId)
     .maybeSingle()
 
-  if (error) return fallback
+  if (error) propagarErrorLectura('getFeedbackPorCotizacion', error)
   if (!data) return null
   return { ...data, autor_anonimo: 'Comprador verificado' } as Feedback
 }
@@ -341,8 +364,9 @@ export async function getProducto(id: string): Promise<Producto | null> {
     .from('productos')
     .select('*, proveedor:proveedores(*), categoria:categorias(*)')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
-  if (error || !data) return null
+  if (error) propagarErrorLectura('getProducto', error)
+  if (!data) return null
   return data as unknown as Producto
 }

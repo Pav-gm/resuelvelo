@@ -40,7 +40,7 @@ const h = vi.hoisted(() => {
               state.selects.push({ columns, ids: [...ids] })
               if (state.queryThrows) throw new Error('fallo de red')
               if (state.queryError) return { data: null, error: state.queryError }
-              return { data: state.productos, error: null }
+              return { data: state.productos.filter((producto) => ids.includes(producto.id)), error: null }
             },
           }
         },
@@ -88,11 +88,8 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { cotizarDesdeCarrito } from '@/app/(marketplace)/cotizaciones/actions'
 
-const productoId1 = '11111111-1111-4111-8111-111111111111'
-const productoId2 = '22222222-2222-4222-8222-222222222222'
-
 type Outcome =
-  | { kind: 'returned'; result: { error: string } | null }
+  | { kind: 'returned'; result: { error: string; noDisponibles?: string[] } | null }
   | { kind: 'redirect'; url: string }
 
 function item(overrides: {
@@ -105,7 +102,7 @@ function item(overrides: {
 } = {}): ItemCarrito {
   return {
     producto: {
-      id: overrides.id ?? productoId1,
+      id: overrides.id ?? '11111111-1111-4111-8111-111111111111',
       proveedor_id: overrides.proveedor_id ?? 'prov-cliente',
       categoria_id: 'cat-1',
       subcategoria_id: null,
@@ -144,7 +141,7 @@ function productoDb(overrides: {
   activo?: boolean
 } = {}) {
   return {
-    id: overrides.id ?? productoId1,
+    id: overrides.id ?? '11111111-1111-4111-8111-111111111111',
     proveedor_id: overrides.proveedor_id ?? 'prov-db',
     precio: overrides.precio ?? 80,
     stock: overrides.stock ?? 10,
@@ -191,16 +188,16 @@ describe('cotizarDesdeCarrito — validación antes de escribir', () => {
 
   it.each([
     ['JSON inválido', '{', true],
-    ['un valor que no es lista', { id: 'prod-1' }, false],
+    ['un valor que no es lista', { id: '11111111-1111-4111-8111-111111111111' }, false],
     ['un ítem nulo', [null], false],
     ['un ítem sin producto', [{ cantidad: 1 }], false],
     ['un producto sin id', [{ producto: {}, cantidad: 1 }], false],
     ['un id vacío', [{ producto: { id: '   ' }, cantidad: 1 }], false],
     ['un id que no es texto', [{ producto: { id: 15 }, cantidad: 1 }], false],
-    ['cantidad cero', [{ producto: { id: 'prod-1' }, cantidad: 0 }], false],
-    ['cantidad negativa', [{ producto: { id: 'prod-1' }, cantidad: -2 }], false],
-    ['cantidad fraccionaria', [{ producto: { id: 'prod-1' }, cantidad: 1.5 }], false],
-    ['cantidad no numérica', [{ producto: { id: 'prod-1' }, cantidad: '2' }], false],
+    ['cantidad cero', [{ producto: { id: '11111111-1111-4111-8111-111111111111' }, cantidad: 0 }], false],
+    ['cantidad negativa', [{ producto: { id: '11111111-1111-4111-8111-111111111111' }, cantidad: -2 }], false],
+    ['cantidad fraccionaria', [{ producto: { id: '11111111-1111-4111-8111-111111111111' }, cantidad: 1.5 }], false],
+    ['cantidad no numérica', [{ producto: { id: '11111111-1111-4111-8111-111111111111' }, cantidad: '2' }], false],
   ])('%s devuelve { error } sin lanzar ni insertar', async (_nombre, value, raw) => {
     const outcome = await ejecutar(formConItems(value, raw))
 
@@ -216,8 +213,8 @@ describe('cotizarDesdeCarrito — validación antes de escribir', () => {
 
   it('un ítem inválido entre ítems válidos rechaza todo el carrito antes de consultar', async () => {
     const outcome = await ejecutar(formConItems([
-      item({ id: productoId1, cantidad: 1 }),
-      { producto: { id: productoId2 }, cantidad: 0 },
+      item({ id: '11111111-1111-4111-8111-111111111111', cantidad: 1 }),
+      { producto: { id: '33333333-3333-4333-8333-333333333333' }, cantidad: 0 },
     ]))
 
     expect(outcome).toEqual({
@@ -243,6 +240,49 @@ describe('cotizarDesdeCarrito — validación antes de escribir', () => {
 })
 
 describe('cotizarDesdeCarrito — stock y duplicados', () => {
+  it('un id mock que no es UUID se devuelve como no disponible sin consultar ni insertar', async () => {
+    const outcome = await ejecutar(formConItems([
+      item({ id: '1', nombre: 'Tubo PVC 4" x 6m (sanitario)' }),
+    ]))
+
+    expect(outcome).toEqual({
+      kind: 'returned',
+      result: {
+        error: 'Estos productos ya no están disponibles: Tubo PVC 4" x 6m (sanitario). Los quitamos del carrito.',
+        noDisponibles: ['1'],
+      },
+    })
+    expect(h.state.selects).toEqual([])
+    expect(h.state.inserts).toEqual([])
+  })
+
+  it('un producto con id del seed (sin versión de uuid) se cotiza normalmente', async () => {
+    const id = 'd0000000-0000-0000-0000-000000000001'
+    h.state.productos = [productoDb({ id, stock: 5 })]
+
+    const outcome = await ejecutar(formConItems([item({ id, cantidad: 1, nombre: 'Tubo PVC 4"' })]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.selects.flatMap((s) => s.ids)).toEqual([id])
+    expect(h.state.inserts).not.toEqual([])
+  })
+
+  it('un producto real inactivo se devuelve como no disponible sin insertar', async () => {
+    const id = '11111111-1111-4111-8111-111111111111'
+    h.state.productos = [productoDb({ id, activo: false })]
+
+    const outcome = await ejecutar(formConItems([item({ id, nombre: 'Cemento' })]))
+
+    expect(outcome).toEqual({
+      kind: 'returned',
+      result: {
+        error: 'Estos productos ya no están disponibles: Cemento. Los quitamos del carrito.',
+        noDisponibles: [id],
+      },
+    })
+    expect(h.state.inserts).toEqual([])
+  })
+
   it('fusiona productos repetidos y compara la suma con el stock antes de insertar', async () => {
     h.state.productos = [productoDb({ stock: 7 })]
 
@@ -258,7 +298,7 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
       },
     })
     expect(h.state.selects).toEqual([
-      { columns: 'id, proveedor_id, precio, stock, activo', ids: [productoId1] },
+      { columns: 'id, proveedor_id, precio, stock, activo', ids: ['11111111-1111-4111-8111-111111111111'] },
     ])
     expect(h.state.ops).toEqual(['select:productos'])
     expect(h.state.inserts).toEqual([])
@@ -284,13 +324,13 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
 
   it('no inserta nada si un producto excede el stock aunque otro quepa', async () => {
     h.state.productos = [
-      productoDb({ id: productoId1, stock: 5 }),
-      productoDb({ id: productoId2, stock: 1, proveedor_id: 'prov-db-2' }),
+      productoDb({ id: '11111111-1111-4111-8111-111111111111', stock: 5 }),
+      productoDb({ id: '33333333-3333-4333-8333-333333333333', stock: 1, proveedor_id: 'prov-db-2' }),
     ]
 
     const outcome = await ejecutar(formConItems([
-      item({ id: productoId1, cantidad: 2 }),
-      item({ id: productoId2, cantidad: 4, proveedor_id: 'otro-cliente' }),
+      item({ id: '11111111-1111-4111-8111-111111111111', cantidad: 2 }),
+      item({ id: '33333333-3333-4333-8333-333333333333', cantidad: 4, proveedor_id: 'otro-cliente' }),
     ]))
 
     expect(outcome.kind).toBe('returned')
@@ -339,7 +379,7 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
     expect(itemsInsert?.payload).toEqual([
       {
         cotizacion_id: 'cot-1',
-        producto_id: productoId1,
+        producto_id: '11111111-1111-4111-8111-111111111111',
         cantidad: 5,
         precio_unitario: 40,
       },
@@ -350,7 +390,7 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
 describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
   it('inserta con proveedor y precio de la base y redirige', async () => {
     h.state.productos = [productoDb({
-      id: productoId1,
+      id: '11111111-1111-4111-8111-111111111111',
       proveedor_id: 'prov-db',
       precio: 80,
       stock: 10,
@@ -358,7 +398,7 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
 
     const outcome = await ejecutar(formConItems([
       item({
-        id: productoId1,
+        id: '11111111-1111-4111-8111-111111111111',
         cantidad: 2,
         precio: 1,
         proveedor_id: 'prov-cliente',
@@ -370,9 +410,6 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
       'select:productos',
       'insert:cotizaciones',
       'insert:items_cotizacion',
-    ])
-    expect(h.state.selects).toEqual([
-      { columns: 'id, proveedor_id, precio, stock, activo', ids: [productoId1] },
     ])
     expect(h.state.inserts[0]).toEqual({
       table: 'cotizaciones',
@@ -388,7 +425,7 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
       payload: [
         {
           cotizacion_id: 'cot-1',
-          producto_id: productoId1,
+          producto_id: '11111111-1111-4111-8111-111111111111',
           cantidad: 2,
           precio_unitario: 80,
         },
@@ -400,13 +437,13 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
 
   it('crea una cotización por grupo y no usa el precio enviado por el cliente', async () => {
     h.state.productos = [
-      productoDb({ id: productoId1, proveedor_id: 'prov-db-1', precio: 10, stock: 4 }),
-      productoDb({ id: productoId2, proveedor_id: 'prov-db-2', precio: 25, stock: 4 }),
+      productoDb({ id: '11111111-1111-4111-8111-111111111111', proveedor_id: 'prov-db-1', precio: 10, stock: 4 }),
+      productoDb({ id: '33333333-3333-4333-8333-333333333333', proveedor_id: 'prov-db-2', precio: 25, stock: 4 }),
     ]
 
     const outcome = await ejecutar(formConItems([
-      item({ id: productoId1, cantidad: 2, precio: 999, proveedor_id: 'cliente-1' }),
-      item({ id: productoId2, cantidad: 1, precio: 1, proveedor_id: 'cliente-2', nombre: 'Cemento' }),
+      item({ id: '11111111-1111-4111-8111-111111111111', cantidad: 2, precio: 999, proveedor_id: 'cliente-1' }),
+      item({ id: '33333333-3333-4333-8333-333333333333', cantidad: 1, precio: 1, proveedor_id: 'cliente-2', nombre: 'Cemento' }),
     ]))
 
     expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
@@ -428,105 +465,60 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
   })
 
   it('conserva el comportamiento parcial cuando falta un id', async () => {
-    h.state.productos = [productoDb({ id: productoId1, precio: 15, stock: 6, proveedor_id: 'prov-db' })]
-
-    const outcome = await ejecutar(formConItems([
-      item({ id: productoId1, cantidad: 2, precio: 1, proveedor_id: 'cliente' }),
-      item({ id: 'prod-ausente', cantidad: 1, precio: 50, proveedor_id: 'cliente' }),
-    ]))
-
-    expect(outcome).toEqual({
-      kind: 'redirect',
-      url: '/mis-cotizaciones?enviada=1&parcial=1',
-    })
-    const itemsInsert = h.state.inserts.find((i) => i.table === 'items_cotizacion')
-    expect(itemsInsert?.payload).toEqual([
-      {
-        cotizacion_id: 'cot-1',
-        producto_id: productoId1,
-        cantidad: 2,
-        precio_unitario: 15,
-      },
-    ])
-    expect(h.state.inserts.filter((i) => i.table === 'cotizaciones')).toHaveLength(1)
-    expect(h.state.selects).toEqual([
-      { columns: 'id, proveedor_id, precio, stock, activo', ids: [productoId1] },
-    ])
-  })
-
-  it('omite un id no UUID y cotiza los productos restantes con aviso parcial', async () => {
     h.state.productos = [productoDb({
-      id: productoId1,
+      id: '11111111-1111-4111-8111-111111111111',
+      precio: 15,
+      stock: 6,
       proveedor_id: 'prov-db',
-      precio: 80,
-      stock: 10,
-      activo: true,
     })]
 
     const outcome = await ejecutar(formConItems([
-      item({ id: productoId1, cantidad: 2, proveedor_id: 'p1' }),
-      item({ id: '3', cantidad: 1, proveedor_id: 'p1' }),
+      item({ id: '11111111-1111-4111-8111-111111111111', cantidad: 2, nombre: 'Cemento' }),
+      item({ id: '22222222-2222-4222-8222-222222222222', cantidad: 1, nombre: 'Arena' }),
     ]))
 
-    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1&parcial=1' })
-    expect(h.state.selects).toEqual([
-      { columns: 'id, proveedor_id, precio, stock, activo', ids: [productoId1] },
-    ])
-    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toEqual({
-      comprador_id: 'comprador-1',
-      proveedor_id: 'prov-db',
-      estado: 'pendiente',
-      total_estimado: 160,
-    })
-    expect(h.state.inserts.find((insert) => insert.table === 'items_cotizacion')?.payload).toEqual([
-      {
-        cotizacion_id: 'cot-1',
-        producto_id: productoId1,
-        cantidad: 2,
-        precio_unitario: 80,
+    expect(outcome).toEqual({
+      kind: 'returned',
+      result: {
+        error: 'Estos productos ya no están disponibles: Arena. Los quitamos del carrito.',
+        noDisponibles: ['22222222-2222-4222-8222-222222222222'],
       },
-    ])
+    })
+    expect(h.state.inserts).toEqual([])
+    expect(h.redirect).not.toHaveBeenCalled()
   })
 
-  it('omite un producto inactivo sin tratar su stock como disponible', async () => {
-    h.state.productos = [
-      productoDb({ id: productoId1, precio: 80, stock: 10, activo: true }),
-      productoDb({ id: productoId2, precio: 10, stock: 0, activo: false }),
-    ]
+  it('si un ítem no está disponible, no inserta los otros ítems válidos', async () => {
+    h.state.productos = [productoDb({ id: '11111111-1111-4111-8111-111111111111', precio: 15, stock: 6, proveedor_id: 'prov-db' })]
 
     const outcome = await ejecutar(formConItems([
-      item({ id: productoId1, cantidad: 1 }),
-      item({ id: productoId2, cantidad: 3 }),
+      item({ id: '11111111-1111-4111-8111-111111111111', cantidad: 2, precio: 1, proveedor_id: 'cliente', nombre: 'Cemento' }),
+      item({ id: '22222222-2222-4222-8222-222222222222', cantidad: 1, precio: 50, proveedor_id: 'cliente', nombre: 'Arena' }),
     ]))
 
-    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1&parcial=1' })
-    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toEqual({
-      comprador_id: 'comprador-1',
-      proveedor_id: 'prov-db',
-      estado: 'pendiente',
-      total_estimado: 80,
-    })
-    expect(h.state.inserts.find((insert) => insert.table === 'items_cotizacion')?.payload).toEqual([
-      {
-        cotizacion_id: 'cot-1',
-        producto_id: productoId1,
-        cantidad: 1,
-        precio_unitario: 80,
+    expect(outcome).toEqual({
+      kind: 'returned',
+      result: {
+        error: 'Estos productos ya no están disponibles: Arena. Los quitamos del carrito.',
+        noDisponibles: ['22222222-2222-4222-8222-222222222222'],
       },
-    ])
+    })
+    expect(h.state.inserts).toEqual([])
+    expect(h.redirect).not.toHaveBeenCalled()
   })
 
   it('si ningún id existe devuelve el error de productos no disponibles y no redirige', async () => {
     h.state.productos = []
 
     const outcome = await ejecutar(formConItems([
-      item({ id: 'no-esta', cantidad: 1 }),
+      item({ id: '22222222-2222-4222-8222-222222222222', cantidad: 1, nombre: 'Producto ausente' }),
     ]))
 
     expect(outcome).toEqual({
       kind: 'returned',
       result: {
-        error: 'No se pudo crear la cotización: los productos del carrito ya no están disponibles. Actualiza el catálogo e intenta de nuevo.',
+        error: 'Estos productos ya no están disponibles: Producto ausente. Los quitamos del carrito.',
+        noDisponibles: ['22222222-2222-4222-8222-222222222222'],
       },
     })
     expect(h.state.inserts).toEqual([])

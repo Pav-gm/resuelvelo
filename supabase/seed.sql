@@ -52,6 +52,7 @@ from (values
   ('electricidad', 'iluminacion', 'Iluminación'),
   ('electricidad', 'breakers-y-paneles', 'Breakers y paneles'),
   ('electricidad', 'canalizacion-y-accesorios', 'Canalización y accesorios'),
+  ('electricidad', 'energia-solar', 'Energía solar'),
   ('ferreteria', 'herramientas-manuales', 'Herramientas manuales'),
   ('ferreteria', 'herramientas-electricas', 'Herramientas eléctricas'),
   ('ferreteria', 'tornilleria-y-fijaciones', 'Tornillería y fijaciones'),
@@ -264,15 +265,15 @@ on conflict (id) do nothing;
 -- Productos / servicios — SolarTech RD (categoría: electricidad)
 insert into public.productos (id, proveedor_id, categoria_id, nombre, descripcion, precio, unidad, stock, subcategoria_id) values
   ('d0000000-0000-0000-0000-000000000011', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Evaluación de sistema eléctrico y consumo', 'Visita técnica para evaluar instalación y dimensionar el sistema solar.', 2500.00, 'servicio', 50, 'electricidad-iluminacion'),
+   'Evaluación de sistema eléctrico y consumo', 'Visita técnica para evaluar instalación y dimensionar el sistema solar.', 2500.00, 'servicio', 50, 'electricidad-energia-solar'),
   ('d0000000-0000-0000-0000-000000000012', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Inversor híbrido 5kW (instalación incluida)', 'Inversor híbrido con instalación y configuración profesional.', 78000.00, 'unidad', 12, 'electricidad-canalizacion-y-accesorios'),
+   'Inversor híbrido 5kW (instalación incluida)', 'Inversor híbrido con instalación y configuración profesional.', 78000.00, 'unidad', 12, 'electricidad-energia-solar'),
   ('d0000000-0000-0000-0000-000000000013', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Panel solar monocristalino 550W', 'Panel de alta eficiencia con 25 años de garantía.', 12500.00, 'unidad', 80, 'electricidad-iluminacion'),
+   'Panel solar monocristalino 550W', 'Panel de alta eficiencia con 25 años de garantía.', 12500.00, 'unidad', 80, 'electricidad-energia-solar'),
   ('d0000000-0000-0000-0000-000000000014', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Batería de litio 5kWh', 'Banco de baterías de litio para respaldo de energía.', 95000.00, 'unidad', 15, 'electricidad-iluminacion'),
+   'Batería de litio 5kWh', 'Banco de baterías de litio para respaldo de energía.', 95000.00, 'unidad', 15, 'electricidad-energia-solar'),
   ('d0000000-0000-0000-0000-000000000015', 'b0000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000002',
-   'Kit solar residencial 3kW llave en mano', 'Paneles, inversor, estructura e instalación completa.', 285000.00, 'kit', 6, 'electricidad-canalizacion-y-accesorios')
+   'Kit solar residencial 3kW llave en mano', 'Paneles, inversor, estructura e instalación completa.', 285000.00, 'kit', 6, 'electricidad-energia-solar')
 on conflict (id) do update set subcategoria_id = excluded.subcategoria_id;
 
 -- Productos / servicios — AutoChequeo RD (categoría: automotriz)

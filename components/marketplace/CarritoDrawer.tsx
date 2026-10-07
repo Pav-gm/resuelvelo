@@ -8,6 +8,14 @@ import { cotizarDesdeCarrito } from '@/app/(marketplace)/cotizaciones/actions'
 
 const noop = () => () => {}
 
+/**
+ * Respuesta de error de cotizarDesdeCarrito. El servidor añade `noDisponibles`
+ * con los ids que ya no existen o están inactivos (ver contrato). Se declara
+ * aquí el consumo del campo; el tipo exportado por el servidor se ampliará por
+ * separado sin cambiar los nombres de las funciones.
+ */
+type ResultadoCotizar = { error: string; noDisponibles?: string[] }
+
 export default function CarritoDrawer() {
   const [abierto, setAbierto] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,8 +32,11 @@ export default function CarritoDrawer() {
     form.set('items', JSON.stringify(items))
 
     startTransition(async () => {
-      const result = await cotizarDesdeCarrito(null, form)
+      const result = (await cotizarDesdeCarrito(null, form)) as ResultadoCotizar | null
       if (result?.error) {
+        if (result.noDisponibles) {
+          for (const id of result.noDisponibles) quitar(id)
+        }
         setError(result.error)
       }
       // En éxito, la Server Action redirige; vaciar el carrito aquí
@@ -63,8 +74,11 @@ export default function CarritoDrawer() {
             </div>
 
             {items.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center text-gray-400 text-sm">
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 px-5 text-center text-sm text-gray-400">
                 El carrito está vacío.
+                {error && (
+                  <p className="text-xs text-red-600">{error}</p>
+                )}
               </div>
             ) : (
               <>

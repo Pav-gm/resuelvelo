@@ -8,7 +8,11 @@ import type { ItemCarrito } from '@/types'
 // ─── Crear cotización(es) desde el carrito ───────────────────
 // Agrupa los items por proveedor y crea una cotización por cada uno.
 
-export type CotizarError = { error: string } | null
+export type CotizarError = { error: string; noDisponibles?: string[] } | null
+
+// Forma de un uuid de Postgres, sin exigir versión ni variante: los productos del
+// seed (y de producción) usan ids como d0000000-0000-0000-0000-000000000001.
+const UUID_PRODUCTO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function cotizarDesdeCarrito(
   _prevState: CotizarError,
@@ -66,58 +70,68 @@ export async function cotizarDesdeCarrito(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Agrupar items por proveedor_id (el valor que venga del carrito del cliente)
-  const grupos: Record<string, ItemCarrito[]> = {}
-  for (const item of items) {
-    const pid = item.producto.proveedor_id
-    if (!grupos[pid]) grupos[pid] = []
-    grupos[pid].push(item)
-  }
-
   // Resolver todos los productos de una vez contra la base de datos: nunca
   // confiamos en proveedor_id/precio que llega del carrito del cliente, ya
   // que puede provenir de datos mock (IDs no-UUID) o estar desactualizado.
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  const productoIdsConsultables = items
-    .map((i) => i.producto.id)
-    .filter((id) => uuidRegex.test(id))
-  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; activo: boolean }[] | null = []
-  if (productoIdsConsultables.length) {
-    try {
+  const todosLosProductoIds = items.map((i) => i.producto.id)
+  const idsUuid = todosLosProductoIds.filter((id) => UUID_PRODUCTO.test(id))
+  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; activo: boolean }[]
+  try {
+    if (idsUuid.length) {
       const { data, error } = await supabase
         .from('productos')
         .select('id, proveedor_id, precio, stock, activo')
-        .in('id', productoIdsConsultables)
+        .in('id', idsUuid)
 
       if (error) return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
-      productosDb = data
-    } catch {
-      return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
+      productosDb = data ?? []
+    } else {
+      productosDb = []
+    }
+  } catch {
+    return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
+  }
+
+  const productoPorId = new Map(productosDb.map((p) => [p.id, p]))
+  const noDisponibles = items.filter((item) => {
+    if (!UUID_PRODUCTO.test(item.producto.id)) return true
+    const productoDb = productoPorId.get(item.producto.id)
+    return !productoDb || !productoDb.activo
+  })
+  if (noDisponibles.length) {
+    const nombres = noDisponibles.map((item) => {
+      const nombre = (item.producto as { nombre?: unknown }).nombre
+      return typeof nombre === 'string' && nombre.trim() ? nombre : 'uno de los productos'
+    }).join(', ')
+    return {
+      error: `Estos productos ya no están disponibles: ${nombres}. Los quitamos del carrito.`,
+      noDisponibles: noDisponibles.map((item) => item.producto.id),
     }
   }
 
-  const productoPorId = new Map((productosDb ?? []).map((p) => [p.id, p]))
   for (const item of items) {
-    const productoDb = productoPorId.get(item.producto.id)
-    // Los IDs que no existen conservan el flujo parcial previo.
-    if (productoDb?.activo === true && item.cantidad > productoDb.stock) {
+    const productoDb = productoPorId.get(item.producto.id)!
+    if (item.cantidad > productoDb.stock) {
       return {
         error: `No hay stock suficiente para ${item.producto.nombre ?? 'uno de los productos'} (disponible: ${productoDb.stock}, solicitado: ${item.cantidad}).`,
       }
     }
   }
 
+  const grupos: Record<string, ItemCarrito[]> = {}
+  for (const item of items) {
+    const proveedorId = productoPorId.get(item.producto.id)!.proveedor_id
+    if (!grupos[proveedorId]) grupos[proveedorId] = []
+    grupos[proveedorId].push(item)
+  }
+
   let creadas = 0
-  let algunProductoInvalido = false
 
   for (const itemsGrupo of Object.values(grupos)) {
-    const itemsValidos = itemsGrupo.filter((i) => productoPorId.get(i.producto.id)?.activo === true)
-    if (itemsValidos.length < itemsGrupo.length) algunProductoInvalido = true
-    if (!itemsValidos.length) continue
 
-    const proveedorId = productoPorId.get(itemsValidos[0].producto.id)!.proveedor_id
+    const proveedorId = productoPorId.get(itemsGrupo[0].producto.id)!.proveedor_id
 
-    const total = itemsValidos.reduce((sum, i) => {
+    const total = itemsGrupo.reduce((sum, i) => {
       const precio = productoPorId.get(i.producto.id)!.precio
       return sum + precio * i.cantidad
     }, 0)
@@ -135,7 +149,7 @@ export async function cotizarDesdeCarrito(
 
     if (errCot || !cotizacion) continue
 
-    const itemsInsert = itemsValidos.map((i) => ({
+    const itemsInsert = itemsGrupo.map((i) => ({
       cotizacion_id: cotizacion.id,
       producto_id: i.producto.id,
       cantidad: i.cantidad,
@@ -155,7 +169,7 @@ export async function cotizarDesdeCarrito(
   }
 
   revalidatePath('/mis-cotizaciones')
-  redirect(`/mis-cotizaciones?enviada=1${algunProductoInvalido ? '&parcial=1' : ''}`)
+  redirect('/mis-cotizaciones?enviada=1')
 }
 
 // ─── Responder cotización (proveedor) ────────────────────────
