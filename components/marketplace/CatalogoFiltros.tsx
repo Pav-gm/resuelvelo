@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Categoria, Subcategoria } from '@/types'
@@ -54,10 +54,37 @@ export default function CatalogoFiltros({
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
+  const [busqueda, setBusqueda] = useState(busquedaInicial)
+  const [busquedaPrevia, setBusquedaPrevia] = useState(busquedaInicial)
+  if (busquedaInicial !== busquedaPrevia) {
+    setBusquedaPrevia(busquedaInicial)
+    setBusqueda(busquedaInicial)
+  }
+
+  const aplicarBusqueda = useCallback(
+    (params: URLSearchParams) => {
+      const texto = busqueda.trim()
+      if (texto) {
+        params.set('busqueda', texto)
+      } else {
+        params.delete('busqueda')
+      }
+    },
+    [busqueda]
+  )
+
+  // La URL que ya se pidió pero que searchParams todavía no refleja: si dos filtros se aplican seguidos
+  // (por ejemplo, cambiar el orden y pulsar «Aplicar filtros» enseguida), el segundo parte de ella y no pierde el primero.
+  const paramsPendientes = useRef<string | null>(null)
+  useEffect(() => {
+    paramsPendientes.current = null
+  }, [searchParams])
+
   const updateParams = useCallback(
     (mutate: (params: URLSearchParams) => void) => {
-      const params = new URLSearchParams(searchParams.toString())
+      const params = new URLSearchParams(paramsPendientes.current ?? searchParams.toString())
       mutate(params)
+      paramsPendientes.current = params.toString()
       router.push(`${pathname}?${params.toString()}`)
     },
     [router, pathname, searchParams]
@@ -65,14 +92,7 @@ export default function CatalogoFiltros({
 
   function handleBusqueda(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const busqueda = (e.currentTarget.elements.namedItem('busqueda') as HTMLInputElement)?.value
-    updateParams((params) => {
-      if (busqueda) {
-        params.set('busqueda', busqueda)
-      } else {
-        params.delete('busqueda')
-      }
-    })
+    updateParams(aplicarBusqueda)
   }
 
   function handleCategoria(slug: string | undefined) {
@@ -125,6 +145,7 @@ export default function CatalogoFiltros({
         for (const valor of restantes) params.append('proveedor', valor)
       } else {
         params.delete(key)
+        if (key === 'categoria') params.delete('subcategoria')
       }
     })
   }
@@ -143,6 +164,7 @@ export default function CatalogoFiltros({
     const conStock = (form.elements.namedItem('conStock') as HTMLInputElement)?.checked
 
     updateParams((params) => {
+      aplicarBusqueda(params)
       if (precioMin) {
         params.set('precioMin', precioMin)
       } else {
@@ -204,12 +226,13 @@ export default function CatalogoFiltros({
   return (
     <>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
-        <form key={busquedaInicial} onSubmit={handleBusqueda} className="relative flex-1">
+        <form onSubmit={handleBusqueda} className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             name="busqueda"
             type="search"
-            defaultValue={busquedaInicial}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar productos, materiales, marcas..."
             className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-4 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
           />

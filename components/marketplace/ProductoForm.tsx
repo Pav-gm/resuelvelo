@@ -20,6 +20,23 @@ export default function ProductoForm({ categorias, subcategorias, producto }: Pr
     (sub) => sub.categoria_id === categoriaId
   )
 
+  function limpiarValidez(e: { currentTarget: HTMLInputElement | HTMLSelectElement }) {
+    e.currentTarget.setCustomValidity('')
+  }
+
+  function marcarInvalido(
+    e: { currentTarget: HTMLInputElement | HTMLSelectElement },
+    mensajeVacio: string,
+    mensajeNegativo?: string
+  ) {
+    const control = e.currentTarget
+    if (mensajeNegativo && control.validity.rangeUnderflow) {
+      control.setCustomValidity(mensajeNegativo)
+    } else {
+      control.setCustomValidity(mensajeVacio)
+    }
+  }
+
   return (
     <form action={formAction} className="space-y-5 rounded-2xl bg-white border p-6 shadow-sm">
       {producto && <input type="hidden" name="id" value={producto.id} />}
@@ -41,6 +58,8 @@ export default function ProductoForm({ categorias, subcategorias, producto }: Pr
           required
           defaultValue={producto?.nombre}
           placeholder="Ej: Tubo PVC 4'' sanitario"
+          onInvalid={(e) => marcarInvalido(e, 'Escribe el nombre del producto.')}
+          onChange={limpiarValidez}
           className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
         />
       </div>
@@ -68,7 +87,9 @@ export default function ProductoForm({ categorias, subcategorias, producto }: Pr
           name="categoria_id"
           required
           value={categoriaId}
+          onInvalid={(e) => marcarInvalido(e, 'Selecciona una categoría.')}
           onChange={(e) => {
+            e.currentTarget.setCustomValidity('')
             setCategoriaId(e.target.value)
             setSubcategoriaId('')
           }}
@@ -93,7 +114,7 @@ export default function ProductoForm({ categorias, subcategorias, producto }: Pr
           required
           value={subcategoriaId}
           disabled={!categoriaId}
-          onInvalid={(e) => e.currentTarget.setCustomValidity('Selecciona una subcategoría.')}
+          onInvalid={(e) => marcarInvalido(e, 'Selecciona una subcategoría.')}
           onChange={(e) => {
             e.currentTarget.setCustomValidity('')
             setSubcategoriaId(e.target.value)
@@ -123,6 +144,10 @@ export default function ProductoForm({ categorias, subcategorias, producto }: Pr
             step="0.01"
             defaultValue={producto?.precio}
             placeholder="0.00"
+            onInvalid={(e) =>
+              marcarInvalido(e, 'Ingresa un precio válido.', 'El precio no puede ser negativo.')
+            }
+            onChange={limpiarValidez}
             className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
           />
         </div>
@@ -138,6 +163,8 @@ export default function ProductoForm({ categorias, subcategorias, producto }: Pr
             required
             defaultValue={producto?.unidad ?? 'unidad'}
             placeholder="unidad, saco, rollo..."
+            onInvalid={(e) => marcarInvalido(e, 'Ingresa la unidad del producto.')}
+            onChange={limpiarValidez}
             className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
           />
         </div>
@@ -154,6 +181,10 @@ export default function ProductoForm({ categorias, subcategorias, producto }: Pr
           required
           min={0}
           defaultValue={producto?.stock ?? 0}
+          onInvalid={(e) =>
+            marcarInvalido(e, 'Ingresa el stock disponible.', 'El stock no puede ser negativo.')
+          }
+          onChange={limpiarValidez}
           className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
         />
       </div>

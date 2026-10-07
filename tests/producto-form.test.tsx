@@ -72,6 +72,88 @@ describe('ProductoForm — subcategoría dependiente de categoría', () => {
   })
 })
 
+describe('ProductoForm — validaciones en español', () => {
+  function comprobarMensajesPropios() {
+    const nombre = screen.getByLabelText(/^Nombre del producto/) as HTMLInputElement
+    const categoria = selectCategoria()
+    const precio = screen.getByLabelText(/^Precio/) as HTMLInputElement
+    const unidad = screen.getByLabelText(/^Unidad/) as HTMLInputElement
+    const stock = screen.getByLabelText(/^Stock/) as HTMLInputElement
+
+    fireEvent.change(nombre, { target: { value: '' } })
+    nombre.checkValidity()
+    expect(nombre.validationMessage).toBe('Escribe el nombre del producto.')
+    fireEvent.change(nombre, { target: { value: 'Producto' } })
+    expect(nombre.validationMessage).toBe('')
+
+    fireEvent.change(categoria, { target: { value: '' } })
+    categoria.checkValidity()
+    expect(categoria.validationMessage).toBe('Selecciona una categoría.')
+    fireEvent.change(categoria, { target: { value: 'cat-elec' } })
+    expect(categoria.validationMessage).toBe('')
+
+    const subcategoria = selectSubcategoria()
+    subcategoria.checkValidity()
+    expect(subcategoria.validationMessage).toBe('Selecciona una subcategoría.')
+    fireEvent.change(subcategoria, { target: { value: 'electricidad-cables' } })
+    expect(subcategoria.validationMessage).toBe('')
+
+    fireEvent.change(precio, { target: { value: '' } })
+    precio.checkValidity()
+    expect(precio.validationMessage).toBe('Ingresa un precio válido.')
+    fireEvent.change(precio, { target: { value: '-1' } })
+    precio.checkValidity()
+    expect(precio.validationMessage).toBe('El precio no puede ser negativo.')
+    fireEvent.change(precio, { target: { value: '100' } })
+    expect(precio.validationMessage).toBe('')
+
+    fireEvent.change(unidad, { target: { value: '' } })
+    unidad.checkValidity()
+    expect(unidad.validationMessage).toBe('Ingresa la unidad del producto.')
+    fireEvent.change(unidad, { target: { value: 'unidad' } })
+    expect(unidad.validationMessage).toBe('')
+
+    fireEvent.change(stock, { target: { value: '' } })
+    stock.checkValidity()
+    expect(stock.validationMessage).toBe('Ingresa el stock disponible.')
+    fireEvent.change(stock, { target: { value: '-1' } })
+    stock.checkValidity()
+    expect(stock.validationMessage).toBe('El stock no puede ser negativo.')
+    fireEvent.change(stock, { target: { value: '5' } })
+    expect(stock.validationMessage).toBe('')
+  }
+
+  it('muestra mensajes de validación propios en español al crear y editar', () => {
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      activo: true,
+      created_at: '',
+    }
+
+    const { unmount } = render(
+      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} />
+    )
+    comprobarMensajesPropios()
+    unmount()
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+      />
+    )
+    comprobarMensajesPropios()
+  })
+})
+
 describe('ProductoForm — obligatoriedad de subcategoría', () => {
   it('requiere subcategoría al crear producto', () => {
     render(<ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} />)

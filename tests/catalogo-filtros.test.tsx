@@ -11,12 +11,20 @@ import type { ProveedorConConteo } from '@/lib/data'
 const mocks = vi.hoisted(() => ({
   pushMock: vi.fn(),
   paramsState: { value: '' },
+  // Como en Next, el mismo objeto mientras la URL no cambia: un re-render por estado local no lo renueva.
+  cache: { value: null as string | null, params: new URLSearchParams() },
 }))
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.pushMock }),
   usePathname: () => '/catalogo',
-  useSearchParams: () => new URLSearchParams(mocks.paramsState.value),
+  useSearchParams: () => {
+    if (mocks.cache.value !== mocks.paramsState.value) {
+      mocks.cache.value = mocks.paramsState.value
+      mocks.cache.params = new URLSearchParams(mocks.paramsState.value)
+    }
+    return mocks.cache.params
+  },
 }))
 
 const CATEGORIAS: Categoria[] = [
@@ -156,7 +164,86 @@ describe('CatalogoFiltros — proveedores y orden', () => {
   })
 })
 
+describe('CatalogoFiltros — búsqueda y filtros', () => {
+  it('Aplicar filtros incluye la búsqueda escrita y conserva los filtros existentes', () => {
+    mocks.paramsState.value = '?orden=precio_desc'
+    const { rerender } = render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        ordenInicial="precio_desc"
+      />
+    )
+
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'cable' } })
+    fireEvent.change(screen.getByLabelText('Precio mínimo (DOP)'), {
+      target: { value: '10' },
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Solo con stock' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+    const params = ultimoPush()
+    expect(params.get('busqueda')).toBe('cable')
+    expect(params.get('precioMin')).toBe('10')
+    expect(params.get('conStock')).toBe('1')
+    expect(params.get('orden')).toBe('precio_desc')
+    expect(params.has('precioMax')).toBe(false)
+
+    rerender(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        busquedaInicial="cable"
+        ordenInicial="precio_desc"
+      />
+    )
+    expect(screen.getByText('Búsqueda: cable')).toBeInTheDocument()
+  })
+
+  it('Aplicar filtros justo después de cambiar el orden no pierde el orden', () => {
+    render(
+      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} />
+    )
+
+    // La URL del orden ya se pidió, pero searchParams todavía no cambió (la navegación no terminó).
+    fireEvent.change(screen.getByLabelText('Ordenar por'), { target: { value: 'nombre_asc' } })
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'cable' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+    const params = ultimoPush()
+    expect(params.get('orden')).toBe('nombre_asc')
+    expect(params.get('busqueda')).toBe('cable')
+  })
+})
+
 describe('CatalogoFiltros — chips y limpieza', () => {
+  it('quitar el chip de categoría elimina también la subcategoría', () => {
+    mocks.paramsState.value =
+      '?categoria=electricidad&subcategoria=electricidad-0&orden=nombre_asc'
+    render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        categoriaInicial="electricidad"
+        subcategoriaInicial="electricidad-0"
+        ordenInicial="nombre_asc"
+      />
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar filtro Categoría: Electricidad' })
+    )
+
+    const params = ultimoPush()
+    expect(params.has('categoria')).toBe(false)
+    expect(params.has('subcategoria')).toBe(false)
+    expect(params.get('orden')).toBe('nombre_asc')
+  })
+
   it('quita un chip sin borrar otros filtros y limpia todos los filtros', () => {
     mocks.paramsState.value =
       '?busqueda=cable&categoria=electricidad&subcategoria=electricidad-0&proveedor=p1&proveedor=p2&precioMin=10&precioMax=30&conStock=1&orden=nombre_asc'
