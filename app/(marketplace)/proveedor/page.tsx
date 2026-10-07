@@ -12,6 +12,7 @@ import {
   getCotizacionesDeProveedor,
   getProductosDeProveedor,
 } from '@/lib/data'
+import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import ToggleProductoButton from '@/components/marketplace/ToggleProductoButton'
 import EliminarProductoButton from '@/components/marketplace/EliminarProductoButton'
 
@@ -109,7 +110,7 @@ export default async function PanelProveedorPage() {
                   {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">Cotización #{cot.id.slice(0, 8)}</p>
+                  <p className="font-medium text-gray-900 truncate">Cotización #{formatNumeroCotizacion(cot.numero)}</p>
                   <p className="text-xs text-gray-400">
                     {cantItems} producto{cantItems !== 1 ? 's' : ''} · {new Date(cot.created_at).toLocaleDateString('es-DO')}
                   </p>
