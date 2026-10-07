@@ -117,8 +117,8 @@ function filtrarProductos(productos: Producto[], filtros?: FiltrosProductos): Pr
 }
 
 function normalizePrecioRange(precioMin?: number, precioMax?: number): { min?: number; max?: number } {
-  let min = precioMin !== undefined && !Number.isNaN(precioMin) ? precioMin : undefined
-  let max = precioMax !== undefined && !Number.isNaN(precioMax) ? precioMax : undefined
+  let min = precioMin !== undefined && Number.isFinite(precioMin) && precioMin >= 0 ? precioMin : undefined
+  let max = precioMax !== undefined && Number.isFinite(precioMax) && precioMax >= 0 ? precioMax : undefined
   if (min !== undefined && max !== undefined && min > max) [min, max] = [max, min]
   return { min, max }
 }
