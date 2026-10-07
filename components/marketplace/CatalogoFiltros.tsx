@@ -139,6 +139,7 @@ export default function CatalogoFiltros({
   }
 
   function quitarFiltro(key: Chip['key'], value?: string) {
+    setErrorPrecios('')
     updateParams((params) => {
       if (key === 'proveedor' && value) {
         const restantes = params.getAll('proveedor').filter((valor) => valor !== value)
@@ -152,6 +153,7 @@ export default function CatalogoFiltros({
   }
 
   function limpiarFiltros() {
+    setErrorPrecios('')
     updateParams((params) => {
       for (const key of FILTRO_KEYS) params.delete(key)
     })
