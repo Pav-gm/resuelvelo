@@ -49,48 +49,50 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           )}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="flex items-center gap-3">
+          {/* Carrito siempre visible, también en móvil, junto al menú hamburguesa. */}
           <CarritoDrawer />
-
-          {usuario ? (
-            <>
-              <Link href={panelHref}>
-                <Button variant="ghost" size="sm" className="gap-1.5">
-                  <LayoutDashboard className="h-4 w-4" />
-                  {usuario.nombre}
-                </Button>
-              </Link>
-              <form action={cerrarSesion}>
-                <Button variant="outline" size="sm" type="submit" className="gap-1.5">
-                  <LogOut className="h-4 w-4" />
-                  Salir
-                </Button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href="/login">
-                <Button variant="ghost" size="sm">
-                  <User className="mr-1.5 h-4 w-4" />
-                  Ingresar
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-                  Registrarse
-                </Button>
-              </Link>
-            </>
-          )}
+          {/* Nombre y acciones de cuenta: solo desde el breakpoint md. */}
+          <div className="hidden items-center gap-3 md:flex">
+            {usuario ? (
+              <>
+                <Link href={panelHref}>
+                  <Button variant="ghost" size="sm" className="gap-1.5">
+                    <LayoutDashboard className="h-4 w-4" />
+                    {usuario.nombre}
+                  </Button>
+                </Link>
+                <form action={cerrarSesion}>
+                  <Button variant="outline" size="sm" type="submit" className="gap-1.5">
+                    <LogOut className="h-4 w-4" />
+                    Salir
+                  </Button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" size="sm">
+                    <User className="mr-1.5 h-4 w-4" />
+                    Ingresar
+                  </Button>
+                </Link>
+                <Link href="/register">
+                  <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+                    Registrarse
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
+          <button
+            className="md:hidden"
+            onClick={() => setMenuAbierto(!menuAbierto)}
+            aria-label="Menú"
+          >
+            {menuAbierto ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
-
-        <button
-          className="md:hidden"
-          onClick={() => setMenuAbierto(!menuAbierto)}
-          aria-label="Menú"
-        >
-          {menuAbierto ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
       </div>
 
       <div className={cn('md:hidden border-t bg-white', menuAbierto ? 'block' : 'hidden')}>

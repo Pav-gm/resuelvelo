@@ -16,6 +16,7 @@ export default function ToggleProductoButton({ id, activo }: Props) {
     <Button
       variant="outline"
       size="sm"
+      className="min-h-11 sm:min-h-0 sm:h-7"
       disabled={pending}
       onClick={() =>
         startTransition(() => toggleProducto(id, !activo))

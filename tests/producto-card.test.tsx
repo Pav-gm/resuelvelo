@@ -38,18 +38,37 @@ afterEach(() => {
 })
 
 describe('ProductoCard — diseño responsive', () => {
+  it('mantiene el botón Agregar dentro del ancho móvil de la tarjeta', () => {
+    render(<ProductoCard producto={producto({ stock: 5 })} />)
+
+    // Ocupa todo el ancho en móvil y vuelve al ancho automático desde `sm`.
+    const boton = screen.getByRole('button', { name: 'Agregar' })
+    expect(boton).toHaveClass('w-full', 'sm:w-auto')
+  })
+
   it('adapta el precio y el botón Agregar al ancho móvil de la tarjeta', () => {
-    render(<ProductoCard producto={producto({ id: 'prod-1', nombre: 'Tubo PVC 4"', stock: 5 })} />)
+    render(<ProductoCard producto={producto({ stock: 5 })} />)
 
     const boton = screen.getByRole('button', { name: 'Agregar' })
     const contenedor = boton.parentElement as HTMLElement
 
-    expect(contenedor.className).toContain('flex-col')
-    expect(contenedor.className).toContain('sm:flex-row')
-    expect(boton.className).toContain('w-full')
-    expect(boton.className).toContain('sm:w-auto')
-    expect(boton.className).toContain('whitespace-normal')
-    expect(boton.className).toContain('sm:whitespace-nowrap')
+    // En móvil precio y botón se apilan y el botón ocupa el ancho de la tarjeta.
+    expect(contenedor).toHaveClass('flex-col', 'sm:flex-row', 'min-w-0')
+
+    // El texto puede partirse en móvil y el botón no se sale de la tarjeta.
+    expect(boton).toHaveClass(
+      'w-full',
+      'sm:w-auto',
+      'whitespace-normal',
+      'sm:whitespace-nowrap',
+      'min-w-0',
+      'max-w-full',
+      'justify-center'
+    )
+
+    // El icono no se encoge cuando el texto ocupa más espacio.
+    const icono = boton.querySelector('svg')
+    expect(icono?.getAttribute('class')).toContain('shrink-0')
   })
 })
 

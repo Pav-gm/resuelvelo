@@ -72,6 +72,16 @@ describe('getProductos — fallback a mock', () => {
     expect(productos.some((p) => p.id === '1')).toBe(false)
   })
 
+  it('ignora precio mínimo negativo o no numérico al combinarlo con precio máximo', async () => {
+    const { getProductos } = await import('@/lib/data')
+    const conMinimoNegativo = await getProductos({ precioMin: -5, precioMax: 320 })
+    const conMinimoNoNumerico = await getProductos({ precioMin: Number.NaN, precioMax: 320 })
+    const soloMaximo = await getProductos({ precioMax: 320 })
+
+    expect(conMinimoNegativo.map((p) => p.id)).toEqual(soloMaximo.map((p) => p.id))
+    expect(conMinimoNoNumerico.map((p) => p.id)).toEqual(soloMaximo.map((p) => p.id))
+  })
+
   it('filtra por rango de precio mínimo y máximo', async () => {
     const { getProductos } = await import('@/lib/data')
     const productos = await getProductos({ precioMin: 300, precioMax: 700 })

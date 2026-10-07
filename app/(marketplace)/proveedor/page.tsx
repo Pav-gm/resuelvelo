@@ -12,8 +12,8 @@ import {
   getCotizacionesDeProveedor,
   getProductosDeProveedor,
 } from '@/lib/data'
-import ToggleProductoButton from '@/components/marketplace/ToggleProductoButton'
-import EliminarProductoButton from '@/components/marketplace/EliminarProductoButton'
+import { formatNumeroCotizacion } from '@/lib/cotizaciones'
+import ListaProductosProveedor from '@/components/marketplace/ListaProductosProveedor'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
@@ -58,7 +58,7 @@ export default async function PanelProveedorPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="mb-8 flex items-center justify-between">
+      <div data-testid="panel-header" className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Panel de proveedor</h1>
           <p className="mt-1 text-gray-500">
@@ -89,7 +89,7 @@ export default async function PanelProveedorPage() {
 
       {/* Cotizaciones recientes */}
       <div className="rounded-2xl bg-white border shadow-sm mb-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div data-testid="quotes-header" className="flex flex-wrap items-center justify-between gap-2 px-4 py-4 sm:px-6 border-b">
           <h2 className="font-semibold text-gray-900">Cotizaciones recientes</h2>
           <Link href="/proveedor/pedidos">
             <Button variant="ghost" size="sm" className="text-orange-500 hover:text-orange-600">
@@ -103,13 +103,17 @@ export default async function PanelProveedorPage() {
             const Icono = estadoIcono[cot.estado] ?? Clock
             const cantItems = cot.items?.length ?? 0
             return (
-              <div key={cot.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors">
+              <div key={cot.id} data-testid="quote-row" className="flex flex-wrap items-center gap-3 px-4 py-4 transition-colors hover:bg-gray-50 sm:flex-nowrap sm:gap-4 sm:px-6">
                 <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
                   <Icono className="h-3 w-3" />
                   {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">Cotización #{cot.id.slice(0, 8)}</p>
+                  {/* `numero` es el número visible de la cotización; si la lectura no lo
+                      trae, se muestra el prefijo de su id. */}
+                  <p className="font-medium text-gray-900 break-words sm:truncate">
+                    Cotización #{cot.numero != null ? formatNumeroCotizacion(cot.numero) : cot.id.slice(0, 8)}
+                  </p>
                   <p className="text-xs text-gray-400">
                     {cantItems} producto{cantItems !== 1 ? 's' : ''} · {new Date(cot.created_at).toLocaleDateString('es-DO')}
                   </p>
@@ -131,32 +135,7 @@ export default async function PanelProveedorPage() {
         <div className="px-6 py-4 border-b">
           <h2 className="font-semibold text-gray-900">Mis productos</h2>
         </div>
-        <div className="divide-y">
-          {productos.map((p) => (
-            <div key={p.id} className="flex items-center gap-4 px-6 py-4">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{p.nombre}</p>
-                <p className="text-xs text-gray-400">
-                  ${p.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {p.unidad} · Stock: {p.stock}
-                </p>
-              </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${p.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                {p.activo ? 'Activo' : 'Inactivo'}
-              </span>
-              <ToggleProductoButton id={p.id} activo={p.activo} />
-              <Link href={`/proveedor/productos/${p.id}/editar`}>
-                <Button variant="outline" size="sm">Editar</Button>
-              </Link>
-              <EliminarProductoButton id={p.id} nombre={p.nombre} />
-            </div>
-          ))}
-          {productos.length === 0 && (
-            <p className="px-6 py-8 text-center text-sm text-gray-400">
-              Aún no publicaste productos.{' '}
-              <Link href="/proveedor/productos/nuevo" className="text-orange-500 hover:underline">Publicar ahora</Link>
-            </p>
-          )}
-        </div>
+        <ListaProductosProveedor productos={productos} enTarjeta={false} />
       </div>
     </div>
   )

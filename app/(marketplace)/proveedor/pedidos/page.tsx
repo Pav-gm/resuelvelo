@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getCotizacionesDeProveedor } from '@/lib/data'
+import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
 import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 import AccionesVentaProveedor from '@/components/marketplace/AccionesVentaProveedor'
@@ -30,7 +31,7 @@ export default async function PedidosPage() {
       <h1 className="mb-6 text-2xl font-bold text-gray-900">Bandeja de cotizaciones</h1>
 
       {cotizaciones.length === 0 ? (
-        <div className="rounded-2xl bg-white border p-12 text-center text-gray-400">
+        <div className="rounded-2xl bg-white border px-4 py-12 text-center text-gray-400 sm:px-6">
           <p className="text-lg font-medium">Sin cotizaciones</p>
           <p className="mt-1 text-sm">Las solicitudes de los compradores aparecerán aquí.</p>
         </div>
@@ -44,10 +45,10 @@ export default async function PedidosPage() {
             )
             return (
               <div key={cot.id} className="rounded-2xl bg-white border shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b">
+                <div data-testid="order-header" className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 border-b">
                   <div>
                     <p className="font-semibold text-gray-900">
-                      Cotización #{cot.id.slice(0, 8).toUpperCase()}
+                      Cotización #{formatNumeroCotizacion(cot.numero)}
                     </p>
                     <p className="text-xs text-gray-400">
                       {new Date(cot.created_at).toLocaleDateString('es-DO', {
@@ -55,7 +56,7 @@ export default async function PedidosPage() {
                       })}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className={`rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
                       {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
                     </span>
@@ -67,11 +68,11 @@ export default async function PedidosPage() {
 
                 <div className="divide-y">
                   {items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between px-6 py-3 text-sm">
-                      <span className="text-gray-700">
+                    <div key={item.id} data-testid="order-item-row" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm sm:flex-nowrap sm:px-6">
+                      <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] text-gray-700">
                         {(item as { producto?: { nombre?: string } }).producto?.nombre ?? item.producto_id}
                       </span>
-                      <div className="flex items-center gap-6 text-gray-500">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
                         <span>x{item.cantidad}</span>
                         {item.precio_unitario != null && (
                           <span className="font-medium text-gray-700">
@@ -86,7 +87,7 @@ export default async function PedidosPage() {
                 </div>
 
                 {total > 0 && (
-                  <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
+                  <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
                     Total estimado: ${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                   </div>
                 )}

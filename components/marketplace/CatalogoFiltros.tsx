@@ -55,6 +55,7 @@ export default function CatalogoFiltros({
   const searchParams = useSearchParams()
 
   const [busqueda, setBusqueda] = useState(busquedaInicial)
+  const [errorPrecios, setErrorPrecios] = useState('')
   const [busquedaPrevia, setBusquedaPrevia] = useState(busquedaInicial)
   if (busquedaInicial !== busquedaPrevia) {
     setBusquedaPrevia(busquedaInicial)
@@ -138,6 +139,7 @@ export default function CatalogoFiltros({
   }
 
   function quitarFiltro(key: Chip['key'], value?: string) {
+    setErrorPrecios('')
     updateParams((params) => {
       if (key === 'proveedor' && value) {
         const restantes = params.getAll('proveedor').filter((valor) => valor !== value)
@@ -151,6 +153,7 @@ export default function CatalogoFiltros({
   }
 
   function limpiarFiltros() {
+    setErrorPrecios('')
     updateParams((params) => {
       for (const key of FILTRO_KEYS) params.delete(key)
     })
@@ -162,6 +165,27 @@ export default function CatalogoFiltros({
     const precioMin = (form.elements.namedItem('precioMin') as HTMLInputElement)?.value.trim()
     const precioMax = (form.elements.namedItem('precioMax') as HTMLInputElement)?.value.trim()
     const conStock = (form.elements.namedItem('conStock') as HTMLInputElement)?.checked
+
+    const minNumero = precioMin ? Number(precioMin) : undefined
+    const maxNumero = precioMax ? Number(precioMax) : undefined
+
+    if (
+      (minNumero !== undefined && minNumero < 0) ||
+      (maxNumero !== undefined && maxNumero < 0)
+    ) {
+      setErrorPrecios('Los precios no pueden ser negativos.')
+      return
+    }
+    if (
+      minNumero !== undefined &&
+      maxNumero !== undefined &&
+      minNumero > maxNumero
+    ) {
+      setErrorPrecios('El precio mínimo no puede ser mayor que el máximo.')
+      return
+    }
+
+    setErrorPrecios('')
 
     updateParams((params) => {
       aplicarBusqueda(params)
@@ -242,6 +266,7 @@ export default function CatalogoFiltros({
       <form
         key={`${precioMinInicial}|${precioMaxInicial}|${conStockInicial ? '1' : '0'}`}
         onSubmit={handleFiltrosPrecio}
+        noValidate
         className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
       >
         <div className="flex flex-1 flex-col gap-1 sm:min-w-[140px]">
@@ -274,6 +299,11 @@ export default function CatalogoFiltros({
             className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
           />
         </div>
+        {errorPrecios && (
+          <p role="alert" className="w-full text-sm text-red-600">
+            {errorPrecios}
+          </p>
+        )}
         <label className="flex cursor-pointer items-center gap-2 py-2.5 text-sm text-gray-700">
           <input
             name="conStock"
