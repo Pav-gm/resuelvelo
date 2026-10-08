@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 const schema = readFileSync(path.join(process.cwd(), 'supabase/schema.sql'), 'utf8')
 const migracionCantidadConfirmada = readFileSync(
-  path.join(process.cwd(), 'supabase/migrations/20261010000203_cantidad_confirmada_en_transiciones.sql'),
+  path.join(process.cwd(), 'supabase/migrations/20261010000204_cantidad_confirmada_en_transiciones.sql'),
   'utf8'
 )
 const checkCantidadConfirmada = readFileSync(
