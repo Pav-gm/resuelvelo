@@ -78,6 +78,12 @@ export interface Cotizacion {
   items?: ItemCotizacion[]
 }
 
+export type CotizacionDetalle = Cotizacion & {
+  proveedor: Pick<Proveedor, 'id' | 'nombre_empresa' | 'ciudad' | 'verificado'>
+  comprador: Pick<Profile, 'id' | 'nombre' | 'email'> & { telefono: string | null }
+  items: Array<ItemCotizacion & { producto: Pick<Producto, 'id' | 'nombre'> | null }>
+}
+
 export interface Feedback {
   id: string
   cotizacion_id: string
