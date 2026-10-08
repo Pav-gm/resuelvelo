@@ -113,7 +113,9 @@ function filtrarProductos(productos: Producto[], filtros?: FiltrosProductos): Pr
   const { min, max } = normalizePrecioRange(filtros?.precioMin, filtros?.precioMax)
   if (min !== undefined) resultado = resultado.filter((p) => p.precio >= min)
   if (max !== undefined) resultado = resultado.filter((p) => p.precio <= max)
-  if (filtros?.conStock === true) resultado = resultado.filter((p) => p.stock > 0)
+  if (filtros?.conStock === true) {
+    resultado = resultado.filter((p) => Math.max(0, p.stock - (p.stock_reservado ?? 0)) > 0)
+  }
   return ordenarProductos(resultado, filtros?.orden ?? 'precio_asc')
 }
 
@@ -268,7 +270,7 @@ export async function getCotizacionesDeProveedor(proveedorId: string): Promise<C
       *,
       items:items_cotizacion(
         *,
-        producto:productos(nombre)
+        producto:productos(nombre, stock, stock_reservado)
       )
     `)
     .eq('proveedor_id', proveedorId)
