@@ -82,6 +82,9 @@ $$;
 revoke execute on function public.get_cotizacion_detalle(uuid) from public, anon;
 grant execute on function public.get_cotizacion_detalle(uuid) to authenticated;
 
+grant update on public.cotizaciones to authenticated;
+grant update on public.items_cotizacion to authenticated;
+
 alter table public.items_cotizacion
   drop constraint items_cotizacion_cantidad_ofertada_check,
   drop column cantidad_ofertada,

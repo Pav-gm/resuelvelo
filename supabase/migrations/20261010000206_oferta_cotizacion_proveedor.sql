@@ -52,6 +52,11 @@ create policy "items: proveedor actualiza oferta pendiente"
     )
   );
 
+revoke update on public.cotizaciones from authenticated;
+grant update (plazo_dias, valida_hasta, condiciones, respondida_at, total_ofertado) on public.cotizaciones to authenticated;
+revoke update on public.items_cotizacion from authenticated;
+grant update (precio_ofertado, cantidad_ofertada) on public.items_cotizacion to authenticated;
+
 create or replace function public.responder_cotizacion_con_oferta(
   p_cotizacion_id uuid,
   p_lineas jsonb,

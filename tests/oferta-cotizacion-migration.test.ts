@@ -31,6 +31,10 @@ describe('migración de oferta de cotización', () => {
     expect(sql).toContain("estado = 'respondida'")
     expect(sql).toContain('respondida_at = now()')
     expect(sql).toMatch(/sum\(i\.precio_ofertado \* coalesce\(i\.cantidad_ofertada, i\.cantidad\)\)/i)
+    expect(sql).toContain('revoke update on public.cotizaciones from authenticated;')
+    expect(sql).toContain('grant update (plazo_dias, valida_hasta, condiciones, respondida_at, total_ofertado) on public.cotizaciones to authenticated;')
+    expect(sql).toContain('revoke update on public.items_cotizacion from authenticated;')
+    expect(sql).toContain('grant update (precio_ofertado, cantidad_ofertada) on public.items_cotizacion to authenticated;')
   })
 
   it('el rollback restaura el detalle anterior y revierte los objetos de oferta', () => {
@@ -45,6 +49,8 @@ describe('migración de oferta de cotización', () => {
     expect(sql).toContain('drop policy "items: proveedor actualiza oferta pendiente"')
     expect(sql).toContain('drop function public.responder_cotizacion_con_oferta')
     expect(sql).toContain('drop function public.rechazar_cotizacion_con_motivo')
+    expect(sql).toContain('grant update on public.cotizaciones to authenticated;')
+    expect(sql).toContain('grant update on public.items_cotizacion to authenticated;')
     for (const objeto of [
       'drop constraint items_cotizacion_cantidad_ofertada_check',
       'drop column cantidad_ofertada',
