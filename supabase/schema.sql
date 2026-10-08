@@ -121,7 +121,9 @@ create table if not exists public.items_cotizacion (
   cotizacion_id   uuid not null references public.cotizaciones(id) on delete cascade,
   producto_id     uuid not null references public.productos(id),
   cantidad        integer not null check (cantidad > 0),
-  precio_unitario numeric(12,2)
+  precio_unitario numeric(12,2),
+  sujeta_disponibilidad boolean not null default false,
+  stock_al_cotizar integer
 );
 
 alter table public.productos drop constraint if exists productos_categoria_subcategoria_fkey;
