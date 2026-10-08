@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCotizacionesDelComprador, getFeedbackPorCotizacion } from '@/lib/data'
@@ -83,13 +84,19 @@ export default async function MisCotizacionesPage({
                       })}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center justify-end gap-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
                       {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
                     </span>
                     {cot.estado === 'despachada' && (
                       <ConfirmarRecepcionButton cotizacionId={cot.id} />
                     )}
+                    <Link
+                      href={`/cotizaciones/${cot.id}`}
+                      className="text-sm font-medium text-teal-600 hover:underline"
+                    >
+                      Ver detalle
+                    </Link>
                   </div>
                 </div>
 
