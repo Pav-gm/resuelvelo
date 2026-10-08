@@ -170,7 +170,7 @@ export default async function CotizacionDetallePage({
 
       {!esComprador && detalle.estado === 'pendiente' && (
         <div className="mt-4">
-          <ResponderCotizacionButton cotizacionId={detalle.id} />
+          <ResponderCotizacionButton cotizacionId={detalle.id} items={items} />
         </div>
       )}
 

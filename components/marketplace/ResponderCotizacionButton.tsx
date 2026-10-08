@@ -9,7 +9,7 @@ import type { ItemCotizacion } from '@/types'
 interface Props {
   cotizacionId: string
   /** Líneas de la cotización; definen qué cantidades se confirman al aceptar. */
-  items?: ItemCotizacion[]
+  items: ItemCotizacion[]
 }
 
 /** Cantidad inicial sugerida: el stock observado al cotizar, sin superar lo pedido. */
@@ -17,7 +17,7 @@ function cantidadInicial(item: ItemCotizacion): number {
   return Math.min(item.cantidad, item.stock_al_cotizar ?? item.cantidad)
 }
 
-export default function ResponderCotizacionButton({ cotizacionId, items = [] }: Props) {
+export default function ResponderCotizacionButton({ cotizacionId, items }: Props) {
   const [pending, startTransition] = useTransition()
   const [abierto, setAbierto] = useState(false)
   const [error, setError] = useState<string | null>(null)
