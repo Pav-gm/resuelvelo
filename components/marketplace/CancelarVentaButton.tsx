@@ -62,7 +62,7 @@ export default function CancelarVentaButton({ cotizacionId }: { cotizacionId: st
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex w-full min-w-0 flex-col gap-3 sm:w-auto">
       <div className="flex items-center gap-3">
         <Button
           size="sm"
@@ -80,12 +80,12 @@ export default function CancelarVentaButton({ cotizacionId }: { cotizacionId: st
 
       {abierto && (
         <div
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3"
+          className="w-full min-w-0 rounded-lg border border-red-200 bg-red-50 px-4 py-3"
           role="dialog"
           aria-label="Motivo de cancelación"
         >
           <p className="text-sm text-gray-900">
-            ¿Seguro que quieres cancelar esta venta? Indica el motivo.
+            ¿Seguro que quieres cancelar esta compra? Indica el motivo.
           </p>
           <select
             aria-label="Motivo de cancelación"
