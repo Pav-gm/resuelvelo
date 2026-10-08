@@ -12,7 +12,6 @@ end;
 $$;
 
 alter table public.productos
-  drop column if exists imagen_url,
   drop column if exists sku,
   drop column if exists especificaciones,
   drop column if exists itbis_incluido;
