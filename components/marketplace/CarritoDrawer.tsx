@@ -39,8 +39,10 @@ export default function CarritoDrawer() {
         }
         setError(result.error)
       }
-      // En éxito, la Server Action redirige; vaciar el carrito aquí
-      // no es necesario porque el redirect navega fuera del componente.
+      // Un envío mixto lo resuelve el servidor en esta misma invocación: cotiza
+      // las líneas válidas y redirige. El drawer no reintenta ni genera una
+      // segunda solicitud; solo el caso sin líneas válidas devuelve error con
+      // `noDisponibles`, que aquí se quitan y se avisa.
     })
   }
 

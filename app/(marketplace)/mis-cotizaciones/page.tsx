@@ -96,9 +96,16 @@ export default async function MisCotizacionesPage({
                 <div className="divide-y">
                   {items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between px-6 py-3 text-sm">
-                      <span className="text-gray-700">
-                        {(item as { producto?: { nombre?: string } }).producto?.nombre ?? item.producto_id}
-                      </span>
+                      <div className="min-w-0">
+                        <span className="text-gray-700">
+                          {(item as { producto?: { nombre?: string } }).producto?.nombre ?? item.producto_id}
+                        </span>
+                        {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
+                          <p className="text-xs text-yellow-700">
+                            {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
+                          </p>
+                        )}
+                      </div>
                       <div className="flex items-center gap-4 text-gray-500">
                         <span>x{item.cantidad}</span>
                         {item.precio_unitario != null && (

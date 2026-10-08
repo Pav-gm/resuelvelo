@@ -4,7 +4,7 @@
  */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Cotizacion, Feedback, Proveedor } from '@/types'
+import type { Cotizacion, Feedback, ItemCotizacion, Producto, Proveedor } from '@/types'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 
 const COT_RECIBIDA = 'ffffffff-1111-4111-8111-111111111111'
@@ -179,6 +179,22 @@ function resena(overrides: Partial<Feedback> = {}): Feedback {
     autor_anonimo: 'Comprador verificado',
     ...overrides,
   }
+}
+
+function item(overrides: Partial<ItemCotizacion> = {}): ItemCotizacion {
+  return {
+    id: 'item-1',
+    cotizacion_id: 'cot-1',
+    producto_id: 'prod-1',
+    cantidad: 1,
+    sujeta_disponibilidad: false,
+    stock_al_cotizar: null,
+    ...overrides,
+  }
+}
+
+function productoNombre(nombre: string): Producto {
+  return { nombre } as Producto
 }
 
 function tarjeta(prefijo: string) {
@@ -753,5 +769,62 @@ describe('Número uniforme de cotización', () => {
       expect(screen.queryByText('Cotización #e0000000')).not.toBeInTheDocument()
       unmount()
     }
+  })
+})
+
+describe('Disponibilidad al cotizar', () => {
+  const COT_DISPONIBILIDAD = '1a2b3c4d-1111-4111-8111-111111111111'
+
+  function itemsConDisponibilidad(): ItemCotizacion[] {
+    return [
+      item({
+        id: 'it-marcada',
+        cotizacion_id: COT_DISPONIBILIDAD,
+        producto_id: 'prod-tubo',
+        cantidad: 6,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 3,
+        producto: productoNombre('Tubo PVC'),
+      }),
+      item({
+        id: 'it-normal',
+        cotizacion_id: COT_DISPONIBILIDAD,
+        producto_id: 'prod-cemento',
+        cantidad: 1,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 8,
+        producto: productoNombre('Cemento'),
+      }),
+    ]
+  }
+
+  it('muestra la disponibilidad guardada en Mis cotizaciones', async () => {
+    h.cotizaciones.push(
+      cotizacion('pendiente', COT_DISPONIBILIDAD, { items: itemsConDisponibilidad() })
+    )
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const card = tarjeta('1A2B3C4D')
+    expect(
+      within(card).getAllByText('Sujeta a disponibilidad: pediste 6, hay 3')
+    ).toHaveLength(1)
+    expect(within(card).queryByText(/Sujeta a disponibilidad: pediste 1/)).not.toBeInTheDocument()
+  })
+
+  it('muestra la disponibilidad guardada en la bandeja del proveedor', async () => {
+    h.cotizacionesProveedor.push(
+      cotizacion('pendiente', COT_DISPONIBILIDAD, { items: itemsConDisponibilidad() })
+    )
+
+    const ui = await PedidosPage()
+    render(ui)
+
+    const card = tarjeta('1A2B3C4D')
+    expect(
+      within(card).getAllByText('Sujeta a disponibilidad: pediste 6, hay 3')
+    ).toHaveLength(1)
+    expect(within(card).queryByText(/Sujeta a disponibilidad: pediste 1/)).not.toBeInTheDocument()
   })
 })
