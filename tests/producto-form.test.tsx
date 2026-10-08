@@ -403,6 +403,74 @@ describe('ProductoForm — previsualización de imagen', () => {
   })
 })
 
+describe('ProductoForm — estado de guardado', () => {
+  it('desactiva el botón y muestra Guardando mientras se guarda al crear y editar', async () => {
+    let resolverCrear: (value: null) => void = () => {}
+    let resolverActualizar: (value: null) => void = () => {}
+    mocks.crearMock.mockImplementation(
+      () =>
+        new Promise<null>((resolve) => {
+          resolverCrear = resolve
+        })
+    )
+    mocks.actualizarMock.mockImplementation(
+      () =>
+        new Promise<null>((resolve) => {
+          resolverActualizar = resolve
+        })
+    )
+
+    const producto: Producto = {
+      id: 'prod-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: 'electricidad-cables',
+      nombre: 'Producto',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      activo: true,
+      created_at: '',
+    }
+
+    const { unmount } = render(
+      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedorId="prov-1" />
+    )
+
+    fireEvent.change(screen.getByLabelText(/^Nombre del producto/), { target: { value: 'Nuevo' } })
+    fireEvent.change(selectCategoria(), { target: { value: 'cat-elec' } })
+    fireEvent.change(selectSubcategoria(), { target: { value: 'electricidad-cables' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Publicar producto' }).closest('form')!)
+
+    const botonCrear = await screen.findByRole('button', { name: 'Guardando...' })
+    expect(botonCrear).toBeDisabled()
+
+    resolverCrear(null)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Publicar producto' })).toBeEnabled()
+    })
+    unmount()
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+        proveedorId="prov-1"
+      />
+    )
+    fireEvent.submit(screen.getByRole('button', { name: 'Actualizar producto' }).closest('form')!)
+
+    const botonEditar = await screen.findByRole('button', { name: 'Guardando...' })
+    expect(botonEditar).toBeDisabled()
+
+    resolverActualizar(null)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Actualizar producto' })).toBeEnabled()
+    })
+  })
+})
+
 describe('ProductoForm — error de stock reservado', () => {
   it('muestra cuántas unidades reservadas impiden bajar el stock', async () => {
     mocks.actualizarMock.mockResolvedValue({
