@@ -129,6 +129,9 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
   function handleImagen(e: { target: HTMLInputElement }) {
     const archivo = e.target.files?.[0]
     if (!archivo) {
+      // Sin archivo (selector cancelado) se vuelve a la foto actual y a lo que se enviará.
+      revocarPreview()
+      setPreviewUrl(null)
       setErrorImagen(null)
       return
     }
@@ -136,6 +139,8 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
     if (errorValidacion) {
       setErrorImagen(errorValidacion)
       e.target.value = ''
+      revocarPreview()
+      setPreviewUrl(null)
       return
     }
     setErrorImagen(null)
@@ -350,10 +355,13 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
               const control = e.currentTarget
               if (control.validity.valueMissing) {
                 control.setCustomValidity('Ingresa un precio válido.')
-              } else if (control.valueAsNumber < 0) {
+              } else if (control.validity.rangeUnderflow && control.valueAsNumber < 0) {
                 control.setCustomValidity('El precio no puede ser negativo.')
-              } else {
+              } else if (control.validity.rangeUnderflow) {
                 control.setCustomValidity('El precio debe ser mayor que cero.')
+              } else {
+                // stepMismatch (p. ej. 12.345), badInput y demás rechazos de HTML.
+                control.setCustomValidity('Ingresa un precio válido.')
               }
             }}
             onChange={limpiarValidez}
