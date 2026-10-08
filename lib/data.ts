@@ -1,6 +1,7 @@
 import type {
   Categoria,
   Cotizacion,
+  CotizacionDetalle,
   Feedback,
   FeedbackPublico,
   Producto,
@@ -301,6 +302,21 @@ export async function getCotizacionesDelComprador(compradorId: string): Promise<
   if (error) propagarErrorLectura('getCotizacionesDelComprador', error)
   if (data === null) errorSinDatos('getCotizacionesDelComprador')
   return data as unknown as Cotizacion[]
+}
+
+// ─── Detalle compartido de una cotización ────────────────────
+
+export async function getCotizacionDetalle(cotizacionId: string): Promise<CotizacionDetalle | null> {
+  if (!SUPABASE_DISPONIBLE) return null
+
+  const supabase = await getServerClient()
+  const { data, error } = await supabase.rpc('get_cotizacion_detalle', {
+    p_cotizacion_id: cotizacionId,
+  })
+
+  if (error) propagarErrorLectura('getCotizacionDetalle', error)
+  if (data === null) return null
+  return data as unknown as CotizacionDetalle
 }
 
 // ─── Feedback público y feedback de una cotización ─────────
