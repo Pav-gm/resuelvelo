@@ -108,6 +108,8 @@ export default async function PedidosPage() {
                   estado={cot.estado}
                   despachadaAt={cot.despachada_at}
                   canceladaPor={cot.cancelada_por}
+                  canceladaAt={cot.cancelada_at}
+                  canceladaMotivo={cot.cancelada_motivo}
                 />
 
                 {/* Despacho y cancelación en aceptada; solo cancelación en despachada. */}

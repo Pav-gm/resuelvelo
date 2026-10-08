@@ -166,6 +166,8 @@ export default async function CotizacionDetallePage({
         estado={detalle.estado}
         despachadaAt={detalle.despachada_at}
         canceladaPor={detalle.cancelada_por}
+        canceladaAt={detalle.cancelada_at}
+        canceladaMotivo={detalle.cancelada_motivo}
       />
 
       {!esComprador && detalle.estado === 'pendiente' && (
