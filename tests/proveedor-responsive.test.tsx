@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   toggleProducto: vi.fn(),
   eliminarProducto: vi.fn(),
   despacharCotizacion: vi.fn(),
+  aceptarCotizacionConCantidades: vi.fn(),
   responderCotizacion: vi.fn(),
   cancelarVenta: vi.fn(),
 }))
@@ -37,6 +38,7 @@ vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   toggleProducto: mocks.toggleProducto,
   eliminarProducto: mocks.eliminarProducto,
   despacharCotizacion: mocks.despacharCotizacion,
+  aceptarCotizacionConCantidades: mocks.aceptarCotizacionConCantidades,
 }))
 
 vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({

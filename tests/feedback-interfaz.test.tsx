@@ -56,6 +56,7 @@ const h = vi.hoisted(() => {
     confirmarRecepcion: vi.fn(),
     cancelarVenta: vi.fn(),
     despacharCotizacion: vi.fn(),
+    aceptarCotizacionConCantidades: vi.fn(),
   }
 })
 
@@ -104,6 +105,7 @@ vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
 
 vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   despacharCotizacion: h.despacharCotizacion,
+  aceptarCotizacionConCantidades: h.aceptarCotizacionConCantidades,
   toggleProducto: vi.fn(),
   eliminarProducto: vi.fn(),
   crearProducto: vi.fn(),
@@ -111,6 +113,7 @@ vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
 }))
 
 import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
+import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
 import MisCotizacionesPage from '@/app/(marketplace)/mis-cotizaciones/page'
 import ProveedorPublicoPage from '@/app/(marketplace)/proveedores/[id]/page'
 import PedidosPage from '@/app/(marketplace)/proveedor/pedidos/page'
@@ -225,6 +228,7 @@ beforeEach(() => {
   h.confirmarRecepcion.mockReset()
   h.cancelarVenta.mockReset()
   h.despacharCotizacion.mockReset()
+  h.aceptarCotizacionConCantidades.mockReset()
 })
 
 afterEach(() => {
@@ -874,5 +878,104 @@ describe('Disponibilidad al cotizar', () => {
       within(card).getAllByText('Sujeta a disponibilidad: pediste 6, hay 3')
     ).toHaveLength(1)
     expect(within(card).queryByText(/Sujeta a disponibilidad: pediste 1/)).not.toBeInTheDocument()
+  })
+})
+
+describe('Aceptación con cantidades confirmadas', () => {
+  it('el proveedor confirma cantidades por línea y envía la selección al aceptar', async () => {
+    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        producto_id: 'prod-1',
+        cantidad: 6,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 3,
+        producto: productoNombre('Tubo PVC'),
+      }),
+      item({
+        id: 'item-2',
+        producto_id: 'prod-2',
+        cantidad: 1,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 8,
+        producto: productoNombre('Cemento'),
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-ui-1" items={items} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+
+    const entrada = screen.getByLabelText('Tubo PVC')
+    expect(entrada).toHaveValue(3)
+
+    fireEvent.change(entrada, { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+
+    await waitFor(() => {
+      expect(h.aceptarCotizacionConCantidades).toHaveBeenCalledWith('cot-ui-1', [
+        { itemId: 'item-1', cantidad: 2 },
+        { itemId: 'item-2', cantidad: 1 },
+      ])
+    })
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('muestra el error de aceptación en una alerta y conserva el diálogo abierto', async () => {
+    h.aceptarCotizacionConCantidades.mockResolvedValue({
+      error: 'No hay stock disponible de Cemento (disponible: 1, confirmado: 2).',
+    })
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-3',
+        producto_id: 'prod-3',
+        cantidad: 4,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 2,
+        producto: productoNombre('Cemento'),
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-ui-2" items={items} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No hay stock disponible de Cemento (disponible: 1, confirmado: 2).'
+    )
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('muestra al comprador la cantidad confirmada y calcula el importe con esa cantidad', async () => {
+    h.cotizaciones.push(
+      cotizacion('aceptada', 'cot-ui-3', {
+        items: [
+          item({
+            id: 'item-4',
+            producto_id: 'prod-4',
+            cantidad: 6,
+            cantidad_confirmada: 2,
+            precio_unitario: 10,
+            sujeta_disponibilidad: true,
+            stock_al_cotizar: 3,
+            producto: productoNombre('Tubo PVC'),
+          }),
+        ],
+      })
+    )
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const card = tarjeta('cot-ui-3')
+    expect(within(card).getByText('Confirmado: 2 de 6')).toBeInTheDocument()
+    expect(within(card).getByText('x2')).toBeInTheDocument()
+    expect(within(card).getByText('$20.00')).toBeInTheDocument()
+    expect(within(card).queryByText('x6')).not.toBeInTheDocument()
+    expect(within(card).queryByText('$60.00')).not.toBeInTheDocument()
   })
 })
