@@ -183,8 +183,8 @@ export default async function MisCotizacionesPage({
 
                 {/* El comprador espera el despacho y solo puede cancelar mientras está aceptada. */}
                 {cot.estado === 'aceptada' && (
-                  <div className="flex items-center justify-between gap-4 border-t bg-gray-50 px-6 py-4">
-                    <p className="text-sm text-gray-700">El proveedor aceptó; falta que despache.</p>
+                  <div className="flex flex-col items-stretch gap-4 border-t bg-gray-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="min-w-0 text-sm text-gray-700">El proveedor aceptó; falta que despache.</p>
                     <CancelarVentaButton cotizacionId={cot.id} />
                   </div>
                 )}

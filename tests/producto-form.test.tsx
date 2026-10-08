@@ -402,3 +402,40 @@ describe('ProductoForm — previsualización de imagen', () => {
     expect(mocks.createClientMock).not.toHaveBeenCalled()
   })
 })
+
+describe('ProductoForm — error de stock reservado', () => {
+  it('muestra cuántas unidades reservadas impiden bajar el stock', async () => {
+    mocks.actualizarMock.mockResolvedValue({
+      error: 'Hay 4 unidades reservadas en cotizaciones aceptadas; el stock no puede ser menor que 4.',
+    })
+
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      activo: true,
+      created_at: '',
+    }
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+      />
+    )
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Actualizar producto' }).closest('form')!)
+
+    expect(
+      await screen.findByText(
+        'Hay 4 unidades reservadas en cotizaciones aceptadas; el stock no puede ser menor que 4.'
+      )
+    ).toBeInTheDocument()
+  })
+})

@@ -581,6 +581,7 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     fireEvent.click(within(card).getByRole('button', { name: 'Cancelar' }))
 
     const dialogo = within(card).getByRole('dialog', { name: 'Motivo de cancelación' })
+    expect(dialogo).toHaveTextContent('¿Seguro que quieres cancelar esta compra? Indica el motivo.')
     expect(h.cancelarVenta).not.toHaveBeenCalled()
 
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Volver' }))
@@ -606,6 +607,31 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     expect(await within(card).findByRole('alert')).toHaveTextContent(
       'Solo puedes cancelar antes de que el proveedor despache.'
     )
+    expect(within(card).getByRole('dialog', { name: 'Motivo de cancelación' })).toBeInTheDocument()
+  })
+
+  it('el diálogo del comprador ocupa el ancho disponible a 375 px', async () => {
+    const id = '33333333-1111-4111-8111-111111111111'
+    const anchoOriginal = window.innerWidth
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 })
+    h.cotizaciones.push(cotizacion('aceptada', id))
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const fila = screen.getByText('El proveedor aceptó; falta que despache.').closest('div') as HTMLElement
+    expect(fila.className).toContain('flex-col')
+    expect(fila.className).toContain('sm:flex-row')
+
+    const card = tarjeta('33333333')
+    fireEvent.click(within(card).getByRole('button', { name: 'Cancelar' }))
+
+    const dialogo = within(card).getByRole('dialog', { name: 'Motivo de cancelación' })
+    expect(dialogo.className).toContain('w-full')
+    expect(dialogo.className).toContain('min-w-0')
+    expect(dialogo).toHaveTextContent('¿Seguro que quieres cancelar esta compra? Indica el motivo.')
+
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: anchoOriginal })
   })
 
   it('en despachada muestra la fecha y solo la confirmación de recepción', async () => {
@@ -857,7 +883,7 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
     })
     expect(h.cancelarVenta).toHaveBeenCalledTimes(1)
     expect(await within(card).findByRole('alert')).toHaveTextContent('Esta venta ya no se puede cancelar.')
-    expect(within(card).queryByRole('dialog', { name: 'Motivo de cancelación' })).not.toBeInTheDocument()
+    expect(within(card).getByRole('dialog', { name: 'Motivo de cancelación' })).toBeInTheDocument()
   })
 
   it('en cancelada nombra al proveedor y no ofrece acciones de venta', async () => {
