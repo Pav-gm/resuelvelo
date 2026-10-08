@@ -1202,4 +1202,35 @@ describe('Aceptación con cantidades confirmadas', () => {
 
     expect(h.aceptarCotizacionConCantidades).not.toHaveBeenCalled()
   })
+
+  it('limita la aceptación a la cantidad pedida aunque haya más disponible', () => {
+    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-pedida',
+        producto_id: 'prod-pedida',
+        cantidad: 10,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 50,
+        producto: {
+          nombre: 'Codo PVC',
+          stock: 50,
+          stock_reservado: 0,
+        } as Producto,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-ui-pedida" items={items} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+
+    const entrada = screen.getByLabelText('Codo PVC')
+    expect(entrada).toHaveValue(10)
+    expect(entrada).toHaveAttribute('max', '10')
+
+    fireEvent.change(entrada, { target: { value: '11' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+
+    expect(h.aceptarCotizacionConCantidades).not.toHaveBeenCalled()
+  })
 })

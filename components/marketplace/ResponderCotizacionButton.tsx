@@ -50,7 +50,8 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   function handleConfirmar() {
     const seleccion: Array<{ itemId: string; cantidad: number }> = []
     for (const item of items) {
-      const limite = disponibleDeItem(item)
+      // El tope por línea es lo pedido, sin superar nunca el disponible actual.
+      const limite = Math.min(item.cantidad, disponibleDeItem(item))
       const cantidad = cantidades[item.id]
       if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > limite) {
         setAviso('Las cantidades no pueden superar el stock disponible.')
@@ -116,7 +117,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
               <div className="mt-2 space-y-2">
                 {items.map((item) => {
                   const nombre = item.producto?.nombre?.trim() || 'Producto no disponible'
-                  const limite = disponibleDeItem(item)
+                  const limite = Math.min(item.cantidad, disponibleDeItem(item))
                   return (
                     <div key={item.id} className="flex items-center justify-between gap-3">
                       <label htmlFor={`cantidad-${item.id}`} className="text-sm text-gray-700">
