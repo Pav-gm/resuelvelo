@@ -17,7 +17,7 @@ const h = vi.hoisted(() => {
 
   const state = {
     user: { id: 'comprador-1' } as { id: string } | null,
-    productos: [] as { id: string; proveedor_id: string; precio: number; stock: number; activo: boolean }[],
+    productos: [] as { id: string; proveedor_id: string; precio: number; stock: number; stock_reservado: number | null; activo: boolean }[],
     queryError: null as { message: string } | null,
     queryThrows: false,
     cotizacionError: null as { message: string } | null,
@@ -138,6 +138,7 @@ function productoDb(overrides: {
   proveedor_id?: string
   precio?: number
   stock?: number
+  stock_reservado?: number | null
   activo?: boolean
 } = {}) {
   return {
@@ -145,6 +146,7 @@ function productoDb(overrides: {
     proveedor_id: overrides.proveedor_id ?? 'prov-db',
     precio: overrides.precio ?? 80,
     stock: overrides.stock ?? 10,
+    stock_reservado: overrides.stock_reservado ?? 0,
     activo: overrides.activo ?? true,
   }
 }
@@ -293,7 +295,7 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
 
     expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
     expect(h.state.selects).toEqual([
-      { columns: 'id, proveedor_id, precio, stock, activo', ids: ['11111111-1111-4111-8111-111111111111'] },
+      { columns: 'id, proveedor_id, precio, stock, stock_reservado, activo', ids: ['11111111-1111-4111-8111-111111111111'] },
     ])
     expect(h.state.inserts.find((i) => i.table === 'items_cotizacion')?.payload).toEqual([
       {
@@ -306,6 +308,24 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
       },
     ])
     expect(h.revalidatePath).toHaveBeenCalledWith('/mis-cotizaciones')
+  })
+
+  it('calcula sujeta_disponibilidad y stock_al_cotizar descontando reservas', async () => {
+    h.state.productos = [productoDb({ stock: 299, stock_reservado: 213, precio: 80 })]
+
+    const outcome = await ejecutar(formConItems([item({ cantidad: 162 })]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((i) => i.table === 'items_cotizacion')?.payload).toEqual([
+      {
+        cotizacion_id: 'cot-1',
+        producto_id: '11111111-1111-4111-8111-111111111111',
+        cantidad: 162,
+        precio_unitario: 80,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 86,
+      },
+    ])
   })
 
   it('usa un texto genérico si el producto fusionado no trae nombre', async () => {

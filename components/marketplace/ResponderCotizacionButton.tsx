@@ -12,9 +12,14 @@ interface Props {
   items: ItemCotizacion[]
 }
 
-/** Cantidad inicial sugerida: el stock observado al cotizar, sin superar lo pedido. */
-function cantidadInicial(item: ItemCotizacion): number {
-  return Math.min(item.cantidad, item.stock_al_cotizar ?? item.cantidad)
+/** Disponibilidad actual por línea: stock menos reservas del producto actual. */
+function disponibleDeItem(item: ItemCotizacion): number {
+  const producto = item.producto
+  if (producto && typeof producto.stock === 'number') {
+    return Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+  }
+  if (item.stock_al_cotizar != null) return Math.max(0, item.stock_al_cotizar)
+  return item.cantidad
 }
 
 export default function ResponderCotizacionButton({ cotizacionId, items }: Props) {
@@ -24,16 +29,13 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   const [aviso, setAviso] = useState<string | null>(null)
   const [cantidades, setCantidades] = useState<Record<string, number>>({})
 
-  const lineasSujetas = items.filter((item) => item.sujeta_disponibilidad)
-
   function abrirDialogo() {
     setError(null)
     setAviso(null)
     const iniciales: Record<string, number> = {}
     for (const item of items) {
-      iniciales[item.id] = item.sujeta_disponibilidad
-        ? cantidadInicial(item)
-        : item.cantidad
+      // Cantidad inicial sugerida: lo pedido, sin superar el disponible actual.
+      iniciales[item.id] = Math.min(item.cantidad, disponibleDeItem(item))
     }
     setCantidades(iniciales)
     setAbierto(true)
@@ -46,11 +48,17 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   }
 
   function handleConfirmar() {
-    // Las líneas no sujetas a disponibilidad se confirman con la cantidad completa.
-    const seleccion = items.map((item) => ({
-      itemId: item.id,
-      cantidad: item.sujeta_disponibilidad ? cantidades[item.id] ?? 0 : item.cantidad,
-    }))
+    const seleccion: Array<{ itemId: string; cantidad: number }> = []
+    for (const item of items) {
+      // El tope por línea es lo pedido, sin superar nunca el disponible actual.
+      const limite = Math.min(item.cantidad, disponibleDeItem(item))
+      const cantidad = cantidades[item.id]
+      if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > limite) {
+        setAviso('Las cantidades no pueden superar el stock disponible.')
+        return
+      }
+      seleccion.push({ itemId: item.id, cantidad })
+    }
     const total = seleccion.reduce((suma, linea) => suma + linea.cantidad, 0)
     if (total === 0) {
       setAviso('Debes confirmar al menos una unidad o rechazar la cotización.')
@@ -97,7 +105,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
           aria-label="Confirmar cantidades"
           className="rounded-lg border border-green-200 bg-green-50 px-4 py-3"
         >
-          {lineasSujetas.length === 0 ? (
+          {items.length === 0 ? (
             <p className="text-sm text-gray-900">
               ¿Confirmas la aceptación de la cotización con las cantidades solicitadas?
             </p>
@@ -107,8 +115,9 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                 Indica cuántas unidades puedes servir de cada producto.
               </p>
               <div className="mt-2 space-y-2">
-                {lineasSujetas.map((item) => {
+                {items.map((item) => {
                   const nombre = item.producto?.nombre?.trim() || 'Producto no disponible'
+                  const limite = Math.min(item.cantidad, disponibleDeItem(item))
                   return (
                     <div key={item.id} className="flex items-center justify-between gap-3">
                       <label htmlFor={`cantidad-${item.id}`} className="text-sm text-gray-700">
@@ -118,7 +127,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                         id={`cantidad-${item.id}`}
                         type="number"
                         min={0}
-                        max={item.cantidad}
+                        max={limite}
                         value={cantidades[item.id] ?? 0}
                         disabled={pending}
                         onChange={(evento) => {

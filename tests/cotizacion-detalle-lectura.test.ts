@@ -4,12 +4,26 @@ const h = vi.hoisted(() => {
   const state = {
     rpcCalls: [] as { name: string; args: Record<string, unknown> }[],
     response: { data: null as unknown, error: null as { message: string; code?: string } | null },
+    productosResponse: { data: [] as { id: string; stock: number; stock_reservado: number | null }[] | null, error: null as { message: string } | null },
+    productosQueries: [] as { table: string; columns: string; ids: string[] }[],
   }
 
   const createClient = vi.fn(async () => ({
     rpc(name: string, args: Record<string, unknown>) {
       state.rpcCalls.push({ name, args })
       return Promise.resolve(state.response)
+    },
+    from(table: string) {
+      return {
+        select(columns: string) {
+          return {
+            in(column: string, ids: string[]) {
+              state.productosQueries.push({ table, columns, ids: [...ids] })
+              return Promise.resolve(state.productosResponse)
+            },
+          }
+        },
+      }
     },
   }))
 
@@ -35,6 +49,8 @@ beforeEach(() => {
   vi.restoreAllMocks()
   h.state.rpcCalls.length = 0
   h.state.response = { data: null, error: null }
+  h.state.productosResponse = { data: [], error: null }
+  h.state.productosQueries.length = 0
   h.createClient.mockClear()
 })
 
@@ -82,6 +98,84 @@ describe('getCotizacionDetalle', () => {
     expect(h.state.rpcCalls).toEqual([
       { name: 'get_cotizacion_detalle', args: { p_cotizacion_id: 'cot-1' } },
     ])
+  })
+
+  it('getCotizacionDetalle completa el inventario actual de productos en cotización pendiente', async () => {
+    const detalle = {
+      id: 'cot-1',
+      numero: 42,
+      comprador_id: 'buyer-1',
+      proveedor_id: 'prov-1',
+      estado: 'pendiente',
+      mensaje: null,
+      total_estimado: null,
+      created_at: '2026-03-15T15:00:00.000Z',
+      despachada_at: null,
+      cancelada_por: null,
+      proveedor: null,
+      comprador: null,
+      items: [
+        {
+          id: 'item-1',
+          cotizacion_id: 'cot-1',
+          producto_id: 'prod-1',
+          cantidad: 162,
+          precio_unitario: 80,
+          sujeta_disponibilidad: true,
+          stock_al_cotizar: 299,
+          producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+        },
+      ],
+    }
+    h.state.response = { data: detalle, error: null }
+    h.state.productosResponse = {
+      data: [{ id: 'prod-1', stock: 299, stock_reservado: 213 }],
+      error: null,
+    }
+
+    const resultado = await getCotizacionDetalle('cot-1')
+
+    expect(resultado?.items[0].producto).toEqual({
+      id: 'prod-1',
+      nombre: 'Tubo PVC',
+      activo: true,
+      stock: 299,
+      stock_reservado: 213,
+    })
+    expect(h.state.productosQueries).toEqual([{
+      table: 'productos',
+      columns: 'id, stock, stock_reservado',
+      ids: ['prod-1'],
+    }])
+  })
+
+  it('getCotizacionDetalle no consulta productos para una cotización aceptada', async () => {
+    const detalle = {
+      id: 'cot-1',
+      estado: 'aceptada',
+      items: [{ producto_id: 'prod-1', producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true } }],
+    }
+    h.state.response = { data: detalle, error: null }
+
+    await expect(getCotizacionDetalle('cot-1')).resolves.toEqual(detalle)
+    expect(h.state.productosQueries).toEqual([])
+  })
+
+  it('getCotizacionDetalle devuelve el detalle sin cambios si falla la consulta de productos', async () => {
+    const detalle = {
+      id: 'cot-1',
+      estado: 'pendiente',
+      items: [{ producto_id: 'prod-1', producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true } }],
+    }
+    h.state.response = { data: detalle, error: null }
+    h.state.productosResponse = { data: null, error: { message: 'falló inventario' } }
+
+    await expect(getCotizacionDetalle('cot-1')).resolves.toEqual(detalle)
+    expect(h.state.productosQueries).toEqual([{
+      table: 'productos',
+      columns: 'id, stock, stock_reservado',
+      ids: ['prod-1'],
+    }])
   })
 
   it('getCotizacionDetalle devuelve null cuando la RPC no encuentra una cotización accesible', async () => {
