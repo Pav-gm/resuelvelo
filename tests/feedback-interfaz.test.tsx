@@ -57,6 +57,8 @@ const h = vi.hoisted(() => {
     cancelarVenta: vi.fn(),
     despacharCotizacion: vi.fn(),
     aceptarCotizacionConCantidades: vi.fn(),
+    ofertarCotizacion: vi.fn(),
+    rechazarCotizacionConMotivo: vi.fn(),
   }
 })
 
@@ -106,6 +108,8 @@ vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
 vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   despacharCotizacion: h.despacharCotizacion,
   aceptarCotizacionConCantidades: h.aceptarCotizacionConCantidades,
+  ofertarCotizacion: h.ofertarCotizacion,
+  rechazarCotizacionConMotivo: h.rechazarCotizacionConMotivo,
   toggleProducto: vi.fn(),
   eliminarProducto: vi.fn(),
   crearProducto: vi.fn(),
@@ -200,6 +204,10 @@ function productoNombre(nombre: string): Producto {
   return { nombre } as Producto
 }
 
+function productoConPrecio(nombre: string, precio: number): Producto {
+  return { nombre, precio } as Producto
+}
+
 function tarjeta(prefijo: string) {
   const cot = [...h.cotizaciones, ...h.cotizacionesProveedor].find((c) =>
     c.id.toLowerCase().startsWith(prefijo.toLowerCase())
@@ -229,10 +237,13 @@ beforeEach(() => {
   h.cancelarVenta.mockReset()
   h.despacharCotizacion.mockReset()
   h.aceptarCotizacionConCantidades.mockReset()
+  h.ofertarCotizacion.mockReset()
+  h.rechazarCotizacionConMotivo.mockReset()
 })
 
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
 })
 
 describe('FormularioFeedback', () => {
@@ -536,7 +547,7 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     expect(screen.getByText('Recibida').className).toContain('bg-teal-100')
     expect(screen.getByText('Pendiente').className).toContain('bg-yellow-100')
     expect(screen.getByText('Aceptada').className).toContain('bg-green-100')
-    expect(screen.getByRole('button', { name: 'Aceptar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Responder con oferta' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Enviar reseña' })).not.toBeInTheDocument()
     expect(screen.queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
   })
@@ -1031,8 +1042,8 @@ describe('Disponibilidad al cotizar', () => {
 })
 
 describe('Aceptación con cantidades confirmadas', () => {
-  it('el proveedor confirma cantidades por línea y envía la selección al aceptar', async () => {
-    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+  it('el proveedor envía precios ofertados y cantidades por línea', async () => {
+    h.ofertarCotizacion.mockResolvedValue(null)
     const items: ItemCotizacion[] = [
       item({
         id: 'item-1',
@@ -1040,7 +1051,7 @@ describe('Aceptación con cantidades confirmadas', () => {
         cantidad: 6,
         sujeta_disponibilidad: true,
         stock_al_cotizar: 3,
-        producto: productoNombre('Tubo PVC'),
+        producto: productoConPrecio('Tubo PVC', 14),
       }),
       item({
         id: 'item-2',
@@ -1048,35 +1059,36 @@ describe('Aceptación con cantidades confirmadas', () => {
         cantidad: 1,
         sujeta_disponibilidad: false,
         stock_al_cotizar: 8,
-        producto: productoNombre('Cemento'),
+        producto: productoConPrecio('Cemento', 8),
       }),
     ]
 
     render(<ResponderCotizacionButton cotizacionId="cot-ui-1" items={items} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
 
-    const entrada = screen.getByLabelText('Tubo PVC')
-    expect(entrada).toHaveValue(3)
-
-    fireEvent.change(entrada, { target: { value: '2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+    fireEvent.change(screen.getByLabelText('Cantidad de Tubo PVC'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('Plazo de entrega en días'), { target: { value: '5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
 
     await waitFor(() => {
-      expect(h.aceptarCotizacionConCantidades).toHaveBeenCalledWith('cot-ui-1', [
-        { itemId: 'item-1', cantidad: 2 },
-        { itemId: 'item-2', cantidad: 1 },
-      ])
+      expect(h.ofertarCotizacion).toHaveBeenCalledWith(
+        'cot-ui-1',
+        expect.objectContaining({
+          lineas: [
+            { itemId: 'item-1', precioUnitario: 14, cantidadOfertada: 2 },
+            { itemId: 'item-2', precioUnitario: 8, cantidadOfertada: null },
+          ],
+        })
+      )
     })
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
 
-  it('muestra el error de aceptación en una alerta y conserva el diálogo abierto', async () => {
-    h.aceptarCotizacionConCantidades.mockResolvedValue({
-      error: 'No hay stock disponible de Cemento (disponible: 1, confirmado: 2).',
-    })
+  it('muestra el error de oferta en una alerta y conserva el diálogo abierto', async () => {
+    h.ofertarCotizacion.mockResolvedValue({ error: 'La cotización ya no está pendiente.' })
     const items: ItemCotizacion[] = [
       item({
         id: 'item-3',
@@ -1084,18 +1096,17 @@ describe('Aceptación con cantidades confirmadas', () => {
         cantidad: 4,
         sujeta_disponibilidad: true,
         stock_al_cotizar: 2,
-        producto: productoNombre('Cemento'),
+        producto: productoConPrecio('Cemento', 10),
       }),
     ]
 
     render(<ResponderCotizacionButton cotizacionId="cot-ui-2" items={items} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+    fireEvent.change(screen.getByLabelText('Plazo de entrega en días'), { target: { value: '5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'No hay stock disponible de Cemento (disponible: 1, confirmado: 2).'
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('La cotización ya no está pendiente.')
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
@@ -1137,10 +1148,11 @@ describe('Aceptación con cantidades confirmadas', () => {
     }
   })
 
-  it('la bandeja del proveedor abre el diálogo con las líneas de la cotización y envía sus ids al aceptar', async () => {
-    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+  it('la bandeja del proveedor separa pendientes y respondidas y permite ofertar desde una pendiente', async () => {
+    h.ofertarCotizacion.mockResolvedValue(null)
     h.cotizacionesProveedor.push(
       cotizacion('pendiente', 'cot-ui-4', {
+        numero: 71,
         items: [
           item({
             id: 'item-5',
@@ -1149,7 +1161,19 @@ describe('Aceptación con cantidades confirmadas', () => {
             cantidad: 3,
             sujeta_disponibilidad: true,
             stock_al_cotizar: 1,
-            producto: productoNombre('Tubo PVC'),
+            producto: productoConPrecio('Tubo PVC', 10),
+          }),
+        ],
+      }),
+      cotizacion('respondida', 'cot-ui-6', {
+        numero: 72,
+        items: [
+          item({
+            id: 'item-6',
+            cotizacion_id: 'cot-ui-6',
+            producto_id: 'prod-6',
+            cantidad: 2,
+            producto: productoConPrecio('Cemento', 8),
           }),
         ],
       })
@@ -1157,80 +1181,14 @@ describe('Aceptación con cantidades confirmadas', () => {
 
     render(await PedidosPage())
 
-    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
-    expect(screen.getByLabelText('Tubo PVC')).toHaveValue(1)
+    expect(screen.getByRole('heading', { name: 'Pendientes de responder' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Respondidas' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+    const botones = screen.getAllByRole('button', { name: 'Responder con oferta' })
+    expect(botones).toHaveLength(1)
 
-    await waitFor(() => {
-      expect(h.aceptarCotizacionConCantidades).toHaveBeenCalledWith('cot-ui-4', [
-        { itemId: 'item-5', cantidad: 1 },
-      ])
-    })
-    expect(
-      screen.queryByText('Debes confirmar al menos una unidad o rechazar la cotización.')
-    ).not.toBeInTheDocument()
-  })
+    fireEvent.click(botones[0])
 
-  it('inicializa y limita la aceptación al disponible actual por línea', () => {
-    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
-    const items: ItemCotizacion[] = [
-      item({
-        id: 'item-limite',
-        producto_id: 'prod-limite',
-        cantidad: 162,
-        sujeta_disponibilidad: true,
-        stock_al_cotizar: 86,
-        producto: {
-          nombre: 'Tubo PVC',
-          stock: 299,
-          stock_reservado: 213,
-        } as Producto,
-      }),
-    ]
-
-    render(<ResponderCotizacionButton cotizacionId="cot-ui-limite" items={items} />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
-
-    const entrada = screen.getByLabelText('Tubo PVC')
-    expect(entrada).toHaveValue(86)
-    expect(entrada).toHaveAttribute('max', '86')
-
-    fireEvent.change(entrada, { target: { value: '87' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
-
-    expect(h.aceptarCotizacionConCantidades).not.toHaveBeenCalled()
-  })
-
-  it('limita la aceptación a la cantidad pedida aunque haya más disponible', () => {
-    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
-    const items: ItemCotizacion[] = [
-      item({
-        id: 'item-pedida',
-        producto_id: 'prod-pedida',
-        cantidad: 10,
-        sujeta_disponibilidad: false,
-        stock_al_cotizar: 50,
-        producto: {
-          nombre: 'Codo PVC',
-          stock: 50,
-          stock_reservado: 0,
-        } as Producto,
-      }),
-    ]
-
-    render(<ResponderCotizacionButton cotizacionId="cot-ui-pedida" items={items} />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
-
-    const entrada = screen.getByLabelText('Codo PVC')
-    expect(entrada).toHaveValue(10)
-    expect(entrada).toHaveAttribute('max', '10')
-
-    fireEvent.change(entrada, { target: { value: '11' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
-
-    expect(h.aceptarCotizacionConCantidades).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Cantidad de Tubo PVC')).toHaveValue(1)
   })
 })

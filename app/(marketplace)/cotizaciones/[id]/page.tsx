@@ -28,6 +28,17 @@ function dinero(valor: number): string {
   return `$${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
 }
 
+/** Importes de la oferta del proveedor, siempre en pesos dominicanos. */
+function dineroOferta(valor: number): string {
+  return `RD$ ${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
+}
+
+/** Fecha de validez (YYYY-MM-DD) como dd/mm/aaaa, sin desfase de zona horaria. */
+function fechaValidez(fecha: string): string {
+  const [anio, mes, dia] = fecha.slice(0, 10).split('-')
+  return `${dia}/${mes}/${anio}`
+}
+
 /**
  * Detalle compartido de una cotización, accesible al comprador dueño y al
  * proveedor destinatario. La autorización real vive en la RPC de lectura
@@ -58,6 +69,8 @@ export default async function CotizacionDetallePage({
 
   const items = detalle.items ?? []
   const confirmado = ESTADOS_CONFIRMADOS.includes(detalle.estado)
+  const respondida = detalle.estado === 'respondida'
+  const tieneOferta = respondida && detalle.total_ofertado != null
   const totalConfirmado = items.reduce((sum, i) => {
     const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
     return sum + (i.precio_unitario ?? 0) * unidades
@@ -117,14 +130,16 @@ export default async function CotizacionDetallePage({
           {items.map((item) => {
             const producto = item.producto
             const nombre = producto?.nombre
-            // Desde aceptada en adelante manda lo confirmado; lo pedido queda
-            // visible como referencia.
-            const unidades = confirmado
-              ? (item.cantidad_confirmada ?? item.cantidad)
-              : item.cantidad
-            const subtotal = item.precio_unitario != null
-              ? item.precio_unitario * unidades
-              : null
+            // Con oferta manda el precio/cantidad ofertados; desde aceptada en
+            // adelante, lo confirmado; antes de responder, lo pedido.
+            const ofertada = respondida && item.precio_ofertado != null
+            const unidades = ofertada
+              ? (item.cantidad_ofertada ?? item.cantidad)
+              : confirmado
+                ? (item.cantidad_confirmada ?? item.cantidad)
+                : item.cantidad
+            const precioUnitario = ofertada ? item.precio_ofertado : item.precio_unitario
+            const subtotal = precioUnitario != null ? precioUnitario * unidades : null
             return (
               <div
                 key={item.id}
@@ -169,10 +184,12 @@ export default async function CotizacionDetallePage({
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
                   <span>x{unidades}</span>
-                  {item.precio_unitario != null && subtotal != null && (
+                  {precioUnitario != null && subtotal != null && (
                     <>
-                      <span>{dinero(item.precio_unitario)} c/u</span>
-                      <span className="font-medium text-gray-700">{dinero(subtotal)}</span>
+                      <span>{ofertada ? dineroOferta(precioUnitario) : dinero(precioUnitario)} c/u</span>
+                      <span className="font-medium text-gray-700">
+                        {ofertada ? dineroOferta(subtotal) : dinero(subtotal)}
+                      </span>
                     </>
                   )}
                 </div>
@@ -196,6 +213,19 @@ export default async function CotizacionDetallePage({
               </div>
             )}
       </div>
+
+      {tieneOferta && (
+        <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4">
+          <p className="text-sm font-medium text-gray-900">
+            {`Respondida: ${dineroOferta(Number(detalle.total_ofertado))}, plazo ${detalle.plazo_dias ?? 0} días, válida hasta ${fechaValidez(detalle.valida_hasta ?? '')}`}
+          </p>
+          {detalle.condiciones && (
+            <p className="mt-1 break-words [overflow-wrap:anywhere] text-sm text-gray-700">
+              {detalle.condiciones}
+            </p>
+          )}
+        </div>
+      )}
 
       <LineaSeguimiento
         estado={detalle.estado}

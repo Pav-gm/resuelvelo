@@ -100,8 +100,29 @@ export interface Cotizacion {
   cancelada_at?: string | null
   /** Motivo de cancelación; null en cotizaciones históricas sin esos datos. */
   cancelada_motivo?: string | null
+  plazo_dias?: number | null
+  valida_hasta?: string | null
+  condiciones?: string | null
+  respondida_at?: string | null
+  total_ofertado?: number | null
+  motivo_rechazo?: string | null
   items?: ItemCotizacion[]
 }
+
+export type LineaOfertaInput = {
+  itemId: string
+  precioUnitario: number
+  cantidadOfertada: number | null
+}
+
+export type OfertaCotizacionInput = {
+  lineas: LineaOfertaInput[]
+  plazoDias: number
+  validaHasta: string
+  condiciones: string | null
+}
+
+export type CotizacionActionResult = { error: string } | null
 
 export type OpcionMotivoCancelacion =
   | 'Ya no lo necesito'
@@ -118,7 +139,7 @@ export type MotivoCancelacionInput = {
 export type CotizacionDetalle = Cotizacion & {
   proveedor: Pick<Proveedor, 'id' | 'nombre_empresa' | 'ciudad' | 'verificado'>
   comprador: Pick<Profile, 'id' | 'nombre' | 'email'> & { telefono: string | null }
-  items: Array<ItemCotizacion & { producto: Pick<Producto, 'id' | 'nombre' | 'activo'> | null }>
+  items: Array<ItemCotizacion & { producto: Pick<Producto, 'id' | 'nombre' | 'activo'> & { precio?: number } | null }>
 }
 
 export interface Feedback {
@@ -147,6 +168,8 @@ export interface ItemCotizacion {
   cantidad: number
   /** Cantidad aceptada por el proveedor; null en cotizaciones anteriores o pendientes. */
   cantidad_confirmada?: number | null
+  precio_ofertado?: number | null
+  cantidad_ofertada?: number | null
   precio_unitario?: number
   producto?: Producto
   /** true si la cantidad pedida superaba el stock al cotizar. */

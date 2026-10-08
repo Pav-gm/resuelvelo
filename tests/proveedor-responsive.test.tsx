@@ -19,6 +19,8 @@ const mocks = vi.hoisted(() => ({
   eliminarProducto: vi.fn(),
   despacharCotizacion: vi.fn(),
   aceptarCotizacionConCantidades: vi.fn(),
+  ofertarCotizacion: vi.fn(),
+  rechazarCotizacionConMotivo: vi.fn(),
   responderCotizacion: vi.fn(),
   cancelarVenta: vi.fn(),
 }))
@@ -39,6 +41,8 @@ vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   eliminarProducto: mocks.eliminarProducto,
   despacharCotizacion: mocks.despacharCotizacion,
   aceptarCotizacionConCantidades: mocks.aceptarCotizacionConCantidades,
+  ofertarCotizacion: mocks.ofertarCotizacion,
+  rechazarCotizacionConMotivo: mocks.rechazarCotizacionConMotivo,
 }))
 
 vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
@@ -240,5 +244,8 @@ describe('Bandeja de cotizaciones — adaptación a móvil', () => {
 
     expect(screen.getByText('x2')).toBeInTheDocument()
     expect(screen.getByText('$251.00')).toBeInTheDocument()
+
+    // La fila pendiente conserva la acción de responder con oferta.
+    expect(screen.getByRole('button', { name: 'Responder con oferta' })).toBeInTheDocument()
   })
 })
