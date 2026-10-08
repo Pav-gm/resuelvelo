@@ -2,7 +2,7 @@
 
 Marketplace B2B que conecta compradores profesionales (contratistas, constructoras y PYMEs) con proveedores de materiales, insumos y servicios en República Dominicana. Los compradores exploran un catálogo multi-proveedor, arman un carrito y solicitan cotizaciones; los proveedores publican su catálogo y responden esas solicitudes desde un panel propio.
 
-**Demo en vivo:** [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) (MVP de Seminario I; el panel `/admin`, la protección centralizada de rutas y los filtros de precio/stock del catálogo están en el repositorio local y requieren un deploy nuevo para verse en esa URL) · **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
+**Demo en vivo:** [resuelveloapp.com](https://resuelveloapp.com) (MVP de Seminario I; el panel `/admin`, la protección centralizada de rutas y los filtros de precio/stock del catálogo están en el repositorio local y requieren un deploy nuevo para verse en esa URL) · **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
 
 ![Home de Resuélvelo](docs/screenshots/01-home.png)
 
@@ -162,7 +162,7 @@ Cubren: el store del carrito (`tests/carrito.test.ts`), la integridad de los dat
 
 ## Despliegue
 
-Desplegado en Vercel: **[resuelveloapp.vercel.app](https://resuelveloapp.vercel.app)** (framework Next.js autodetectado, sin configuración adicional). Variables de entorno configuradas en el proyecto de Vercel: las mismas tres de `.env.local`, con `NEXT_PUBLIC_SITE_URL=https://resuelveloapp.vercel.app`.
+Desplegado en Vercel: **[resuelveloapp.com](https://resuelveloapp.com)** (framework Next.js autodetectado, sin configuración adicional). Variables de entorno configuradas en el proyecto de Vercel: las mismas tres de `.env.local`, con `NEXT_PUBLIC_SITE_URL=https://resuelveloapp.com`.
 
 Para desplegar tu propia copia:
 
