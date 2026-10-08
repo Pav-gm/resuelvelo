@@ -58,7 +58,7 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
     setDetalle('')
   }
 
-  function ejecutar(accion: () => Promise<ResultadoAccion>) {
+  function ejecutar(accion: () => Promise<ResultadoAccion>, tipo: Exclude<TipoConfirmacion, null>) {
     setError(null)
     setPendiente(true)
     startTransition(async () => {
@@ -66,6 +66,8 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
         const resultado = await aResultado(accion)
         if (resultado?.error) {
           setError(resultado.error)
+          // Un error de cancelación conserva el diálogo, la selección y el detalle.
+          if (tipo === 'cancelar') return
         }
         setConfirmacion(null)
         limpiarCancelacion()
@@ -77,8 +79,9 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
 
   function confirmarCancelacion() {
     if (opcion === '' || !puedeConfirmarCancelacion) return
-    ejecutar(() =>
-      cancelarVenta(cotizacionId, opcion === 'Otro' ? { opcion, detalle } : { opcion })
+    ejecutar(
+      () => cancelarVenta(cotizacionId, opcion === 'Otro' ? { opcion, detalle } : { opcion }),
+      'cancelar'
     )
   }
 
@@ -125,7 +128,7 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
               size="sm"
               className="bg-purple-600 hover:bg-purple-700 text-white"
               disabled={pendiente}
-              onClick={() => ejecutar(() => despacharCotizacion(cotizacionId))}
+              onClick={() => ejecutar(() => despacharCotizacion(cotizacionId), 'despachar')}
             >
               {pendiente ? 'Despachando…' : 'Sí, marcar como despachada'}
             </Button>
@@ -195,10 +198,15 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
               Volver
             </Button>
           </div>
+          {error && (
+            <p className="mt-2 text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
         </div>
       )}
 
-      {error && (
+      {error && confirmacion !== 'cancelar' && (
         <p className="mt-2 text-sm text-red-600" role="alert">
           {error}
         </p>
