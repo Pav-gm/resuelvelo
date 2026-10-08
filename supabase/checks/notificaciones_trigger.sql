@@ -22,6 +22,8 @@ begin
     values (v_provider, v_provider_user, 'Proveedor de notificaciones de prueba');
 
     perform set_config('request.jwt.claim.sub', v_buyer::text, true);
+    -- Solo mueve una cotización real existente dentro de la subtransacción que revierte la excepción centinela.
+    update public.cotizaciones set numero = -numero where numero = 42;
     insert into public.cotizaciones (id, numero, comprador_id, proveedor_id, estado)
     values (v_cotizacion, 42, v_buyer, v_provider, 'pendiente');
 
