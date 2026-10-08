@@ -13,6 +13,8 @@ interface ProductoCardProps {
 
 export default function ProductoCard({ producto, className }: ProductoCardProps) {
   const hrefFicha = `/productos/${producto.id}`
+  // Stock disponible: total menos las unidades reservadas.
+  const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
 
   return (
     <div className={cn('group rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col', className)}>
@@ -27,7 +29,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
           categoria={producto.categoria}
           className="h-full w-full group-hover:scale-105 transition-transform duration-300"
         />
-        {producto.stock === 0 && (
+        {disponible === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">Sin stock</span>
           </div>
@@ -49,6 +51,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
               ${producto.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
             </p>
             <p className="text-xs text-gray-400">/ {producto.unidad}</p>
+            <p className="text-xs text-gray-500">Stock disponible: {disponible}</p>
           </div>
           <AgregarProductoButton producto={producto} />
         </div>

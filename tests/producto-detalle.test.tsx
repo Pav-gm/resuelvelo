@@ -104,11 +104,11 @@ describe('ProductoPage — ficha pública', () => {
   })
 
   it('muestra el stock disponible restando las unidades reservadas', async () => {
-    mocks.getProductoMock.mockResolvedValue(producto({ stock: 8, stock_reservado: 3 }))
+    mocks.getProductoMock.mockResolvedValue(producto({ stock: 299, stock_reservado: 213 }))
     await renderFicha()
 
     expect(screen.getByText('Stock disponible')).toBeInTheDocument()
-    expect(screen.getByText('5')).toBeInTheDocument()
+    expect(screen.getByText('86')).toBeInTheDocument()
   })
 
   it('trata reservas omitidas como cero en la ficha', async () => {

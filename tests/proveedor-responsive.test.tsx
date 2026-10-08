@@ -199,6 +199,15 @@ describe('Ruta /proveedor/productos — lista compartida', () => {
     // La ruta de productos sí envuelve la lista en su propia tarjeta.
     expect(fila.parentElement?.className).toContain('rounded-2xl')
   })
+
+  it('enlaza el nombre de cada producto a su ficha pública', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO])
+
+    render(await ProductosProveedorPage())
+
+    const nombre = screen.getByText('Tubería PVC reforzada de dos pulgadas')
+    expect(nombre.closest('a')).toHaveAttribute('href', '/productos/prod-1')
+  })
 })
 
 describe('Bandeja de cotizaciones — adaptación a móvil', () => {

@@ -128,6 +128,16 @@ describe('CarritoDrawer — controles y stock', () => {
     expect(screen.queryByRole('button', { name: 'Disminuir cantidad' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Quitar producto' })).not.toBeInTheDocument()
   })
+
+  it('muestra Máximo en carrito con la cifra disponible al alcanzar el tope', () => {
+    useCarritoStore
+      .getState()
+      .agregar(producto({ stock: 299, stock_reservado: 213 }), 86)
+    abrirCarrito()
+
+    expect(screen.getByText('Máximo en carrito: 86')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aumentar cantidad' })).toBeDisabled()
+  })
 })
 
 describe('CarritoDrawer — envío de cotización', () => {
