@@ -381,7 +381,7 @@ export async function getProducto(id: string): Promise<Producto | null> {
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('productos')
-    .select('*, proveedor:proveedores(*), categoria:categorias(*)')
+    .select('*, proveedor:proveedores(*), categoria:categorias(*), subcategoria:subcategorias(*)')
     .eq('id', id)
     .maybeSingle()
 

@@ -34,6 +34,10 @@ export async function crearProducto(
   const stock        = parseInt(formData.get('stock')        as string, 10)
   const categoria_id = formData.get('categoria_id')  as string
   const subcategoria_id = (formData.get('subcategoria_id') as string)?.trim()
+  const imagen_url = (formData.get('imagen_url') as string)?.trim() || null
+  const sku = (formData.get('sku') as string)?.trim() || null
+  const especificaciones = (formData.get('especificaciones') as string)?.trim() || null
+  const itbis_incluido = formData.get('itbis_incluido') === 'on'
   if (!subcategoria_id) return { error: 'Selecciona una subcategoría.' }
 
   if (!nombre || !unidad || !categoria_id || isNaN(precio) || isNaN(stock)) {
@@ -54,6 +58,10 @@ export async function crearProducto(
     precio,
     unidad,
     stock,
+    imagen_url,
+    sku,
+    especificaciones,
+    itbis_incluido,
     activo: true,
   })
 
@@ -78,6 +86,10 @@ export async function actualizarProducto(
   const stock        = parseInt(formData.get('stock')        as string, 10)
   const categoria_id = formData.get('categoria_id')  as string
   const subcategoria_id = (formData.get('subcategoria_id') as string)?.trim()
+  const imagen_url = (formData.get('imagen_url') as string)?.trim() || null
+  const sku = (formData.get('sku') as string)?.trim() || null
+  const especificaciones = (formData.get('especificaciones') as string)?.trim() || null
+  const itbis_incluido = formData.get('itbis_incluido') === 'on'
   if (!subcategoria_id) return { error: 'Selecciona una subcategoría.' }
 
   if (!id || !nombre || !unidad || !categoria_id || isNaN(precio) || isNaN(stock)) {
@@ -89,7 +101,7 @@ export async function actualizarProducto(
 
   const { error } = await supabase
     .from('productos')
-    .update({ nombre, descripcion, precio, unidad, stock, categoria_id, subcategoria_id })
+    .update({ nombre, descripcion, precio, unidad, stock, categoria_id, subcategoria_id, imagen_url, sku, especificaciones, itbis_incluido })
     .eq('id', id)
     .eq('proveedor_id', proveedor_id)
 

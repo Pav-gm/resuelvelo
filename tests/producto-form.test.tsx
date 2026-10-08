@@ -10,11 +10,16 @@ import type { Categoria, Producto, Subcategoria } from '@/types'
 const mocks = vi.hoisted(() => ({
   crearMock: vi.fn(),
   actualizarMock: vi.fn(),
+  createClientMock: vi.fn(),
 }))
 
 vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   crearProducto: mocks.crearMock,
   actualizarProducto: mocks.actualizarMock,
+}))
+
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: mocks.createClientMock,
 }))
 
 const CATEGORIAS: Categoria[] = [
@@ -55,6 +60,45 @@ afterEach(() => {
   cleanup()
   mocks.crearMock.mockReset()
   mocks.actualizarMock.mockReset()
+  mocks.createClientMock.mockReset()
+})
+
+function seleccionarImagen(input: HTMLInputElement, archivo: File) {
+  Object.defineProperty(input, 'files', { value: [archivo], configurable: true })
+  fireEvent.change(input)
+}
+
+describe('ProductoForm — validación de la imagen', () => {
+  it('rechaza tipos de imagen distintos de JPG, PNG y WebP', () => {
+    const { container } = render(
+      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedorId="prov-1" />
+    )
+
+    const input = screen.getByLabelText(/^Imagen del producto/) as HTMLInputElement
+    seleccionarImagen(input, new File(['gif'], 'producto.gif', { type: 'image/gif' }))
+
+    expect(screen.getByText('El formato debe ser JPG, PNG o WebP.')).toBeInTheDocument()
+    expect(mocks.createClientMock).not.toHaveBeenCalled()
+    const urlInput = container.querySelector('input[name="imagen_url"]') as HTMLInputElement
+    expect(urlInput.value).toBe('')
+  })
+
+  it('rechaza imágenes mayores de 2 MB', () => {
+    const { container } = render(
+      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedorId="prov-1" />
+    )
+
+    const input = screen.getByLabelText(/^Imagen del producto/) as HTMLInputElement
+    seleccionarImagen(
+      input,
+      new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'producto.png', { type: 'image/png' })
+    )
+
+    expect(screen.getByText('La imagen no puede superar 2 MB.')).toBeInTheDocument()
+    expect(mocks.createClientMock).not.toHaveBeenCalled()
+    const urlInput = container.querySelector('input[name="imagen_url"]') as HTMLInputElement
+    expect(urlInput.value).toBe('')
+  })
 })
 
 describe('ProductoForm — subcategoría dependiente de categoría', () => {
@@ -76,7 +120,7 @@ describe('ProductoForm — validaciones en español', () => {
   function comprobarMensajesPropios() {
     const nombre = screen.getByLabelText(/^Nombre del producto/) as HTMLInputElement
     const categoria = selectCategoria()
-    const precio = screen.getByLabelText(/^Precio/) as HTMLInputElement
+    const precio = screen.getByLabelText(/^Precio \(RD\$\)/) as HTMLInputElement
     const unidad = screen.getByLabelText(/^Unidad/) as HTMLInputElement
     const stock = screen.getByLabelText(/^Stock/) as HTMLInputElement
 
@@ -209,5 +253,41 @@ describe('ProductoForm — obligatoriedad de subcategoría', () => {
     await waitFor(() => expect(mocks.actualizarMock).toHaveBeenCalled())
     const enviado = mocks.actualizarMock.mock.calls[0][1] as FormData
     expect(enviado.get('subcategoria_id')).toBe('electricidad-cables')
+  })
+
+  it('no envía el archivo de imagen a la acción y conserva la URL actual', async () => {
+    mocks.actualizarMock.mockResolvedValue(null)
+
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      imagen_url: 'https://ejemplo.test/actual.jpg',
+      activo: true,
+      created_at: '',
+    }
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+        proveedorId="prov-1"
+      />
+    )
+
+    fireEvent.change(selectSubcategoria(), { target: { value: 'electricidad-cables' } })
+    fireEvent.submit(selectSubcategoria().closest('form')!)
+
+    await waitFor(() => expect(mocks.actualizarMock).toHaveBeenCalled())
+    const enviado = mocks.actualizarMock.mock.calls[0][1] as FormData
+    expect(enviado.has('imagen')).toBe(false)
+    expect(enviado.get('imagen_url')).toBe('https://ejemplo.test/actual.jpg')
+    expect(mocks.createClientMock).not.toHaveBeenCalled()
   })
 })
