@@ -28,6 +28,8 @@ begin
     'created_at', c.created_at,
     'despachada_at', c.despachada_at,
     'cancelada_por', c.cancelada_por,
+    'cancelada_at', c.cancelada_at,
+    'cancelada_motivo', c.cancelada_motivo,
     'proveedor', jsonb_build_object(
       'id', p.id,
       'nombre_empresa', p.nombre_empresa,
