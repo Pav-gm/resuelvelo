@@ -106,12 +106,24 @@ export default async function MisCotizacionesPage({
                     // con el producto falta (o el nombre viene vacío) mostramos
                     // un texto de indisponibilidad.
                     const nombreProducto = item.producto?.nombre?.trim()
+                    // Solo las cotizaciones aceptadas con cantidad confirmada muestran
+                    // el total servido; pendientes e históricos conservan lo solicitado.
+                    const cantidadConfirmada =
+                      cot.estado === 'aceptada' && item.cantidad_confirmada != null
+                        ? item.cantidad_confirmada
+                        : null
+                    const unidades = cantidadConfirmada ?? item.cantidad
                     return (
                       <div key={item.id} className="flex items-center justify-between px-6 py-3 text-sm">
                         <div className="min-w-0">
                           <span className="text-gray-700">
                             {nombreProducto || 'Producto no disponible'}
                           </span>
+                          {cantidadConfirmada != null && (
+                            <p className="text-xs text-green-700">
+                              {`Confirmado: ${cantidadConfirmada} de ${item.cantidad}`}
+                            </p>
+                          )}
                           {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
                             <p className="text-xs text-yellow-700">
                               {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
@@ -119,10 +131,10 @@ export default async function MisCotizacionesPage({
                           )}
                         </div>
                         <div className="flex items-center gap-4 text-gray-500">
-                          <span>x{item.cantidad}</span>
+                          <span>x{unidades}</span>
                           {item.precio_unitario != null && (
                             <span className="font-medium text-gray-700">
-                              ${(item.precio_unitario * item.cantidad).toLocaleString('es-DO', {
+                              ${(item.precio_unitario * unidades).toLocaleString('es-DO', {
                                 minimumFractionDigits: 2,
                               })}
                             </span>

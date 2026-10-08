@@ -125,6 +125,8 @@ export interface ItemCotizacion {
   cotizacion_id: string
   producto_id: string
   cantidad: number
+  /** Cantidad aceptada por el proveedor; null en cotizaciones anteriores o pendientes. */
+  cantidad_confirmada?: number | null
   precio_unitario?: number
   producto?: Producto
   /** true si la cantidad pedida superaba el stock al cotizar. */
