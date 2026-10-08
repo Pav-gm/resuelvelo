@@ -43,6 +43,8 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
 
   const proveedor = producto.proveedor
   const itbisIncluido = producto.itbis_incluido !== false
+  // Existencias disponibles: stock total menos las unidades reservadas.
+  const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -93,8 +95,8 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
               <dd className="text-gray-900">{producto.unidad}</dd>
             </div>
             <div>
-              <dt className="text-xs text-gray-400">Stock</dt>
-              <dd className="text-gray-900">{producto.stock}</dd>
+              <dt className="text-xs text-gray-400">Stock disponible</dt>
+              <dd className="text-gray-900">{disponible}</dd>
             </div>
             {producto.subcategoria && (
               <div>

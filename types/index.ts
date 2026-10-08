@@ -46,6 +46,7 @@ export interface Producto {
   precio: number
   unidad: string
   stock: number
+  stock_reservado?: number
   imagen_url?: string | null
   sku?: string | null
   especificaciones?: string | null
@@ -97,7 +98,7 @@ export type MotivoCancelacionInput = {
 export type CotizacionDetalle = Cotizacion & {
   proveedor: Pick<Proveedor, 'id' | 'nombre_empresa' | 'ciudad' | 'verificado'>
   comprador: Pick<Profile, 'id' | 'nombre' | 'email'> & { telefono: string | null }
-  items: Array<ItemCotizacion & { producto: Pick<Producto, 'id' | 'nombre'> | null }>
+  items: Array<ItemCotizacion & { producto: Pick<Producto, 'id' | 'nombre' | 'activo'> | null }>
 }
 
 export interface Feedback {

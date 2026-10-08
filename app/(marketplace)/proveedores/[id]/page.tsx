@@ -1,12 +1,25 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import { Building2, MapPin, BadgeCheck, Package } from 'lucide-react'
 import ErrorCarga from '@/components/marketplace/ErrorCarga'
 import { getProveedores, getFeedbackDeProveedor } from '@/lib/data'
 import type { FeedbackPublico } from '@/types'
 
-export const metadata = {
-  title: 'Proveedor — Resuélvelo',
+const TITULO_GENERICO = 'Proveedor — Resuélvelo'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const proveedores = await getProveedores().catch(() => null)
+  const proveedor = proveedores?.find((p) => p.id === id)
+  if (!proveedor?.nombre_empresa) {
+    return { title: TITULO_GENERICO }
+  }
+  return { title: `${proveedor.nombre_empresa} — Resuélvelo` }
 }
 
 function Estrellas({ calificacion }: { calificacion: number }) {

@@ -72,7 +72,7 @@ describe('getCotizacionDetalle', () => {
           precio_unitario: 10,
           sujeta_disponibilidad: false,
           stock_al_cotizar: 5,
-          producto: { id: 'prod-1', nombre: 'Tubo PVC' },
+          producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
         },
       ],
     }

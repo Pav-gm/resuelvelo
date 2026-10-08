@@ -3,7 +3,7 @@
  * obligatoriedad en productos nuevos y edición de productos legacy.
  */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import ProductoForm from '@/components/marketplace/ProductoForm'
 import type { Categoria, Producto, Subcategoria } from '@/types'
 
@@ -21,6 +21,16 @@ vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
 vi.mock('@/lib/supabase/client', () => ({
   createClient: mocks.createClientMock,
 }))
+
+// jsdom no implementa las URL de objeto; se simulan para cubrir la vista previa.
+Object.defineProperty(URL, 'createObjectURL', {
+  value: vi.fn(() => 'blob:nueva'),
+  configurable: true,
+})
+Object.defineProperty(URL, 'revokeObjectURL', {
+  value: vi.fn(),
+  configurable: true,
+})
 
 const CATEGORIAS: Categoria[] = [
   { id: 'cat-elec', nombre: 'Electricidad', slug: 'electricidad' },
@@ -145,12 +155,13 @@ describe('ProductoForm — validaciones en español', () => {
     fireEvent.change(precio, { target: { value: '' } })
     precio.checkValidity()
     expect(precio.validationMessage).toBe('Ingresa un precio válido.')
+    expect(precio).toHaveAttribute('min', '0.01')
     fireEvent.change(precio, { target: { value: '-1' } })
     precio.checkValidity()
     expect(precio.validationMessage).toBe('El precio no puede ser negativo.')
     fireEvent.change(precio, { target: { value: '0' } })
     precio.checkValidity()
-    expect(precio.validationMessage).not.toBe('')
+    expect(precio.validationMessage).toBe('El precio debe ser mayor que cero.')
     fireEvent.change(precio, { target: { value: '100' } })
     expect(precio.validationMessage).toBe('')
 
@@ -201,15 +212,44 @@ describe('ProductoForm — validaciones en español', () => {
   })
 
   it('muestra el mensaje acordado cuando el precio es cero', () => {
-    render(<ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} />)
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      activo: true,
+      created_at: '',
+    }
 
-    const precio = screen.getByLabelText(/^Precio \(RD\$\)/) as HTMLInputElement
-    fireEvent.change(precio, { target: { value: '0' } })
-    precio.checkValidity()
-    expect(precio.validationMessage).not.toBe('')
+    function comprobarPrecio() {
+      const precio = screen.getByLabelText(/^Precio \(RD\$\)/) as HTMLInputElement
+      expect(precio).toHaveAttribute('min', '0.01')
+      fireEvent.change(precio, { target: { value: '0' } })
+      precio.checkValidity()
+      expect(precio.validationMessage).toBe('El precio debe ser mayor que cero.')
+      fireEvent.change(precio, { target: { value: '-1' } })
+      precio.checkValidity()
+      expect(precio.validationMessage).toBe('El precio no puede ser negativo.')
+    }
 
-    fireEvent.change(precio, { target: { value: '100' } })
-    expect(precio.validationMessage).toBe('')
+    const { unmount } = render(
+      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} />
+    )
+    comprobarPrecio()
+    unmount()
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+      />
+    )
+    comprobarPrecio()
   })
 })
 
@@ -308,43 +348,58 @@ describe('ProductoForm — obligatoriedad de subcategoría', () => {
 })
 
 describe('ProductoForm — previsualización de imagen', () => {
-  beforeAll(() => {
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      writable: true,
-      value: vi.fn(() => 'blob:previsualizacion'),
-    })
-    Object.defineProperty(URL, 'revokeObjectURL', {
-      configurable: true,
-      writable: true,
-      value: vi.fn(),
-    })
-  })
+  it('previsualiza la imagen elegida y permite cambiarla o quitarla al editar', async () => {
+    mocks.actualizarMock.mockResolvedValue(null)
 
-  it('muestra la imagen elegida antes de guardarla', () => {
-    const { container } = render(
-      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedorId="prov-1" />
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      imagen_url: 'https://ejemplo.test/actual.jpg',
+      activo: true,
+      created_at: '',
+    }
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+        proveedorId="prov-1"
+      />
     )
 
-    const input = screen.getByLabelText(/^Imagen del producto/) as HTMLInputElement
-    seleccionarImagen(input, new File(['png'], 'producto.png', { type: 'image/png' }))
-
-    const vista = container.querySelector('img')
-    expect(vista?.getAttribute('src')).toBe('blob:previsualizacion')
-    expect(URL.createObjectURL).toHaveBeenCalled()
-  })
-
-  it('libera la URL temporal de la imagen', () => {
-    const { unmount } = render(
-      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedorId="prov-1" />
+    // Al editar se muestra la foto actual.
+    expect(screen.getByRole('img', { name: 'Vista previa del producto' })).toHaveAttribute(
+      'src',
+      'https://ejemplo.test/actual.jpg'
     )
 
+    // Al elegir un archivo se muestra su previsualización (URL de objeto).
     const input = screen.getByLabelText(/^Imagen del producto/) as HTMLInputElement
-    seleccionarImagen(input, new File(['png'], 'primera.png', { type: 'image/png' }))
-    seleccionarImagen(input, new File(['png'], 'segunda.png', { type: 'image/png' }))
-    unmount()
+    seleccionarImagen(input, new File(['png'], 'nueva.png', { type: 'image/png' }))
+    expect(screen.getByRole('img', { name: 'Vista previa del producto' })).toHaveAttribute(
+      'src',
+      'blob:nueva'
+    )
 
-    expect(URL.revokeObjectURL).toHaveBeenCalled()
+    // Quitar foto limpia la selección y la imagen mostrada.
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar foto' }))
+    expect(screen.queryByRole('img', { name: 'Vista previa del producto' })).toBeNull()
+    expect(input.value).toBe('')
+
+    fireEvent.submit(input.closest('form')!)
+
+    await waitFor(() => expect(mocks.actualizarMock).toHaveBeenCalled())
+    const enviado = mocks.actualizarMock.mock.calls[0][1] as FormData
+    expect(enviado.get('imagen_url')).toBe('')
+    expect(enviado.has('imagen')).toBe(false)
+    expect(mocks.createClientMock).not.toHaveBeenCalled()
   })
 })
 
