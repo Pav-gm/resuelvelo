@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 describe('stock reservado', () => {
   it('la migración informa cuántas unidades reservadas bloquearon el stock', () => {
     const migracion = readFileSync(
-      join(process.cwd(), 'supabase/migrations/20261010000202_stock_reservado_error_detallado.sql'),
+      join(process.cwd(), 'supabase/migrations/20261010000203_stock_reservado_error_detallado.sql'),
       'utf8'
     )
 
