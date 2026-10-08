@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import type { CotizacionActionResult, OfertaCotizacionInput } from '@/types'
 
 async function getProveedorId(
   supabase?: Awaited<ReturnType<typeof createClient>>
@@ -194,6 +195,86 @@ export async function aceptarCotizacionConCantidades(
   })
   if (error) return { error: error.message }
 
+  revalidatePath('/proveedor')
+  revalidatePath('/proveedor/pedidos')
+  revalidatePath('/mis-cotizaciones')
+  return null
+}
+
+export async function ofertarCotizacion(
+  cotizacionId: string,
+  oferta: OfertaCotizacionInput
+): Promise<CotizacionActionResult> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  if (!oferta || !Array.isArray(oferta.lineas) || oferta.lineas.length === 0) {
+    return { error: 'La oferta debe incluir todas las líneas de la cotización.' }
+  }
+  if (oferta.lineas.some((linea) => !linea || typeof linea.itemId !== 'string' || linea.itemId.trim() === '') ||
+    new Set(oferta.lineas.map((linea) => linea.itemId)).size !== oferta.lineas.length) {
+    return { error: 'Cada línea de la oferta debe tener un identificador único.' }
+  }
+  if (oferta.lineas.some((linea) => !Number.isFinite(linea.precioUnitario) || linea.precioUnitario <= 0)) {
+    return { error: 'Cada precio ofertado debe ser mayor que 0.' }
+  }
+  if (oferta.lineas.some((linea) =>
+    linea.cantidadOfertada !== null &&
+    (!Number.isInteger(linea.cantidadOfertada) || linea.cantidadOfertada < 0)
+  )) {
+    return { error: 'Las cantidades ofertadas deben ser números enteros no negativos.' }
+  }
+  if (!Number.isInteger(oferta.plazoDias) || oferta.plazoDias < 0 || oferta.plazoDias > 90) {
+    return { error: 'El plazo debe estar entre 0 y 90 días.' }
+  }
+  const fechaValida = typeof oferta.validaHasta === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(oferta.validaHasta) &&
+    !Number.isNaN(Date.parse(`${oferta.validaHasta}T00:00:00Z`)) &&
+    new Date(`${oferta.validaHasta}T00:00:00Z`).toISOString().slice(0, 10) === oferta.validaHasta &&
+    oferta.validaHasta > new Date().toISOString().slice(0, 10)
+  if (!fechaValida) return { error: 'La fecha de validez debe ser futura.' }
+
+  const { error } = await supabase.rpc('responder_cotizacion_con_oferta', {
+    p_cotizacion_id: cotizacionId,
+    p_lineas: oferta.lineas.map(({ itemId, precioUnitario, cantidadOfertada }) => ({
+      item_id: itemId,
+      precio_ofertado: precioUnitario,
+      cantidad_ofertada: cantidadOfertada,
+    })),
+    p_plazo_dias: oferta.plazoDias,
+    p_valida_hasta: oferta.validaHasta,
+    p_condiciones: oferta.condiciones,
+  })
+  if (error) return { error: error.message }
+
+  revalidatePath(`/cotizaciones/${cotizacionId}`)
+  revalidatePath('/proveedor')
+  revalidatePath('/proveedor/pedidos')
+  revalidatePath('/mis-cotizaciones')
+  return null
+}
+
+export async function rechazarCotizacionConMotivo(
+  cotizacionId: string,
+  motivo: string
+): Promise<CotizacionActionResult> {
+  const motivoLimpio = typeof motivo === 'string' ? motivo.trim() : ''
+  if (!motivoLimpio || motivo.length > 500) {
+    return { error: 'El motivo del rechazo debe tener entre 1 y 500 caracteres.' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { error } = await supabase.rpc('rechazar_cotizacion_con_motivo', {
+    p_cotizacion_id: cotizacionId,
+    p_motivo: motivoLimpio,
+  })
+  if (error) return { error: error.message }
+
+  revalidatePath(`/cotizaciones/${cotizacionId}`)
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
   revalidatePath('/mis-cotizaciones')
