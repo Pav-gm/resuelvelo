@@ -3,7 +3,7 @@
  * obligatoriedad en productos nuevos y edición de productos legacy.
  */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import ProductoForm from '@/components/marketplace/ProductoForm'
 import type { Categoria, Producto, Subcategoria } from '@/types'
 
@@ -148,6 +148,9 @@ describe('ProductoForm — validaciones en español', () => {
     fireEvent.change(precio, { target: { value: '-1' } })
     precio.checkValidity()
     expect(precio.validationMessage).toBe('El precio no puede ser negativo.')
+    fireEvent.change(precio, { target: { value: '0' } })
+    precio.checkValidity()
+    expect(precio.validationMessage).not.toBe('')
     fireEvent.change(precio, { target: { value: '100' } })
     expect(precio.validationMessage).toBe('')
 
@@ -195,6 +198,18 @@ describe('ProductoForm — validaciones en español', () => {
       />
     )
     comprobarMensajesPropios()
+  })
+
+  it('muestra el mensaje acordado cuando el precio es cero', () => {
+    render(<ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} />)
+
+    const precio = screen.getByLabelText(/^Precio \(RD\$\)/) as HTMLInputElement
+    fireEvent.change(precio, { target: { value: '0' } })
+    precio.checkValidity()
+    expect(precio.validationMessage).not.toBe('')
+
+    fireEvent.change(precio, { target: { value: '100' } })
+    expect(precio.validationMessage).toBe('')
   })
 })
 
@@ -289,6 +304,47 @@ describe('ProductoForm — obligatoriedad de subcategoría', () => {
     expect(enviado.has('imagen')).toBe(false)
     expect(enviado.get('imagen_url')).toBe('https://ejemplo.test/actual.jpg')
     expect(mocks.createClientMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('ProductoForm — previsualización de imagen', () => {
+  beforeAll(() => {
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(() => 'blob:previsualizacion'),
+    })
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    })
+  })
+
+  it('muestra la imagen elegida antes de guardarla', () => {
+    const { container } = render(
+      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedorId="prov-1" />
+    )
+
+    const input = screen.getByLabelText(/^Imagen del producto/) as HTMLInputElement
+    seleccionarImagen(input, new File(['png'], 'producto.png', { type: 'image/png' }))
+
+    const vista = container.querySelector('img')
+    expect(vista?.getAttribute('src')).toBe('blob:previsualizacion')
+    expect(URL.createObjectURL).toHaveBeenCalled()
+  })
+
+  it('libera la URL temporal de la imagen', () => {
+    const { unmount } = render(
+      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedorId="prov-1" />
+    )
+
+    const input = screen.getByLabelText(/^Imagen del producto/) as HTMLInputElement
+    seleccionarImagen(input, new File(['png'], 'primera.png', { type: 'image/png' }))
+    seleccionarImagen(input, new File(['png'], 'segunda.png', { type: 'image/png' }))
+    unmount()
+
+    expect(URL.revokeObjectURL).toHaveBeenCalled()
   })
 })
 

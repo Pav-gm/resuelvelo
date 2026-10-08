@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useCallback, useState } from 'react'
+import { useActionState, useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { crearProducto, actualizarProducto, type ProductoError } from '@/app/(marketplace)/proveedor/actions'
 import { createClient } from '@/lib/supabase/client'
@@ -71,7 +71,14 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
   const [subcategoriaId, setSubcategoriaId] = useState(producto?.subcategoria_id ?? '')
   const [imagenUrl, setImagenUrl] = useState(producto?.imagen_url ?? '')
   const [errorImagen, setErrorImagen] = useState<string | null>(null)
+  const [previsualizacion, setPrevisualizacion] = useState<string | null>(null)
   const [procesando, setProcesando] = useState(false)
+
+  // Libera la URL temporal de la previsualización al reemplazarla o desmontar.
+  useEffect(() => {
+    if (!previsualizacion) return
+    return () => URL.revokeObjectURL(previsualizacion)
+  }, [previsualizacion])
 
   const ejecutarAccion = useCallback(
     async (prevState: ProductoError, formData: FormData): Promise<ProductoError> => {
@@ -125,6 +132,9 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
       return
     }
     setErrorImagen(null)
+    if (typeof URL.createObjectURL === 'function') {
+      setPrevisualizacion(URL.createObjectURL(archivo))
+    }
   }
 
   function limpiarValidez(e: { currentTarget: HTMLInputElement | HTMLSelectElement }) {
@@ -199,6 +209,16 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
           className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 file:mr-3 file:rounded-md file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-orange-600"
         />
         <p className="mt-1 text-xs text-gray-400">JPG, PNG o WebP de hasta 2 MB.</p>
+        {previsualizacion && (
+          // La previsualización usa una URL temporal del navegador: se usa <img>
+          // para no asumir dominios remotos en next.config.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previsualizacion}
+            alt="Previsualización del producto"
+            className="mt-3 h-32 w-32 rounded-lg border object-cover"
+          />
+        )}
         {errorImagen && (
           <p className="mt-1 text-sm text-red-600" role="alert">
             {errorImagen}
@@ -300,10 +320,17 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
             step="0.01"
             defaultValue={producto?.precio}
             placeholder="0.00"
-            onInvalid={(e) =>
+            onInvalid={(e) => {
+              if (e.currentTarget.validity.customError) return
               marcarInvalido(e, 'Ingresa un precio válido.', 'El precio no puede ser negativo.')
-            }
-            onChange={limpiarValidez}
+            }}
+            onChange={(e) => {
+              e.currentTarget.setCustomValidity(
+                e.currentTarget.value !== '' && Number(e.currentTarget.value) === 0
+                  ? 'El precio debe ser mayor que cero.'
+                  : ''
+              )
+            }}
             className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
           />
         </div>
