@@ -4,6 +4,8 @@ type Props = {
   estado: Cotizacion['estado']
   despachadaAt?: string | null
   canceladaPor?: 'comprador' | 'proveedor' | null
+  canceladaAt?: string | null
+  canceladaMotivo?: string | null
 }
 
 const ETIQUETAS_ACTOR: Record<'comprador' | 'proveedor', string> = {
@@ -21,15 +23,22 @@ function formatearFecha(fecha: string): string {
 
 /**
  * Línea de seguimiento compartida por las vistas del proveedor y del comprador:
- * Aceptada → Despachada → Recibida, con la fecha de despacho cuando existe y
- * el actor de la cancelación cuando el estado es cancelada. En cancelada se
- * muestra «Cancelada por …» y los tres pasos se renderizan siempre; «Recibida»
- * aparece como pendiente (text-gray-400, punto gris) y nunca como completada,
- * conforme a TRACKING-UI.
- * Las etiquetas se muestran numeradas («1 · Aceptada») para diferenciarse de
- * los badges de estado al consultar el DOM en las pruebas.
+ * Aceptada → Despachada → Recibida, con la fecha de despacho cuando existe y,
+ * en cancelada, un cuarto paso «Cancelada» completo con la fecha de la
+ * cancelación. En cancelada se muestra el actor y, cuando existen fecha y
+ * motivo, el texto «Cancelada por … el <fecha>: <motivo>»; si faltan datos
+ * históricos se conserva «Cancelada por …». Los pasos se renderizan siempre;
+ * «Recibida» aparece como pendiente (text-gray-400, punto gris) y nunca como
+ * completada, conforme a TRACKING-UI. Las etiquetas se muestran numeradas
+ * («1 · Aceptada») para diferenciarse de los badges de estado.
  */
-export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }: Props) {
+export default function LineaSeguimiento({
+  estado,
+  despachadaAt,
+  canceladaPor,
+  canceladaAt,
+  canceladaMotivo,
+}: Props) {
   const conSeguimiento =
     estado === 'aceptada' ||
     estado === 'despachada' ||
@@ -42,13 +51,21 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
     ? !!despachadaAt
     : estado === 'despachada' || estado === 'recibida'
 
-  // Los tres pasos se renderizan siempre; en cancelada «Recibida» queda como
-  // pendiente (completa es false) porque la venta no llegó a recibirse.
-  const pasos = [
-    { etiqueta: 'Aceptada', completa: true },
-    { etiqueta: 'Despachada', completa: despachadaCompleta },
-    { etiqueta: 'Recibida', completa: estado === 'recibida' },
-  ]
+  // Los pasos se renderizan siempre; en cancelada «Recibida» queda como
+  // pendiente (completa es false) porque la venta no llegó a recibirse, y se
+  // añade un cuarto paso «Cancelada» marcado como completo.
+  const pasos = cancelada
+    ? [
+        { etiqueta: 'Aceptada', completa: true },
+        { etiqueta: 'Despachada', completa: despachadaCompleta },
+        { etiqueta: 'Recibida', completa: false },
+        { etiqueta: 'Cancelada', completa: true },
+      ]
+    : [
+        { etiqueta: 'Aceptada', completa: true },
+        { etiqueta: 'Despachada', completa: despachadaCompleta },
+        { etiqueta: 'Recibida', completa: estado === 'recibida' },
+      ]
 
   return (
     <div
@@ -79,6 +96,11 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
                   {formatearFecha(despachadaAt)}
                 </span>
               )}
+              {paso.etiqueta === 'Cancelada' && canceladaAt && (
+                <span className="ml-1 font-normal text-gray-500">
+                  {formatearFecha(canceladaAt)}
+                </span>
+              )}
             </span>
             {indice < pasos.length - 1 && (
               <span aria-hidden="true" className="text-gray-400">
@@ -90,7 +112,9 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
       </ol>
       {canceladaPor && (
         <p className="mt-2 text-sm font-medium text-red-600" role="status">
-          Cancelada por {ETIQUETAS_ACTOR[canceladaPor]}.
+          {canceladaAt && canceladaMotivo
+            ? `Cancelada por ${ETIQUETAS_ACTOR[canceladaPor]} el ${formatearFecha(canceladaAt)}: ${canceladaMotivo}`
+            : `Cancelada por ${ETIQUETAS_ACTOR[canceladaPor]}.`}
         </p>
       )}
     </div>

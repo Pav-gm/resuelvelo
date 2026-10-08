@@ -510,7 +510,7 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
 })
 
 describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
-  it('en aceptada cancela sin confirmación y muestra el error de la RPC', async () => {
+  it('en aceptada pide motivo antes de cancelar y cerrar no cambia nada', async () => {
     const id = '33333333-1111-4111-8111-111111111111'
     h.cancelarVenta.mockResolvedValue({
       error: 'Solo puedes cancelar antes de que el proveedor despache.',
@@ -528,14 +528,32 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
 
     fireEvent.click(within(card).getByRole('button', { name: 'Cancelar' }))
 
-    expect(within(card).queryByRole('dialog')).not.toBeInTheDocument()
-    await waitFor(() => {
-      expect(h.cancelarVenta).toHaveBeenCalledWith(id)
+    const dialogo = within(card).getByRole('dialog', { name: 'Motivo de cancelación' })
+    expect(h.cancelarVenta).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Volver' }))
+    expect(within(card).queryByRole('dialog', { name: 'Motivo de cancelación' })).not.toBeInTheDocument()
+    expect(h.cancelarVenta).not.toHaveBeenCalled()
+
+    fireEvent.click(within(card).getByRole('button', { name: 'Cancelar' }))
+    const dialogo2 = within(card).getByRole('dialog', { name: 'Motivo de cancelación' })
+    const confirmar = within(dialogo2).getByRole('button', { name: 'Confirmar cancelación' })
+    expect(confirmar).toBeDisabled()
+
+    fireEvent.change(within(dialogo2).getByRole('combobox', { name: 'Motivo de cancelación' }), {
+      target: { value: 'Encontré mejor precio' },
     })
+    expect(confirmar).toBeEnabled()
+
+    fireEvent.click(confirmar)
+
+    await waitFor(() => {
+      expect(h.cancelarVenta).toHaveBeenCalledWith(id, { opcion: 'Encontré mejor precio' })
+    })
+    expect(h.cancelarVenta).toHaveBeenCalledTimes(1)
     expect(await within(card).findByRole('alert')).toHaveTextContent(
       'Solo puedes cancelar antes de que el proveedor despache.'
     )
-    expect(h.cancelarVenta).toHaveBeenCalledTimes(1)
   })
 
   it('en despachada muestra la fecha y solo la confirmación de recepción', async () => {
@@ -590,6 +608,53 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
     expect(within(card).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
     expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
+  })
+
+  it('en cancelada muestra actor fecha motivo y paso cancelado en ambos lados', async () => {
+    const canceladaAt = '2026-03-16T15:00:00.000Z'
+    const motivo = 'Encontré mejor precio'
+    h.cotizaciones.push(
+      cotizacion('cancelada', '66666666-1111-4111-8111-111111111111', {
+        cancelada_por: 'comprador',
+        cancelada_at: canceladaAt,
+        cancelada_motivo: motivo,
+      })
+    )
+    h.cotizacionesProveedor.push(
+      cotizacion('cancelada', 'bbbbbbbb-1111-4111-8111-111111111111', {
+        cancelada_por: 'proveedor',
+        cancelada_at: canceladaAt,
+        cancelada_motivo: motivo,
+      })
+    )
+
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+    render(await PedidosPage())
+
+    const fecha = fechaDespacho(canceladaAt)
+    const cardComprador = tarjeta('66666666')
+    const cardProveedor = tarjeta('BBBBBBBB')
+    const lineaComprador = within(cardComprador).getByRole('region', {
+      name: 'Seguimiento de la cotización',
+    })
+    const lineaProveedor = within(cardProveedor).getByRole('region', {
+      name: 'Seguimiento de la cotización',
+    })
+
+    expect(within(lineaComprador).getByRole('status')).toHaveTextContent(
+      `Cancelada por el comprador el ${fecha}: ${motivo}`
+    )
+    expect(within(lineaProveedor).getByRole('status')).toHaveTextContent(
+      `Cancelada por el proveedor el ${fecha}: ${motivo}`
+    )
+    expect(lineaComprador).toHaveTextContent(fecha)
+    expect(lineaProveedor).toHaveTextContent(fecha)
+    expect(pasoSeguimiento(lineaComprador, 4, 'Cancelada').className).toContain('font-medium')
+    expect(pasoSeguimiento(lineaProveedor, 4, 'Cancelada').className).toContain('font-medium')
+    expect(pasoSeguimiento(lineaComprador, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(lineaProveedor, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(within(cardComprador).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
+    expect(within(cardProveedor).queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
   })
 })
 
@@ -694,7 +759,7 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
     expect(screen.getByRole('button', { name: 'Marcar como despachada' })).toBeEnabled()
   })
 
-  it('en despachada solo cancela tras confirmar y muestra fecha y error', async () => {
+  it('en despachada proveedor exige motivo Otro y conserva error RPC', async () => {
     const id = COT_DESPACHADA
     h.cancelarVenta.mockResolvedValue({ error: 'Esta venta ya no se puede cancelar.' })
     h.cotizacionesProveedor.push(
@@ -713,13 +778,34 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
 
     fireEvent.click(within(card).getByRole('button', { name: 'Cancelar venta' }))
     expect(h.cancelarVenta).not.toHaveBeenCalled()
-    const dialogo = within(card).getByRole('dialog', { name: 'Confirmar cancelación' })
-    expect(dialogo).toHaveTextContent('¿Seguro que quieres cancelar esta venta? Esta acción no se puede deshacer.')
-    fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, cancelar venta' }))
 
+    const dialogo = within(card).getByRole('dialog', { name: 'Motivo de cancelación' })
+    const confirmar = within(dialogo).getByRole('button', { name: 'Confirmar cancelación' })
+    expect(confirmar).toBeDisabled()
+
+    fireEvent.change(within(dialogo).getByRole('combobox', { name: 'Motivo de cancelación' }), {
+      target: { value: 'Otro' },
+    })
+    expect(confirmar).toBeDisabled()
+
+    const detalle = within(dialogo).getByLabelText('Describe el motivo')
+    expect(detalle).toHaveProperty('maxLength', 500)
+    fireEvent.click(confirmar)
+    expect(h.cancelarVenta).not.toHaveBeenCalled()
+
+    fireEvent.change(detalle, { target: { value: 'Sin unidades de reemplazo' } })
+    expect(confirmar).toBeEnabled()
+    fireEvent.click(confirmar)
+
+    await waitFor(() => {
+      expect(h.cancelarVenta).toHaveBeenCalledWith(id, {
+        opcion: 'Otro',
+        detalle: 'Sin unidades de reemplazo',
+      })
+    })
+    expect(h.cancelarVenta).toHaveBeenCalledTimes(1)
     expect(await within(card).findByRole('alert')).toHaveTextContent('Esta venta ya no se puede cancelar.')
-    expect(h.cancelarVenta).toHaveBeenCalledWith(id)
-    expect(within(card).queryByRole('dialog')).not.toBeInTheDocument()
+    expect(within(card).queryByRole('dialog', { name: 'Motivo de cancelación' })).not.toBeInTheDocument()
   })
 
   it('en cancelada nombra al proveedor y no ofrece acciones de venta', async () => {
