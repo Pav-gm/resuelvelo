@@ -89,6 +89,7 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
           setProcesando(true)
           const url = await subirImagen(archivo, proveedorId)
           formData.set('imagen_url', url)
+          setImagenUrl(url)
         } catch {
           return { error: 'No se pudo subir la imagen. Intenta de nuevo.' }
         } finally {
@@ -97,6 +98,9 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
       } else {
         formData.set('imagen_url', imagenUrl)
       }
+      // No enviar el File crudo a la Server Action: supera el límite de cuerpo por
+      // defecto de Next 16 (1 MB) y provoca 413 con imágenes válidas de 1–2 MB.
+      formData.delete('imagen')
       return action(prevState, formData)
     },
     [action, imagenUrl, proveedorId]

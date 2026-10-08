@@ -254,4 +254,40 @@ describe('ProductoForm — obligatoriedad de subcategoría', () => {
     const enviado = mocks.actualizarMock.mock.calls[0][1] as FormData
     expect(enviado.get('subcategoria_id')).toBe('electricidad-cables')
   })
+
+  it('no envía el archivo de imagen a la acción y conserva la URL actual', async () => {
+    mocks.actualizarMock.mockResolvedValue(null)
+
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      imagen_url: 'https://ejemplo.test/actual.jpg',
+      activo: true,
+      created_at: '',
+    }
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+        proveedorId="prov-1"
+      />
+    )
+
+    fireEvent.change(selectSubcategoria(), { target: { value: 'electricidad-cables' } })
+    fireEvent.submit(selectSubcategoria().closest('form')!)
+
+    await waitFor(() => expect(mocks.actualizarMock).toHaveBeenCalled())
+    const enviado = mocks.actualizarMock.mock.calls[0][1] as FormData
+    expect(enviado.has('imagen')).toBe(false)
+    expect(enviado.get('imagen_url')).toBe('https://ejemplo.test/actual.jpg')
+    expect(mocks.createClientMock).not.toHaveBeenCalled()
+  })
 })
