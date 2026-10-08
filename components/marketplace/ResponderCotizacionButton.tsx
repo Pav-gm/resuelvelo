@@ -27,15 +27,15 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   const [abierto, setAbierto] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
-  const [cantidades, setCantidades] = useState<Record<string, number>>({})
+  const [cantidades, setCantidades] = useState<Record<string, string>>({})
 
   function abrirDialogo() {
     setError(null)
     setAviso(null)
-    const iniciales: Record<string, number> = {}
+    const iniciales: Record<string, string> = {}
     for (const item of items) {
       // Cantidad inicial sugerida: lo pedido, sin superar el disponible actual.
-      iniciales[item.id] = Math.min(item.cantidad, disponibleDeItem(item))
+      iniciales[item.id] = String(Math.min(item.cantidad, disponibleDeItem(item)))
     }
     setCantidades(iniciales)
     setAbierto(true)
@@ -52,7 +52,13 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     for (const item of items) {
       // El tope por línea es lo pedido, sin superar nunca el disponible actual.
       const limite = Math.min(item.cantidad, disponibleDeItem(item))
-      const cantidad = cantidades[item.id]
+      const texto = (cantidades[item.id] ?? '').trim()
+      // Un campo vacío o no numérico no se interpreta como cero: bloquea el envío.
+      if (texto === '' || Number.isNaN(Number(texto))) {
+        setAviso('Indica cuántas unidades confirmas')
+        return
+      }
+      const cantidad = Number(texto)
       if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > limite) {
         setAviso('Las cantidades no pueden superar el stock disponible.')
         return
@@ -60,8 +66,8 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
       seleccion.push({ itemId: item.id, cantidad })
     }
     const total = seleccion.reduce((suma, linea) => suma + linea.cantidad, 0)
-    if (total === 0) {
-      setAviso('Debes confirmar al menos una unidad o rechazar la cotización.')
+    if (seleccion.length > 0 && total === 0) {
+      setAviso('Si no puedes servir nada, rechaza la cotización')
       return
     }
 
@@ -76,6 +82,17 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
       setAbierto(false)
     })
   }
+
+  // Todas las líneas con un entero válido y suma cero: no se puede confirmar.
+  const todasCero =
+    items.length > 0 &&
+    items.every((item) => {
+      const texto = (cantidades[item.id] ?? '').trim()
+      if (texto === '') return false
+      const numero = Number(texto)
+      return Number.isInteger(numero) && numero >= 0
+    }) &&
+    items.reduce((suma, item) => suma + Number(cantidades[item.id]), 0) === 0
 
   return (
     <div className="flex flex-col gap-2">
@@ -128,13 +145,13 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                         type="number"
                         min={0}
                         max={limite}
-                        value={cantidades[item.id] ?? 0}
+                        value={cantidades[item.id] ?? ''}
                         disabled={pending}
                         onChange={(evento) => {
-                          const valor = Number.parseInt(evento.target.value, 10)
+                          // Se conserva el texto tal cual para no convertir un vacío en 0.
                           setCantidades((previas) => ({
                             ...previas,
-                            [item.id]: Number.isNaN(valor) ? 0 : valor,
+                            [item.id]: evento.target.value,
                           }))
                         }}
                         className="w-20 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
@@ -146,6 +163,11 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
             </>
           )}
 
+          {todasCero && (
+            <p className="mt-2 text-sm text-red-600" role="alert">
+              Si no puedes servir nada, rechaza la cotización
+            </p>
+          )}
           {aviso && (
             <p className="mt-2 text-sm text-red-600" role="alert">
               {aviso}
@@ -161,7 +183,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
             <Button
               size="sm"
               className="bg-green-500 hover:bg-green-600 text-white"
-              disabled={pending}
+              disabled={pending || todasCero}
               onClick={handleConfirmar}
             >
               {pending ? 'Confirmando…' : 'Confirmar aceptación'}

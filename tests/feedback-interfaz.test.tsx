@@ -1233,4 +1233,110 @@ describe('Aceptación con cantidades confirmadas', () => {
 
     expect(h.aceptarCotizacionConCantidades).not.toHaveBeenCalled()
   })
+
+  it('bloquea la aceptación y pide una cantidad válida cuando una línea queda vacía', () => {
+    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-vacio',
+        producto_id: 'prod-vacio',
+        cantidad: 2,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 2,
+        producto: { nombre: 'Tubo PVC', stock: 2, stock_reservado: 0 } as Producto,
+      }),
+      item({
+        id: 'item-positivo',
+        producto_id: 'prod-positivo',
+        cantidad: 2,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 2,
+        producto: { nombre: 'Cemento', stock: 2, stock_reservado: 0 } as Producto,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-ui-vacio" items={items} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    fireEvent.change(screen.getByLabelText('Tubo PVC'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Cemento'), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Indica cuántas unidades confirmas')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(h.aceptarCotizacionConCantidades).not.toHaveBeenCalled()
+  })
+
+  it('desactiva la confirmación e indica rechazar cuando todas las cantidades son cero', () => {
+    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-cero-1',
+        producto_id: 'prod-cero-1',
+        cantidad: 2,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 2,
+        producto: { nombre: 'Tubo PVC', stock: 2, stock_reservado: 0 } as Producto,
+      }),
+      item({
+        id: 'item-cero-2',
+        producto_id: 'prod-cero-2',
+        cantidad: 2,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 2,
+        producto: { nombre: 'Cemento', stock: 2, stock_reservado: 0 } as Producto,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-ui-todo-cero" items={items} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    fireEvent.change(screen.getByLabelText('Tubo PVC'), { target: { value: '0' } })
+    fireEvent.change(screen.getByLabelText('Cemento'), { target: { value: '0' } })
+
+    expect(
+      screen.getByText('Si no puedes servir nada, rechaza la cotización')
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Confirmar aceptación' })).toBeDisabled()
+    expect(h.aceptarCotizacionConCantidades).not.toHaveBeenCalled()
+  })
+
+  it('permite cero en una línea cuando otra confirma unidades', async () => {
+    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-cero',
+        producto_id: 'prod-cero',
+        cantidad: 2,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 2,
+        producto: { nombre: 'Tubo PVC', stock: 2, stock_reservado: 0 } as Producto,
+      }),
+      item({
+        id: 'item-uno',
+        producto_id: 'prod-uno',
+        cantidad: 2,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 2,
+        producto: { nombre: 'Cemento', stock: 2, stock_reservado: 0 } as Producto,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-ui-cero-parcial" items={items} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    fireEvent.change(screen.getByLabelText('Tubo PVC'), { target: { value: '0' } })
+    fireEvent.change(screen.getByLabelText('Cemento'), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+
+    await waitFor(() => {
+      expect(h.aceptarCotizacionConCantidades).toHaveBeenCalledWith('cot-ui-cero-parcial', [
+        { itemId: 'item-cero', cantidad: 0 },
+        { itemId: 'item-uno', cantidad: 1 },
+      ])
+    })
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
 })
