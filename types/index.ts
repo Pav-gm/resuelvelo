@@ -75,7 +75,23 @@ export interface Cotizacion {
   despachada_at?: string | null
   /** Quién canceló la venta; null si no está cancelada. */
   cancelada_por?: 'comprador' | 'proveedor' | null
+  /** Fecha de cancelación; null en cotizaciones históricas sin esos datos. */
+  cancelada_at?: string | null
+  /** Motivo de cancelación; null en cotizaciones históricas sin esos datos. */
+  cancelada_motivo?: string | null
   items?: ItemCotizacion[]
+}
+
+export type OpcionMotivoCancelacion =
+  | 'Ya no lo necesito'
+  | 'Encontré mejor precio'
+  | 'Error en el pedido'
+  | 'Sin stock'
+  | 'Otro'
+
+export type MotivoCancelacionInput = {
+  opcion: OpcionMotivoCancelacion
+  detalle?: string
 }
 
 export type CotizacionDetalle = Cotizacion & {

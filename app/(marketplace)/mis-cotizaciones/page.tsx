@@ -157,6 +157,8 @@ export default async function MisCotizacionesPage({
                   estado={cot.estado}
                   despachadaAt={cot.despachada_at}
                   canceladaPor={cot.cancelada_por}
+                  canceladaAt={cot.cancelada_at}
+                  canceladaMotivo={cot.cancelada_motivo}
                 />
 
                 {/* El comprador espera el despacho y solo puede cancelar mientras está aceptada. */}
