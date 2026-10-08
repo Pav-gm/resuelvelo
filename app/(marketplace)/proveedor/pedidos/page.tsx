@@ -69,9 +69,16 @@ export default async function PedidosPage() {
                 <div className="divide-y">
                   {items.map((item) => (
                     <div key={item.id} data-testid="order-item-row" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm sm:flex-nowrap sm:px-6">
-                      <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere] text-gray-700">
-                        {(item as { producto?: { nombre?: string } }).producto?.nombre ?? item.producto_id}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className="min-w-0 break-words [overflow-wrap:anywhere] text-gray-700">
+                          {(item as { producto?: { nombre?: string } }).producto?.nombre ?? item.producto_id}
+                        </span>
+                        {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
+                          <p className="text-xs text-yellow-700">
+                            {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
+                          </p>
+                        )}
+                      </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
                         <span>x{item.cantidad}</span>
                         {item.precio_unitario != null && (
