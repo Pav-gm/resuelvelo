@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
 import type { CotizacionActionResult, OfertaCotizacionInput } from '@/types'
 
 async function getProveedorId(
@@ -159,6 +160,8 @@ export async function despacharCotizacion(cotizacionId: string): Promise<{ error
   })
   if (error) return { error: error.message }
 
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_despachada')
+
   revalidatePath('/proveedor/pedidos')
   revalidatePath('/mis-cotizaciones')
   return null
@@ -194,6 +197,8 @@ export async function aceptarCotizacionConCantidades(
     })),
   })
   if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_aceptada')
 
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
