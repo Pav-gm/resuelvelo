@@ -435,6 +435,8 @@ alter table public.productos
 alter table public.cotizaciones
   add column if not exists despachada_at timestamptz,
   add column if not exists cancelada_por text,
+  add column if not exists cancelada_motivo text,
+  add column if not exists cancelada_at timestamptz,
   add column if not exists recibida_por  text;
 
 alter table public.productos drop constraint if exists productos_reserva_no_supera_stock;
@@ -699,7 +701,7 @@ begin
 end;
 $$;
 
-create or replace function public.cancelar_venta(p_cotizacion_id uuid)
+create or replace function public.cancelar_venta(p_cotizacion_id uuid, p_cancelada_motivo text)
 returns void
 language plpgsql
 security definer
@@ -710,6 +712,10 @@ declare
   v_actor text;
   v_item record;
 begin
+  if p_cancelada_motivo is null or btrim(p_cancelada_motivo) = '' then
+    raise exception 'Indica un motivo válido para cancelar.';
+  end if;
+
   if auth.uid() is null then
     raise exception 'No autorizado.';
   end if;
@@ -754,8 +760,22 @@ begin
 
   update public.cotizaciones
     set estado = 'cancelada',
-        cancelada_por = v_actor
+        cancelada_por = v_actor,
+        cancelada_motivo = btrim(p_cancelada_motivo),
+        cancelada_at = now()
     where id = p_cotizacion_id;
+end;
+$$;
+
+-- La firma antigua se conserva para compatibilidad, pero ya no cancela sin motivo.
+create or replace function public.cancelar_venta(p_cotizacion_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  raise exception 'Indica un motivo válido para cancelar.';
 end;
 $$;
 
@@ -877,6 +897,8 @@ begin
     'created_at', c.created_at,
     'despachada_at', c.despachada_at,
     'cancelada_por', c.cancelada_por,
+    'cancelada_at', c.cancelada_at,
+    'cancelada_motivo', c.cancelada_motivo,
     'proveedor', jsonb_build_object(
       'id', p.id,
       'nombre_empresa', p.nombre_empresa,
@@ -926,11 +948,13 @@ grant execute on function public.get_cotizacion_detalle(uuid) to authenticated;
 -- Funciones de venta: solo usuarios con sesión (además validan auth.uid()).
 revoke execute on function public.aceptar_cotizacion(uuid)    from public, anon;
 revoke execute on function public.cancelar_venta(uuid)        from public, anon;
+revoke execute on function public.cancelar_venta(uuid, text)   from public, anon;
 revoke execute on function public.confirmar_recepcion(uuid)   from public, anon;
 revoke execute on function public.despachar_cotizacion(uuid)  from public, anon;
 revoke execute on function public.rechazar_cotizacion(uuid)   from public, anon;
 grant execute on function public.aceptar_cotizacion(uuid)     to authenticated;
 grant execute on function public.cancelar_venta(uuid)         to authenticated;
+grant execute on function public.cancelar_venta(uuid, text)   to authenticated;
 grant execute on function public.confirmar_recepcion(uuid)    to authenticated;
 grant execute on function public.despachar_cotizacion(uuid)  to authenticated;
 grant execute on function public.rechazar_cotizacion(uuid)   to authenticated;

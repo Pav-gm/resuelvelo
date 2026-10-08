@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { ItemCarrito } from '@/types'
+import type { ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
 
 // ─── Crear cotización(es) desde el carrito ───────────────────
 // Agrupa los items por proveedor y crea una cotización por cada uno.
@@ -207,13 +207,42 @@ export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
   revalidatePath('/proveedor/pedidos')
 }
 
-export async function cancelarVenta(cotizacionId: string): Promise<{ error: string } | null> {
+const OPCIONES_MOTIVO_CANCELACION: readonly OpcionMotivoCancelacion[] = [
+  'Ya no lo necesito',
+  'Encontré mejor precio',
+  'Error en el pedido',
+  'Sin stock',
+  'Otro',
+]
+
+export async function cancelarVenta(
+  cotizacionId: string,
+  motivo?: MotivoCancelacionInput
+): Promise<{ error: string } | null> {
+  const mensajeMotivoInvalido = 'Indica un motivo válido para cancelar.'
+  if (!motivo || !OPCIONES_MOTIVO_CANCELACION.includes(motivo.opcion)) {
+    return { error: mensajeMotivoInvalido }
+  }
+
+  let textoMotivo: string = motivo.opcion
+  if (motivo.opcion === 'Otro') {
+    if (
+      typeof motivo.detalle !== 'string' ||
+      !motivo.detalle.trim() ||
+      motivo.detalle.length > 500
+    ) {
+      return { error: mensajeMotivoInvalido }
+    }
+    textoMotivo = `Otro: ${motivo.detalle.trim()}`
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { error } = await supabase.rpc('cancelar_venta', {
     p_cotizacion_id: cotizacionId,
+    p_cancelada_motivo: textoMotivo,
   })
 
   if (error) return { error: error.message }
