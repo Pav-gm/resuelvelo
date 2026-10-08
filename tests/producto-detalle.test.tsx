@@ -102,4 +102,20 @@ describe('ProductoPage — ficha pública', () => {
     expect(placeholder).toHaveTextContent('🔧')
     expect(document.querySelector('img')).toBeNull()
   })
+
+  it('muestra el stock disponible restando las unidades reservadas', async () => {
+    mocks.getProductoMock.mockResolvedValue(producto({ stock: 8, stock_reservado: 3 }))
+    await renderFicha()
+
+    expect(screen.getByText('Stock disponible')).toBeInTheDocument()
+    expect(screen.getByText('5')).toBeInTheDocument()
+  })
+
+  it('trata reservas omitidas como cero en la ficha', async () => {
+    mocks.getProductoMock.mockResolvedValue(producto({ stock: 8 }))
+    await renderFicha()
+
+    expect(screen.getByText('Stock disponible')).toBeInTheDocument()
+    expect(screen.getByText('8')).toBeInTheDocument()
+  })
 })

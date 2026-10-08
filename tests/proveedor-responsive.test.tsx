@@ -80,6 +80,7 @@ const PRODUCTO = {
   precio: 125.5,
   unidad: 'unidad',
   stock: 8,
+  stock_reservado: 2,
   activo: true,
   created_at: '2026-03-01T12:00:00.000Z',
 }
@@ -157,6 +158,25 @@ describe('Panel del proveedor — adaptación a móvil', () => {
       expect(fila).toContainElement(boton)
       expect(boton.className).toContain('min-h-11')
     }
+  })
+
+  it('el panel muestra el stock total y las unidades reservadas', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO])
+
+    render(await PanelProveedorPage())
+
+    const fila = screen.getByTestId('product-row')
+    expect(within(fila).getByText(/Stock: 8 \(2 reservadas\)/)).toBeInTheDocument()
+  })
+
+  it('el panel omite el sufijo cuando el producto no tiene reservas', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([{ ...PRODUCTO, stock_reservado: 0 }])
+
+    render(await PanelProveedorPage())
+
+    const fila = screen.getByTestId('product-row')
+    expect(within(fila).getByText(/Stock: 8/)).toBeInTheDocument()
+    expect(within(fila).queryByText(/\(0 reservadas\)/)).toBeNull()
   })
 })
 
