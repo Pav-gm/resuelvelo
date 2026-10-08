@@ -63,7 +63,7 @@ export default async function PedidosPage() {
                       {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
                     </span>
                     {cot.estado === 'pendiente' && (
-                      <ResponderCotizacionButton cotizacionId={cot.id} />
+                      <ResponderCotizacionButton cotizacionId={cot.id} items={items} />
                     )}
                     <Link href={`/cotizaciones/${cot.id}`}>
                       <Button variant="outline" size="sm">Ver</Button>

@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   toggleProducto: vi.fn(),
   eliminarProducto: vi.fn(),
   despacharCotizacion: vi.fn(),
+  aceptarCotizacionConCantidades: vi.fn(),
   responderCotizacion: vi.fn(),
   cancelarVenta: vi.fn(),
 }))
@@ -37,6 +38,7 @@ vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   toggleProducto: mocks.toggleProducto,
   eliminarProducto: mocks.eliminarProducto,
   despacharCotizacion: mocks.despacharCotizacion,
+  aceptarCotizacionConCantidades: mocks.aceptarCotizacionConCantidades,
 }))
 
 vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
@@ -180,7 +182,7 @@ describe('Ruta /proveedor/productos — lista compartida', () => {
 })
 
 describe('Bandeja de cotizaciones — adaptación a móvil', () => {
-  it('la bandeja permite envolver cabeceras y filas con nombres de artículo largos', async () => {
+  it('la bandeja del proveedor permite envolver la cabecera y las filas de cotizaciones', async () => {
     mocks.getCotizacionesDeProveedor.mockResolvedValue([
       {
         ...COTIZACION,
