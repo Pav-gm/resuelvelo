@@ -170,6 +170,25 @@ describe('CarritoDrawer — envío de cotización', () => {
     expect(screen.getByRole('button', { name: 'Solicitar cotización' })).toBeEnabled()
   })
 
+  it('envía una sola vez la mezcla de productos no disponibles y válidos', async () => {
+    cotizarDesdeCarrito.mockResolvedValue(null)
+    useCarritoStore.getState().agregar(producto({ id: '1', nombre: 'Tubo PVC' }), 1)
+    useCarritoStore.getState().agregar(producto({ id: 'prod-real', nombre: 'Cemento' }), 2)
+    abrirCarrito()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Solicitar cotización' }))
+    })
+
+    expect(cotizarDesdeCarrito).toHaveBeenCalledTimes(1)
+
+    const form = cotizarDesdeCarrito.mock.calls[0][1] as FormData
+    const items = JSON.parse(String(form.get('items')))
+    expect(items).toHaveLength(2)
+    expect(items.map((i: { producto: { id: string } }) => i.producto.id)).toEqual(['1', 'prod-real'])
+    expect(items.map((i: { cantidad: number }) => i.cantidad)).toEqual([1, 2])
+  })
+
   it('quita los ids no disponibles y conserva las líneas válidas', async () => {
     cotizarDesdeCarrito.mockResolvedValue({
       error: 'Estos productos ya no están disponibles: Tubo PVC. Los quitamos del carrito.',

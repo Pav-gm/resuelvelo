@@ -101,4 +101,8 @@ export interface ItemCotizacion {
   cantidad: number
   precio_unitario?: number
   producto?: Producto
+  /** true si la cantidad pedida superaba el stock al cotizar. */
+  sujeta_disponibilidad: boolean
+  /** Stock observado al cotizar; null en líneas históricas o sin snapshot. */
+  stock_al_cotizar: number | null
 }

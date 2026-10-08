@@ -98,7 +98,7 @@ export async function cotizarDesdeCarrito(
     const productoDb = productoPorId.get(item.producto.id)
     return !productoDb || !productoDb.activo
   })
-  if (noDisponibles.length) {
+  if (noDisponibles.length && noDisponibles.length === items.length) {
     const nombres = noDisponibles.map((item) => {
       const nombre = (item.producto as { nombre?: unknown }).nombre
       return typeof nombre === 'string' && nombre.trim() ? nombre : 'uno de los productos'
@@ -109,17 +109,10 @@ export async function cotizarDesdeCarrito(
     }
   }
 
-  for (const item of items) {
-    const productoDb = productoPorId.get(item.producto.id)!
-    if (item.cantidad > productoDb.stock) {
-      return {
-        error: `No hay stock suficiente para ${item.producto.nombre ?? 'uno de los productos'} (disponible: ${productoDb.stock}, solicitado: ${item.cantidad}).`,
-      }
-    }
-  }
+  const itemsValidos = items.filter((item) => !noDisponibles.includes(item))
 
   const grupos: Record<string, ItemCarrito[]> = {}
-  for (const item of items) {
+  for (const item of itemsValidos) {
     const proveedorId = productoPorId.get(item.producto.id)!.proveedor_id
     if (!grupos[proveedorId]) grupos[proveedorId] = []
     grupos[proveedorId].push(item)
@@ -154,6 +147,8 @@ export async function cotizarDesdeCarrito(
       producto_id: i.producto.id,
       cantidad: i.cantidad,
       precio_unitario: productoPorId.get(i.producto.id)!.precio,
+      sujeta_disponibilidad: i.cantidad > productoPorId.get(i.producto.id)!.stock,
+      stock_al_cotizar: productoPorId.get(i.producto.id)!.stock,
     }))
 
     const { error: errItems } = await supabase.from('items_cotizacion').insert(itemsInsert)
@@ -169,7 +164,7 @@ export async function cotizarDesdeCarrito(
   }
 
   revalidatePath('/mis-cotizaciones')
-  redirect('/mis-cotizaciones?enviada=1')
+  redirect(`/mis-cotizaciones?enviada=1${noDisponibles.length ? '&parcial=1' : ''}`)
 }
 
 // ─── Responder cotización (proveedor) ────────────────────────
