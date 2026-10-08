@@ -1,5 +1,7 @@
 # Resuélvelo
 
+[![CI](https://github.com/Pav-gm/resuelvelo/actions/workflows/ci.yml/badge.svg)](https://github.com/Pav-gm/resuelvelo/actions/workflows/ci.yml)
+
 Marketplace B2B que conecta compradores profesionales (contratistas, constructoras y PYMEs) con proveedores de materiales, insumos y servicios en República Dominicana. Los compradores exploran un catálogo multi-proveedor, arman un carrito y solicitan cotizaciones; los proveedores publican su catálogo y responden esas solicitudes desde un panel propio.
 
 **Demo en vivo:** [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) (MVP de Seminario I; el panel `/admin`, la protección centralizada de rutas y los filtros de precio/stock del catálogo están en el repositorio local y requieren un deploy nuevo para verse en esa URL) · **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
@@ -125,6 +127,8 @@ npm run verify    # todos los controles, en serie y con historial
 ```
 
 Para una pasada sin compilación: `npm run verify -- --quick`. Para seleccionar controles: `npm run verify -- --only docs,test`. Para consultar resultados anteriores: `npm run verify -- --history`.
+
+Qué ejecuta el job `CI` y cómo funciona el build sin secretos está en la [guía de verificación](docs/engineering/VERIFICATION.md).
 
 Los asistentes comparten [AGENTS.md](AGENTS.md), el [índice de documentación](docs/index/MASTER_INDEX.md) y la [guía de verificación](docs/engineering/VERIFICATION.md). El ejecutor guarda sus resultados en `docs/history/verification.jsonl`.
 
