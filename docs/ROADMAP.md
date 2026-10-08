@@ -30,12 +30,12 @@
 - [x] README completo, capturas funcionales y `LICENSE` (MIT).
 - [x] Removido el stack exploratorio Vue 3 + FastAPI (`frontend/`, `backend/`) que coexistía en el repo — rompía `next build` y `npm run lint` porque `tsconfig.json`/`eslint.config.mjs` no lo excluían, y confundía la detección automática de "monorepo" de Vercel al desplegar.
 
-- [x] Deploy en Vercel: **https://resuelveloapp.vercel.app** (proyecto `resuelvelo/resuelvelo_app`).
+- [x] Deploy en Vercel: **https://resuelveloapp.com** (proyecto `resuelvelo/resuelvelo_app`).
 
 ### Pendiente
 - [ ] **Panel `/admin` para el rol `admin`:** implementado en el repositorio (`app/(marketplace)/admin/`, RLS en `schema.sql`, usuario `admin@demo.com` en `seed.sql`); verificado con tests, lint, tsc y comprobaciones HTTP locales del 26-09-2026. **Pendiente:** aplicar `schema.sql` y `seed.sql` en Supabase, probar login y moderación con `admin@demo.com` contra una base accesible, captura/video del panel, y volver a desplegar en Vercel.
 - [ ] **Filtros de catálogo (precio mínimo/máximo, solo con stock):** implementados en `lib/data.ts`, la página de catálogo y `CatalogoFiltros`; cubiertos por pruebas en fallback. **Pendiente:** validar contra Supabase real tras aplicar el SQL, evidencia visual en capturas/video, y deploy en producción.
-- [ ] **Protección de rutas por rol en `lib/supabase/proxy.ts`:** implementada (redirección a `/login` sin sesión; rol incorrecto → `/catalogo`; `/proveedor` y `/admin` restringidos por rol). **Pendiente:** prueba end-to-end con sesiones comprador/proveedor/admin en un proyecto Supabase reachable, y deploy en producción (hoy [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) sigue en el MVP anterior).
+- [ ] **Protección de rutas por rol en `lib/supabase/proxy.ts`:** implementada (redirección a `/login` sin sesión; rol incorrecto → `/catalogo`; `/proveedor` y `/admin` restringidos por rol). **Pendiente:** prueba end-to-end con sesiones comprador/proveedor/admin en un proyecto Supabase reachable, y deploy en producción (hoy [resuelveloapp.com](https://resuelveloapp.com) sigue en el MVP anterior).
 
 ---
 
@@ -106,7 +106,7 @@ Supabase
 ### Fase 7 — Entrega
 12. [x] README completo, capturas, `LICENSE` (MIT).
 13. [x] Verificación end-to-end (registro, catálogo, carrito, cotizaciones, panel de proveedor) contra Supabase real.
-14. [x] Deploy en Vercel + URL pública: https://resuelveloapp.vercel.app
+14. [x] Deploy en Vercel + URL pública: https://resuelveloapp.com
 
 ---
 
