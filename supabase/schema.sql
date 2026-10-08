@@ -553,6 +553,24 @@ revoke execute on function public.crear_feedback(uuid, integer, text) from publi
 grant execute on function public.crear_feedback(uuid, integer, text) to authenticated;
 
 -- Solo las funciones de abajo pueden tocar stock_reservado.
+create or replace function public.informar_stock_reservado_insuficiente()
+returns trigger
+language plpgsql
+as $$
+begin
+  if current_setting('app.reserva_interna', true) = '1' then
+    return NEW;
+  end if;
+
+  if NEW.stock < NEW.stock_reservado then
+    raise exception 'Hay % unidades reservadas en cotizaciones aceptadas; el stock no puede ser menor que %.',
+      NEW.stock_reservado, NEW.stock_reservado;
+  end if;
+
+  return NEW;
+end;
+$$;
+
 create or replace function public.proteger_stock_reservado()
 returns trigger
 language plpgsql
@@ -578,6 +596,10 @@ drop trigger if exists productos_proteger_reserva on public.productos;
 create trigger productos_proteger_reserva
   before update on public.productos
   for each row execute function public.proteger_stock_reservado();
+
+create trigger productos_00_stock_reservado_error_detallado
+  before update on public.productos
+  for each row execute function public.informar_stock_reservado_insuficiente();
 
 create or replace function public.rechazar_cotizacion(p_cotizacion_id uuid)
 returns void
