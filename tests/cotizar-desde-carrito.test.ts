@@ -22,6 +22,7 @@ const h = vi.hoisted(() => {
     queryThrows: false,
     cotizacionError: null as { message: string } | null,
     itemsError: null as { message: string } | null,
+    itemsErrorCotizacionId: null as string | null,
     ops: [] as string[],
     inserts: [] as { table: string; payload: unknown }[],
     selects: [] as { columns: string; ids: string[] }[],
@@ -60,7 +61,8 @@ const h = vi.hoisted(() => {
               }),
             }
           }
-          return { error: state.itemsError }
+          const cotizacionId = Array.isArray(payload) ? (payload[0] as { cotizacion_id?: string } | undefined)?.cotizacion_id : undefined
+          return { error: state.itemsError && (!state.itemsErrorCotizacionId || state.itemsErrorCotizacionId === cotizacionId) ? state.itemsError : null }
         },
       }
     },
@@ -70,8 +72,9 @@ const h = vi.hoisted(() => {
     throw new RedirectSignal(url)
   })
   const revalidatePath = vi.fn()
+  const enviarNotificacionCotizacionEmail = vi.fn(async () => undefined)
 
-  return { RedirectSignal, state, createClient, redirect, revalidatePath }
+  return { RedirectSignal, state, createClient, redirect, revalidatePath, enviarNotificacionCotizacionEmail }
 })
 
 vi.mock('next/navigation', () => ({
@@ -84,6 +87,9 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: h.createClient,
+}))
+vi.mock('@/lib/notificaciones-email', () => ({
+  enviarNotificacionCotizacionEmail: h.enviarNotificacionCotizacionEmail,
 }))
 
 import { cotizarDesdeCarrito } from '@/app/(marketplace)/cotizaciones/actions'
@@ -155,12 +161,14 @@ beforeEach(() => {
   h.createClient.mockClear()
   h.redirect.mockClear()
   h.revalidatePath.mockClear()
+  h.enviarNotificacionCotizacionEmail.mockClear()
   h.state.user = { id: 'comprador-1' }
   h.state.productos = []
   h.state.queryError = null
   h.state.queryThrows = false
   h.state.cotizacionError = null
   h.state.itemsError = null
+  h.state.itemsErrorCotizacionId = null
   h.state.ops = []
   h.state.inserts = []
   h.state.selects = []
@@ -483,7 +491,7 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
     expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
   })
 
-  it('crea una cotización por grupo y no usa el precio enviado por el cliente', async () => {
+  it('envía un correo por cada cotización cuyos ítems se guardaron', async () => {
     h.state.productos = [
       productoDb({ id: '11111111-1111-4111-8111-111111111111', proveedor_id: 'prov-db-1', precio: 10, stock: 4 }),
       productoDb({ id: '33333333-3333-4333-8333-333333333333', proveedor_id: 'prov-db-2', precio: 25, stock: 4 }),
@@ -495,6 +503,10 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
     ]))
 
     expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.enviarNotificacionCotizacionEmail.mock.calls).toEqual([
+      ['cot-1', 'nueva_solicitud'],
+      ['cot-2', 'nueva_solicitud'],
+    ])
     const cotizaciones = h.state.inserts.filter((i) => i.table === 'cotizaciones')
     expect(cotizaciones.map((i) => i.payload)).toEqual([
       {
@@ -510,6 +522,23 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
         total_estimado: 25,
       },
     ])
+  })
+
+  it('no envía correo cuando falla la inserción de ítems', async () => {
+    h.state.productos = [
+      productoDb({ id: '11111111-1111-4111-8111-111111111111', proveedor_id: 'prov-1' }),
+      productoDb({ id: '33333333-3333-4333-8333-333333333333', proveedor_id: 'prov-2' }),
+    ]
+    h.state.itemsError = { message: 'falló la inserción' }
+    h.state.itemsErrorCotizacionId = 'cot-2'
+
+    const outcome = await ejecutar(formConItems([
+      item({ id: '11111111-1111-4111-8111-111111111111' }),
+      item({ id: '33333333-3333-4333-8333-333333333333' }),
+    ]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.enviarNotificacionCotizacionEmail.mock.calls).toEqual([['cot-1', 'nueva_solicitud']])
   })
 
   it('conserva el comportamiento parcial cuando falta un id', async () => {

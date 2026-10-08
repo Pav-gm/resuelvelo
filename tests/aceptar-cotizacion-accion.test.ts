@@ -21,11 +21,15 @@ const h = vi.hoisted(() => {
     rpc,
   }))
   const revalidatePath = vi.fn((_ruta: string) => undefined)
-  return { state, rpc, createClient, revalidatePath }
+  const enviarNotificacionCotizacionEmail = vi.fn(async () => undefined)
+  return { state, rpc, createClient, revalidatePath, enviarNotificacionCotizacionEmail }
 })
 
 vi.mock('next/cache', () => ({ revalidatePath: h.revalidatePath }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: h.createClient }))
+vi.mock('@/lib/notificaciones-email', () => ({
+  enviarNotificacionCotizacionEmail: h.enviarNotificacionCotizacionEmail,
+}))
 
 import { aceptarCotizacionConCantidades } from '@/app/(marketplace)/proveedor/actions'
 
@@ -34,6 +38,7 @@ beforeEach(() => {
   h.rpc.mockClear()
   h.createClient.mockClear()
   h.revalidatePath.mockClear()
+  h.enviarNotificacionCotizacionEmail.mockClear()
 })
 
 describe('aceptarCotizacionConCantidades', () => {
@@ -51,6 +56,8 @@ describe('aceptarCotizacionConCantidades', () => {
         { item_id: 'item-2', cantidad: 0 },
       ],
     })
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledOnce()
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledWith('cot-1', 'cotizacion_aceptada')
     expect(h.revalidatePath.mock.calls.map(([ruta]) => ruta)).toEqual([
       '/proveedor',
       '/proveedor/pedidos',
@@ -72,6 +79,7 @@ describe('aceptarCotizacionConCantidades', () => {
       error: 'No hay stock disponible de Tubo PVC (disponible: 1, confirmado: 2).',
     })
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
   })
 
   it('rechaza cantidades inválidas antes de llamar al RPC', async () => {
@@ -82,5 +90,6 @@ describe('aceptarCotizacionConCantidades', () => {
     expect(resultado).toEqual({ error: 'Datos de cantidades inválidos.' })
     expect(h.rpc).not.toHaveBeenCalled()
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
   })
 })
