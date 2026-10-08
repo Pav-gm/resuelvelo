@@ -18,6 +18,10 @@ const estadoBadge: Record<string, string> = {
   cancelada:  'bg-gray-200 text-gray-600',
 }
 
+// Desde «aceptada» en adelante rige la cantidad confirmada; antes de aceptar
+// solo existe la cantidad pedida.
+const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
+
 export default async function PedidosPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -41,10 +45,11 @@ export default async function PedidosPage() {
         <div className="space-y-4">
           {cotizaciones.map((cot) => {
             const items = cot.items ?? []
-            const total = items.reduce(
-              (sum, i) => sum + (i.precio_unitario ?? 0) * i.cantidad,
-              0
-            )
+            const confirmado = ESTADOS_CONFIRMADOS.includes(cot.estado)
+            const total = items.reduce((sum, i) => {
+              const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
+              return sum + (i.precio_unitario ?? 0) * unidades
+            }, 0)
             return (
               <div key={cot.id} className="rounded-2xl bg-white border shadow-sm overflow-hidden">
                 <div data-testid="order-header" className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 border-b">
@@ -72,35 +77,52 @@ export default async function PedidosPage() {
                 </div>
 
                 <div className="divide-y">
-                  {items.map((item) => (
-                    <div key={item.id} data-testid="order-item-row" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm sm:flex-nowrap sm:px-6">
-                      <div className="min-w-0 flex-1">
-                        <span className="min-w-0 break-words [overflow-wrap:anywhere] text-gray-700">
-                          {(item as { producto?: { nombre?: string } }).producto?.nombre ?? item.producto_id}
-                        </span>
-                        {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
-                          <p className="text-xs text-yellow-700">
-                            {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
-                        <span>x{item.cantidad}</span>
-                        {item.precio_unitario != null && (
-                          <span className="font-medium text-gray-700">
-                            ${(item.precio_unitario * item.cantidad).toLocaleString('es-DO', {
-                              minimumFractionDigits: 2,
-                            })}
+                  {items.map((item) => {
+                    // Desde aceptada en adelante manda lo confirmado; lo pedido
+                    // queda visible como referencia.
+                    const unidades = confirmado
+                      ? (item.cantidad_confirmada ?? item.cantidad)
+                      : item.cantidad
+                    return (
+                      <div key={item.id} data-testid="order-item-row" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm sm:flex-nowrap sm:px-6">
+                        <div className="min-w-0 flex-1">
+                          <span className="min-w-0 break-words [overflow-wrap:anywhere] text-gray-700">
+                            {(item as { producto?: { nombre?: string } }).producto?.nombre ?? item.producto_id}
                           </span>
-                        )}
+                          {confirmado && (
+                            <p className="text-xs text-green-700">
+                              {`${unidades} de ${item.cantidad} confirmadas`}
+                            </p>
+                          )}
+                          {confirmado && (
+                            <p className="text-xs text-gray-500">
+                              {`Pedido: ${item.cantidad}`}
+                            </p>
+                          )}
+                          {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
+                            <p className="text-xs text-yellow-700">
+                              {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
+                          <span>x{unidades}</span>
+                          {item.precio_unitario != null && (
+                            <span className="font-medium text-gray-700">
+                              ${(item.precio_unitario * unidades).toLocaleString('es-DO', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {total > 0 && (
                   <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
-                    Total estimado: ${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                    {confirmado ? 'Total confirmado' : 'Total estimado'}: ${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                   </div>
                 )}
 
