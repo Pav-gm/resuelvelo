@@ -1,3 +1,4 @@
+-- DO block notificaciones_trigger_contract_check
 do $notificaciones_trigger_contract_check$
 declare
   v_buyer uuid := gen_random_uuid();
