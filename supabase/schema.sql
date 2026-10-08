@@ -824,7 +824,7 @@ begin
   perform set_config('app.reserva_interna', '1', true);
 
   for v_item in
-    select i.producto_id, sum(i.cantidad) as cantidad
+    select i.producto_id, sum(coalesce(i.cantidad_confirmada, i.cantidad)) as cantidad
     from public.items_cotizacion i
     where i.cotizacion_id = p_cotizacion_id
     group by i.producto_id
@@ -905,7 +905,7 @@ begin
   perform set_config('app.reserva_interna', '1', true);
 
   for v_item in
-    select i.producto_id, sum(i.cantidad) as cantidad
+    select i.producto_id, sum(coalesce(i.cantidad_confirmada, i.cantidad)) as cantidad
     from public.items_cotizacion i
     where i.cotizacion_id = p_cotizacion_id
     group by i.producto_id
@@ -995,6 +995,7 @@ begin
           'cotizacion_id', i.cotizacion_id,
           'producto_id', i.producto_id,
           'cantidad', i.cantidad,
+          'cantidad_confirmada', i.cantidad_confirmada,
           'precio_unitario', i.precio_unitario,
           'sujeta_disponibilidad', i.sujeta_disponibilidad,
           'stock_al_cotizar', i.stock_al_cotizar,

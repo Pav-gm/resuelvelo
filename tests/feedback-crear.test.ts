@@ -136,7 +136,10 @@ const h = vi.hoisted(() => {
         if (claves.length !== 1 || !('p_cotizacion_id' in args) || 'estado' in args) {
           return { data: null, error: { message: 'payload inesperado' } }
         }
-        if (state.forzarErrorTransicion && fn === 'despachar_cotizacion') {
+        if (
+          state.forzarErrorTransicion &&
+          (fn === 'despachar_cotizacion' || fn === 'confirmar_recepcion')
+        ) {
           return { data: null, error: { message: state.forzarErrorTransicion } }
         }
         return { data: null, error: null }
@@ -362,13 +365,26 @@ describe('crearFeedback — rechazos', () => {
 
 describe('recepción — el cliente no asigna el estado', () => {
   it('confirmarRecepcion solo envía el id al RPC', async () => {
-    await confirmarRecepcion(COTIZACION_OTRA)
+    await expect(confirmarRecepcion(COTIZACION_OTRA)).resolves.toBeUndefined()
 
     expect(h.state.rpcCalls).toEqual([
       { fn: 'confirmar_recepcion', args: { p_cotizacion_id: COTIZACION_OTRA } },
     ])
     expect(h.revalidatePath).toHaveBeenCalledWith('/mis-cotizaciones')
     expect(h.revalidatePath).toHaveBeenCalledWith('/proveedor/pedidos')
+  })
+
+  it('confirmarRecepcion propaga el error del RPC y no revalida', async () => {
+    h.state.forzarErrorTransicion = 'Solo puedes marcar como recibido un pedido despachado.'
+
+    await expect(confirmarRecepcion(COTIZACION_OTRA)).rejects.toMatchObject({
+      name: 'Error',
+      message: 'Solo puedes marcar como recibido un pedido despachado.',
+    })
+    expect(h.state.rpcCalls).toEqual([
+      { fn: 'confirmar_recepcion', args: { p_cotizacion_id: COTIZACION_OTRA } },
+    ])
+    expect(h.revalidatePath).not.toHaveBeenCalled()
   })
 
   it('confirmarRecepcion redirige al anónimo y no llama al RPC', async () => {

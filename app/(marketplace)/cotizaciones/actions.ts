@@ -202,7 +202,9 @@ export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
+  const { error } = await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
+  if (error) throw new Error(error.message)
+
   revalidatePath('/mis-cotizaciones')
   revalidatePath('/proveedor/pedidos')
 }
