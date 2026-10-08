@@ -270,7 +270,7 @@ export async function getCotizacionesDeProveedor(proveedorId: string): Promise<C
       *,
       items:items_cotizacion(
         *,
-        producto:productos(nombre, stock, stock_reservado)
+        producto:productos(nombre, precio, stock, stock_reservado)
       )
     `)
     .eq('proveedor_id', proveedorId)
