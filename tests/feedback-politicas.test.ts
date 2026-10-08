@@ -7,6 +7,14 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const schema = readFileSync(path.join(process.cwd(), 'supabase/schema.sql'), 'utf8')
+const migracionCantidadConfirmada = readFileSync(
+  path.join(process.cwd(), 'supabase/migrations/20261010000204_cantidad_confirmada_en_transiciones.sql'),
+  'utf8'
+)
+const checkCantidadConfirmada = readFileSync(
+  path.join(process.cwd(), 'supabase/checks/cantidad_confirmada_no_supera_solicitada.sql'),
+  'utf8'
+)
 const accion = readFileSync(
   path.join(process.cwd(), 'app/(marketplace)/cotizaciones/actions.ts'),
   'utf8'
@@ -26,6 +34,14 @@ function bloque(marca: string, fin: string): string {
   const cierre = schema.indexOf(fin, inicio)
   expect(cierre, fin).toBeGreaterThan(inicio)
   return schema.slice(inicio, cierre)
+}
+
+function bloqueFuente(fuente: string, marca: string, fin: string): string {
+  const inicio = fuente.indexOf(marca)
+  expect(inicio, marca).toBeGreaterThan(-1)
+  const cierre = fuente.indexOf(fin, inicio)
+  expect(cierre, fin).toBeGreaterThan(inicio)
+  return fuente.slice(inicio, cierre)
 }
 
 function funcionExportada(fuente: string, nombre: string): string {
@@ -212,5 +228,49 @@ describe('C-CANCELACION — RPC cancelar_venta sin UPDATE de la aplicación', ()
     expect(schema).toMatch(
       /grant execute on function public\.cancelar_venta\(uuid\)\s+to authenticated;/
     )
+  })
+})
+
+describe('C-CANTIDAD CONFIRMADA — transiciones y detalle', () => {
+  it('las transiciones consumen y liberan la cantidad confirmada con fallback a la pedida', () => {
+    for (const fuente of [schema, migracionCantidadConfirmada]) {
+      const recepcion = bloqueFuente(
+        fuente,
+        'function public.confirmar_recepcion',
+        '$$;'
+      )
+      const cancelarConMotivo = bloqueFuente(
+        fuente,
+        'function public.cancelar_venta(p_cotizacion_id uuid, p_cancelada_motivo text)',
+        '$$;'
+      )
+      const cancelarSinMotivo = bloqueFuente(
+        fuente,
+        'function public.cancelar_venta(p_cotizacion_id uuid)',
+        '$$;'
+      )
+
+      expect(recepcion).toContain('sum(coalesce(i.cantidad_confirmada, i.cantidad))')
+      expect(cancelarConMotivo).toContain('sum(coalesce(i.cantidad_confirmada, i.cantidad))')
+      expect(cancelarSinMotivo).toContain("raise exception 'Indica un motivo válido para cancelar.'")
+      expect(cancelarSinMotivo).not.toMatch(/stock|productos|set_config/i)
+    }
+  })
+
+  it('el detalle incluye cantidad_confirmada y el check limita las líneas aceptadas', () => {
+    for (const fuente of [schema, migracionCantidadConfirmada]) {
+      const detalle = bloqueFuente(
+        fuente,
+        'function public.get_cotizacion_detalle',
+        '$$;'
+      )
+      expect(detalle).toContain("'cantidad_confirmada', i.cantidad_confirmada")
+    }
+
+    expect(checkCantidadConfirmada).toContain(
+      "c.estado in ('aceptada', 'despachada', 'recibida')"
+    )
+    expect(checkCantidadConfirmada).toContain('i.cantidad_confirmada > i.cantidad')
+    expect(checkCantidadConfirmada).toContain('raise exception')
   })
 })

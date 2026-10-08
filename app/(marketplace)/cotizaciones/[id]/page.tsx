@@ -20,6 +20,10 @@ const estadoBadge: Record<string, string> = {
   cancelada:  'bg-gray-200 text-gray-600',
 }
 
+// Desde «aceptada» en adelante rige la cantidad confirmada; antes de aceptar
+// solo existe la cantidad pedida.
+const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
+
 function dinero(valor: number): string {
   return `$${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
 }
@@ -53,6 +57,11 @@ export default async function CotizacionDetallePage({
     : null
 
   const items = detalle.items ?? []
+  const confirmado = ESTADOS_CONFIRMADOS.includes(detalle.estado)
+  const totalConfirmado = items.reduce((sum, i) => {
+    const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
+    return sum + (i.precio_unitario ?? 0) * unidades
+  }, 0)
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -108,8 +117,13 @@ export default async function CotizacionDetallePage({
           {items.map((item) => {
             const producto = item.producto
             const nombre = producto?.nombre
+            // Desde aceptada en adelante manda lo confirmado; lo pedido queda
+            // visible como referencia.
+            const unidades = confirmado
+              ? (item.cantidad_confirmada ?? item.cantidad)
+              : item.cantidad
             const subtotal = item.precio_unitario != null
-              ? item.precio_unitario * item.cantidad
+              ? item.precio_unitario * unidades
               : null
             return (
               <div
@@ -137,6 +151,16 @@ export default async function CotizacionDetallePage({
                       {item.producto_id}
                     </span>
                   )}
+                  {confirmado && (
+                    <p className="text-xs text-green-700">
+                      {`${unidades} de ${item.cantidad} confirmadas`}
+                    </p>
+                  )}
+                  {confirmado && (
+                    <p className="text-xs text-gray-500">
+                      {`Pedido: ${item.cantidad}`}
+                    </p>
+                  )}
                   {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
                     <p className="text-xs text-yellow-700">
                       {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
@@ -144,7 +168,7 @@ export default async function CotizacionDetallePage({
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
-                  <span>x{item.cantidad}</span>
+                  <span>x{unidades}</span>
                   {item.precio_unitario != null && subtotal != null && (
                     <>
                       <span>{dinero(item.precio_unitario)} c/u</span>
@@ -160,11 +184,17 @@ export default async function CotizacionDetallePage({
           )}
         </div>
 
-        {detalle.total_estimado != null && (
-          <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-            Total estimado: {dinero(Number(detalle.total_estimado))}
-          </div>
-        )}
+        {confirmado
+          ? items.length > 0 && (
+              <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+                Total confirmado: {dinero(totalConfirmado)}
+              </div>
+            )
+          : detalle.total_estimado != null && (
+              <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+                Total estimado: {dinero(Number(detalle.total_estimado))}
+              </div>
+            )}
       </div>
 
       <LineaSeguimiento

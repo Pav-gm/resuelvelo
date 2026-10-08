@@ -20,6 +20,10 @@ const estadoBadge: Record<string, string> = {
   cancelada:  'bg-gray-200 text-gray-600',
 }
 
+// Desde «aceptada» en adelante rige la cantidad confirmada; antes de aceptar
+// solo existe la cantidad pedida.
+const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
+
 export default async function MisCotizacionesPage({
   searchParams,
 }: {
@@ -71,6 +75,11 @@ export default async function MisCotizacionesPage({
         <div className="space-y-4">
           {cotizaciones.map((cot) => {
             const items = cot.items ?? []
+            const confirmado = ESTADOS_CONFIRMADOS.includes(cot.estado)
+            const totalConfirmado = items.reduce((sum, i) => {
+              const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
+              return sum + (i.precio_unitario ?? 0) * unidades
+            }, 0)
             return (
               <div key={cot.id} className="rounded-2xl bg-white border shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -106,22 +115,25 @@ export default async function MisCotizacionesPage({
                     // con el producto falta (o el nombre viene vacío) mostramos
                     // un texto de indisponibilidad.
                     const nombreProducto = item.producto?.nombre?.trim()
-                    // Solo las cotizaciones aceptadas con cantidad confirmada muestran
-                    // el total servido; pendientes e históricos conservan lo solicitado.
-                    const cantidadConfirmada =
-                      cot.estado === 'aceptada' && item.cantidad_confirmada != null
-                        ? item.cantidad_confirmada
-                        : null
-                    const unidades = cantidadConfirmada ?? item.cantidad
+                    // Desde aceptada en adelante manda lo confirmado; lo pedido
+                    // queda visible como referencia.
+                    const unidades = confirmado
+                      ? (item.cantidad_confirmada ?? item.cantidad)
+                      : item.cantidad
                     return (
                       <div key={item.id} className="flex items-center justify-between px-6 py-3 text-sm">
                         <div className="min-w-0">
                           <span className="text-gray-700">
                             {nombreProducto || 'Producto no disponible'}
                           </span>
-                          {cantidadConfirmada != null && (
+                          {confirmado && (
                             <p className="text-xs text-green-700">
-                              {`Confirmado: ${cantidadConfirmada} de ${item.cantidad}`}
+                              {`${unidades} de ${item.cantidad} confirmadas`}
+                            </p>
+                          )}
+                          {confirmado && (
+                            <p className="text-xs text-gray-500">
+                              {`Pedido: ${item.cantidad}`}
                             </p>
                           )}
                           {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
@@ -145,13 +157,21 @@ export default async function MisCotizacionesPage({
                   })}
                 </div>
 
-                {cot.total_estimado != null && (
-                  <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
-                    Total estimado: ${Number(cot.total_estimado).toLocaleString('es-DO', {
-                      minimumFractionDigits: 2,
-                    })}
-                  </div>
-                )}
+                {confirmado
+                  ? items.length > 0 && (
+                      <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
+                        Total confirmado: ${totalConfirmado.toLocaleString('es-DO', {
+                          minimumFractionDigits: 2,
+                        })}
+                      </div>
+                    )
+                  : cot.total_estimado != null && (
+                      <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
+                        Total estimado: ${Number(cot.total_estimado).toLocaleString('es-DO', {
+                          minimumFractionDigits: 2,
+                        })}
+                      </div>
+                    )}
 
                 <LineaSeguimiento
                   estado={cot.estado}

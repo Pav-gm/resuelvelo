@@ -652,6 +652,43 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
   })
 
+  it('confirmar recepción muestra el error como alerta y no falla en silencio', async () => {
+    h.cotizaciones.push(
+      cotizacion('despachada', COT_DESPACHADA, { despachada_at: DESPACHADA_AT })
+    )
+    h.confirmarRecepcion.mockRejectedValueOnce(
+      new Error('Solo puedes marcar como recibido un pedido despachado.')
+    )
+
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+
+    const card = tarjeta('DDDDDDDD')
+    fireEvent.click(within(card).getByRole('button', { name: 'Confirmar recepción' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Solo puedes marcar como recibido un pedido despachado.'
+    )
+    expect(h.confirmarRecepcion).toHaveBeenCalledWith(COT_DESPACHADA)
+    await waitFor(() => {
+      expect(within(card).getByRole('button', { name: 'Confirmar recepción' })).toBeEnabled()
+    })
+
+    cleanup()
+
+    h.confirmarRecepcion.mockRejectedValueOnce('x')
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+
+    const card2 = tarjeta('DDDDDDDD')
+    fireEvent.click(within(card2).getByRole('button', { name: 'Confirmar recepción' }))
+
+    expect(await within(card2).findByRole('alert')).toHaveTextContent(
+      'No se pudo confirmar la recepción.'
+    )
+    await waitFor(() => {
+      expect(within(card2).getByRole('button', { name: 'Confirmar recepción' })).toBeEnabled()
+    })
+  })
+
   it('en recibida completa el seguimiento y conserva el formulario de reseña', async () => {
     h.cotizaciones.push(
       cotizacion('recibida', COT_RECIBIDA, { despachada_at: DESPACHADA_AT })
@@ -1062,33 +1099,42 @@ describe('Aceptación con cantidades confirmadas', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
-  it('muestra al comprador la cantidad confirmada y calcula el importe con esa cantidad', async () => {
-    h.cotizaciones.push(
-      cotizacion('aceptada', 'cot-ui-3', {
-        items: [
-          item({
-            id: 'item-4',
-            producto_id: 'prod-4',
-            cantidad: 6,
-            cantidad_confirmada: 2,
-            precio_unitario: 10,
-            sujeta_disponibilidad: true,
-            stock_al_cotizar: 3,
-            producto: productoNombre('Tubo PVC'),
-          }),
-        ],
-      })
-    )
+  it('muestra al comprador cantidades y totales confirmados desde aceptada hasta cancelada', async () => {
+    const estados: Cotizacion['estado'][] = ['aceptada', 'despachada', 'recibida', 'cancelada']
+    const prefijos = ['a1111111', 'b2222222', 'c3333333', 'd4444444']
+    estados.forEach((estado, indice) => {
+      const id = `${prefijos[indice]}-1111-4111-8111-111111111111`
+      h.cotizaciones.push(
+        cotizacion(estado, id, {
+          total_estimado: 30,
+          items: [
+            item({
+              id: `item-${estado}`,
+              cotizacion_id: id,
+              producto_id: 'prod-tubo',
+              cantidad: 3,
+              cantidad_confirmada: 1,
+              precio_unitario: 10,
+              producto: productoNombre('Tubo PVC'),
+            }),
+          ],
+        })
+      )
+    })
 
     const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
     render(ui)
 
-    const card = tarjeta('cot-ui-3')
-    expect(within(card).getByText('Confirmado: 2 de 6')).toBeInTheDocument()
-    expect(within(card).getByText('x2')).toBeInTheDocument()
-    expect(within(card).getByText('$20.00')).toBeInTheDocument()
-    expect(within(card).queryByText('x6')).not.toBeInTheDocument()
-    expect(within(card).queryByText('$60.00')).not.toBeInTheDocument()
+    for (const prefijo of prefijos) {
+      const card = tarjeta(prefijo)
+      expect(within(card).getByText('1 de 3 confirmadas')).toBeInTheDocument()
+      expect(within(card).getByText('Pedido: 3')).toBeInTheDocument()
+      expect(within(card).getByText('x1')).toBeInTheDocument()
+      expect(within(card).getByText('$10.00')).toBeInTheDocument()
+      expect(within(card).queryByText('x3')).not.toBeInTheDocument()
+      expect(within(card).queryByText('$30.00')).not.toBeInTheDocument()
+      expect(card).toHaveTextContent('Total confirmado: $10.00')
+    }
   })
 
   it('la bandeja del proveedor abre el diálogo con las líneas de la cotización y envía sus ids al aceptar', async () => {

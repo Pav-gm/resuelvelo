@@ -89,7 +89,7 @@ beforeEach(() => {
 })
 
 describe('Página de detalle de cotización', () => {
-  it('el comprador ve los datos del detalle y solo sus acciones para el estado', async () => {
+  it('el comprador ve cantidades y total confirmados en el detalle despachado', async () => {
     h.state.user = { id: 'buyer-1' }
     h.getCotizacionDetalle.mockResolvedValue({
       ...detalleBase,
@@ -97,14 +97,15 @@ describe('Página de detalle de cotización', () => {
       numero: 42,
       estado: 'despachada',
       mensaje: 'Entregar por la entrada norte',
-      total_estimado: 20,
+      total_estimado: 30,
       despachada_at: '2026-03-16T15:00:00.000Z',
       items: [
         {
           id: 'item-1',
           cotizacion_id: 'cot-1',
           producto_id: 'prod-1',
-          cantidad: 2,
+          cantidad: 3,
+          cantidad_confirmada: 1,
           precio_unitario: 10,
           sujeta_disponibilidad: false,
           stock_al_cotizar: 5,
@@ -127,10 +128,14 @@ describe('Página de detalle de cotización', () => {
     const enlaceProducto = screen.getByRole('link', { name: 'Tubo PVC' })
     expect(enlaceProducto).toHaveAttribute('href', '/productos/prod-1')
 
-    expect(screen.getByText('x2')).toBeInTheDocument()
+    expect(screen.getByText('1 de 3 confirmadas')).toBeInTheDocument()
+    expect(screen.getByText('Pedido: 3')).toBeInTheDocument()
+    expect(screen.getByText('x1')).toBeInTheDocument()
     expect(screen.getByText('$10.00 c/u')).toBeInTheDocument()
-    expect(screen.getByText('$20.00')).toBeInTheDocument()
-    expect(screen.getByText(/Total estimado: \$20\.00/)).toBeInTheDocument()
+    expect(screen.getByText('$10.00')).toBeInTheDocument()
+    expect(screen.getByText('Total confirmado: $10.00')).toBeInTheDocument()
+    expect(screen.queryByText('x3')).toBeNull()
+    expect(screen.queryByText(/Total estimado/)).toBeNull()
 
     expect(screen.getByRole('region', { name: 'Seguimiento de la cotización' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Confirmar recepción' })).toBeInTheDocument()
@@ -139,6 +144,51 @@ describe('Página de detalle de cotización', () => {
     expect(screen.queryByText('Rechazar')).toBeNull()
     expect(screen.queryByText('Marcar como despachada')).toBeNull()
     expect(screen.queryByText('Cancelar venta')).toBeNull()
+  })
+
+  it('la bandeja del proveedor muestra la cantidad y el total confirmados', async () => {
+    h.state.user = { id: 'provider-user-1' }
+    h.getProveedorDelUsuario.mockResolvedValue({
+      id: 'prov-1',
+      user_id: 'provider-user-1',
+      nombre_empresa: 'Promeria',
+      verificado: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+    })
+    h.getCotizacionesDeProveedor.mockResolvedValue([
+      {
+        id: 'cot-1',
+        numero: 42,
+        comprador_id: 'buyer-1',
+        proveedor_id: 'prov-1',
+        estado: 'despachada',
+        created_at: '2026-03-15T15:00:00.000Z',
+        despachada_at: '2026-03-16T15:00:00.000Z',
+        cancelada_por: null,
+        items: [
+          {
+            id: 'item-1',
+            cotizacion_id: 'cot-1',
+            producto_id: 'prod-1',
+            cantidad: 3,
+            cantidad_confirmada: 1,
+            precio_unitario: 10,
+            sujeta_disponibilidad: false,
+            stock_al_cotizar: 5,
+            producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+          },
+        ],
+      },
+    ])
+
+    render(await PedidosPage())
+
+    expect(screen.getByText('Tubo PVC')).toBeInTheDocument()
+    expect(screen.getByText('1 de 3 confirmadas')).toBeInTheDocument()
+    expect(screen.getByText('Pedido: 3')).toBeInTheDocument()
+    expect(screen.getByText('x1')).toBeInTheDocument()
+    expect(screen.getByText('$10.00')).toBeInTheDocument()
+    expect(screen.getByText('Total confirmado: $10.00')).toBeInTheDocument()
   })
 
   it('el nombre de un producto activo enlaza a su ficha', async () => {
