@@ -113,7 +113,9 @@ function filtrarProductos(productos: Producto[], filtros?: FiltrosProductos): Pr
   const { min, max } = normalizePrecioRange(filtros?.precioMin, filtros?.precioMax)
   if (min !== undefined) resultado = resultado.filter((p) => p.precio >= min)
   if (max !== undefined) resultado = resultado.filter((p) => p.precio <= max)
-  if (filtros?.conStock === true) resultado = resultado.filter((p) => p.stock > 0)
+  if (filtros?.conStock === true) {
+    resultado = resultado.filter((p) => Math.max(0, p.stock - (p.stock_reservado ?? 0)) > 0)
+  }
   return ordenarProductos(resultado, filtros?.orden ?? 'precio_asc')
 }
 
@@ -268,7 +270,7 @@ export async function getCotizacionesDeProveedor(proveedorId: string): Promise<C
       *,
       items:items_cotizacion(
         *,
-        producto:productos(nombre)
+        producto:productos(nombre, stock, stock_reservado)
       )
     `)
     .eq('proveedor_id', proveedorId)
@@ -319,7 +321,51 @@ export async function getCotizacionDetalle(cotizacionId: string): Promise<Cotiza
     propagarErrorLectura('getCotizacionDetalle', error)
   }
   if (data === null) return null
-  return data as unknown as CotizacionDetalle
+  const detalle = data as unknown as CotizacionDetalle
+  if (detalle.estado !== 'pendiente' || !detalle.items.some((item) => item.producto != null)) {
+    return detalle
+  }
+
+  const productoIds = Array.from(new Set(
+    detalle.items
+      .filter((item) => item.producto != null)
+      .map((item) => item.producto_id)
+  ))
+  let productos: { id: string; stock: number; stock_reservado: number | null }[] | null
+  let errorProductos: unknown
+  try {
+    const resultado = await supabase
+      .from('productos')
+      .select('id, stock, stock_reservado')
+      .in('id', productoIds)
+    productos = resultado.data
+    errorProductos = resultado.error
+  } catch {
+    return detalle
+  }
+
+  if (errorProductos || productos === null) return detalle
+
+  const productoPorId = new Map(productos.map((producto) => [producto.id, producto]))
+  const detalleConInventario = {
+    ...detalle,
+    items: detalle.items.map((item) => {
+      if (item.producto == null) return item
+      const productoActual = productoPorId.get(item.producto_id)
+      if (!productoActual) return item
+      return {
+        ...item,
+        producto: {
+          ...item.producto,
+          stock: productoActual.stock,
+          stock_reservado: productoActual.stock_reservado,
+        },
+      }
+    }),
+  }
+  // El RPC tipa `producto` sin inventario y el tipo Producto no contempla que
+  // stock_reservado sea null, aunque ese es el valor que devuelve la base.
+  return detalleConInventario as unknown as CotizacionDetalle
 }
 
 // ─── Feedback público y feedback de una cotización ─────────

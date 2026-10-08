@@ -195,4 +195,14 @@ describe('ProductoCard — estados de stock', () => {
     expect(useCarritoStore.getState().items[0].cantidad).toBe(1)
     expect(screen.queryByText('Agregado')).not.toBeInTheDocument()
   })
+
+  it('limita el botón y muestra el aviso usando stock disponible', () => {
+    const actual = producto({ stock: 299, stock_reservado: 213 })
+    useCarritoStore.getState().agregar(actual, 86)
+
+    render(<ProductoCard producto={actual} />)
+
+    expect(screen.getByText('Stock disponible: 86')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Máximo en carrito' })).toBeDisabled()
+  })
 })

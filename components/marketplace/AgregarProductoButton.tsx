@@ -31,8 +31,10 @@ export default function AgregarProductoButton({
     }
   }, [])
 
-  const sinStock = producto.stock <= 0
-  const alMaximo = !sinStock && cantidadEnCarrito >= producto.stock
+  // Stock disponible: total menos las unidades reservadas.
+  const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+  const sinStock = disponible <= 0
+  const alMaximo = !sinStock && cantidadEnCarrito >= disponible
 
   function handleAgregar() {
     const antes =
@@ -43,8 +45,8 @@ export default function AgregarProductoButton({
       useCarritoStore.getState().items.find((i) => i.producto.id === producto.id)
         ?.cantidad ?? 0
     // Solo marcar «Agregado» si la adición cambió el carrito efectivamente
-    // y aún no se alcanzó el stock; al llegar al stock manda «Máximo en carrito».
-    if (despues > antes && despues < producto.stock) {
+    // y aún no se alcanzó el disponible; al llegar al tope manda «Máximo en carrito».
+    if (despues > antes && despues < disponible) {
       setAgregado(true)
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       timeoutRef.current = setTimeout(() => setAgregado(false), AGREGADO_MS)

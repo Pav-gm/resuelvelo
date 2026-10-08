@@ -75,12 +75,12 @@ export async function cotizarDesdeCarrito(
   // que puede provenir de datos mock (IDs no-UUID) o estar desactualizado.
   const todosLosProductoIds = items.map((i) => i.producto.id)
   const idsUuid = todosLosProductoIds.filter((id) => UUID_PRODUCTO.test(id))
-  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; activo: boolean }[]
+  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; stock_reservado: number | null; activo: boolean }[]
   try {
     if (idsUuid.length) {
       const { data, error } = await supabase
         .from('productos')
-        .select('id, proveedor_id, precio, stock, activo')
+        .select('id, proveedor_id, precio, stock, stock_reservado, activo')
         .in('id', idsUuid)
 
       if (error) return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
@@ -142,14 +142,18 @@ export async function cotizarDesdeCarrito(
 
     if (errCot || !cotizacion) continue
 
-    const itemsInsert = itemsGrupo.map((i) => ({
-      cotizacion_id: cotizacion.id,
-      producto_id: i.producto.id,
-      cantidad: i.cantidad,
-      precio_unitario: productoPorId.get(i.producto.id)!.precio,
-      sujeta_disponibilidad: i.cantidad > productoPorId.get(i.producto.id)!.stock,
-      stock_al_cotizar: productoPorId.get(i.producto.id)!.stock,
-    }))
+    const itemsInsert = itemsGrupo.map((i) => {
+      const producto = productoPorId.get(i.producto.id)!
+      const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+      return {
+        cotizacion_id: cotizacion.id,
+        producto_id: i.producto.id,
+        cantidad: i.cantidad,
+        precio_unitario: producto.precio,
+        sujeta_disponibilidad: i.cantidad > disponible,
+        stock_al_cotizar: disponible,
+      }
+    })
 
     const { error: errItems } = await supabase.from('items_cotizacion').insert(itemsInsert)
     if (errItems) continue
