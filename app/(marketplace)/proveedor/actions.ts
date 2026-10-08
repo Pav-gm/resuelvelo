@@ -182,6 +182,10 @@ export async function aceptarCotizacionConCantidades(
     return { error: 'Datos de cantidades inválidos.' }
   }
 
+  if (cantidades.reduce((total, entrada) => total + entrada.cantidad, 0) === 0) {
+    return { error: 'Si no puedes servir nada, rechaza la cotización' }
+  }
+
   const supabase = await createClient()
   await getProveedorId(supabase)
 
