@@ -1064,4 +1064,39 @@ describe('Aceptación con cantidades confirmadas', () => {
     expect(within(card).queryByText('x6')).not.toBeInTheDocument()
     expect(within(card).queryByText('$60.00')).not.toBeInTheDocument()
   })
+
+  it('la bandeja del proveedor abre el diálogo con las líneas de la cotización y envía sus ids al aceptar', async () => {
+    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+    h.cotizacionesProveedor.push(
+      cotizacion('pendiente', 'cot-ui-4', {
+        items: [
+          item({
+            id: 'item-5',
+            cotizacion_id: 'cot-ui-4',
+            producto_id: 'prod-5',
+            cantidad: 3,
+            sujeta_disponibilidad: true,
+            stock_al_cotizar: 1,
+            producto: productoNombre('Tubo PVC'),
+          }),
+        ],
+      })
+    )
+
+    render(await PedidosPage())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    expect(screen.getByLabelText('Tubo PVC')).toHaveValue(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+
+    await waitFor(() => {
+      expect(h.aceptarCotizacionConCantidades).toHaveBeenCalledWith('cot-ui-4', [
+        { itemId: 'item-5', cantidad: 1 },
+      ])
+    })
+    expect(
+      screen.queryByText('Debes confirmar al menos una unidad o rechazar la cotización.')
+    ).not.toBeInTheDocument()
+  })
 })
