@@ -29,7 +29,8 @@ export async function crearProducto(
 ): Promise<ProductoError> {
   const nombre       = (formData.get('nombre')       as string)?.trim()
   const descripcion  = (formData.get('descripcion')  as string)?.trim() || null
-  const precio       = parseFloat(formData.get('precio')      as string)
+  const precioRaw    = formData.get('precio') as string
+  const precio       = parseFloat(precioRaw)
   const unidad       = (formData.get('unidad')       as string)?.trim()
   const stock        = parseInt(formData.get('stock')        as string, 10)
   const categoria_id = formData.get('categoria_id')  as string
@@ -40,10 +41,10 @@ export async function crearProducto(
   const itbis_incluido = formData.get('itbis_incluido') === 'on'
   if (!subcategoria_id) return { error: 'Selecciona una subcategoría.' }
 
-  if (!nombre || !unidad || !categoria_id || isNaN(precio) || isNaN(stock)) {
+  if (!nombre || !unidad || !categoria_id || !precioRaw?.trim() || isNaN(stock)) {
     return { error: 'Completa todos los campos obligatorios.' }
   }
-  if (precio < 0) return { error: 'El precio no puede ser negativo.' }
+  if (!Number.isFinite(precio) || precio <= 0) return { error: 'El precio debe ser mayor que cero.' }
   if (stock < 0)  return { error: 'El stock no puede ser negativo.' }
 
   const supabase = await createClient()
@@ -81,7 +82,8 @@ export async function actualizarProducto(
   const id           = formData.get('id')           as string
   const nombre       = (formData.get('nombre')       as string)?.trim()
   const descripcion  = (formData.get('descripcion')  as string)?.trim() || null
-  const precio       = parseFloat(formData.get('precio')      as string)
+  const precioRaw    = formData.get('precio') as string
+  const precio       = parseFloat(precioRaw)
   const unidad       = (formData.get('unidad')       as string)?.trim()
   const stock        = parseInt(formData.get('stock')        as string, 10)
   const categoria_id = formData.get('categoria_id')  as string
@@ -92,9 +94,10 @@ export async function actualizarProducto(
   const itbis_incluido = formData.get('itbis_incluido') === 'on'
   if (!subcategoria_id) return { error: 'Selecciona una subcategoría.' }
 
-  if (!id || !nombre || !unidad || !categoria_id || isNaN(precio) || isNaN(stock)) {
+  if (!id || !nombre || !unidad || !categoria_id || !precioRaw?.trim() || isNaN(stock)) {
     return { error: 'Completa todos los campos obligatorios.' }
   }
+  if (!Number.isFinite(precio) || precio <= 0) return { error: 'El precio debe ser mayor que cero.' }
 
   const supabase = await createClient()
   const proveedor_id = await getProveedorId()
