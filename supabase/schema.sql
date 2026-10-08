@@ -97,9 +97,43 @@ create table if not exists public.productos (
   unidad        text not null default 'unidad',
   stock         integer not null default 0 check (stock >= 0),
   imagen_url    text,
+  sku           text,
+  especificaciones text,
+  itbis_incluido boolean not null default true,
   activo        boolean not null default true,
   created_at    timestamptz not null default now()
 );
+
+-- ─── Storage de imágenes de productos (referencia; se aplica por migración) ───
+insert into storage.buckets (id, name, public)
+values ('productos', 'productos', true)
+on conflict do nothing;
+
+create policy "productos storage: lectura pública"
+  on storage.objects for select
+  using (bucket_id = 'productos');
+
+create policy "productos storage: proveedor inserta en su carpeta"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'productos'
+    and exists (
+      select 1 from public.proveedores
+      where id::text = (storage.foldername(name))[1]
+        and user_id = auth.uid()
+    )
+  );
+
+create policy "productos storage: proveedor elimina de su carpeta"
+  on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'productos'
+    and exists (
+      select 1 from public.proveedores
+      where id::text = (storage.foldername(name))[1]
+        and user_id = auth.uid()
+    )
+  );
 
 alter table public.productos add column if not exists subcategoria_id text null;
 
