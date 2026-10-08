@@ -1171,4 +1171,35 @@ describe('Aceptación con cantidades confirmadas', () => {
       screen.queryByText('Debes confirmar al menos una unidad o rechazar la cotización.')
     ).not.toBeInTheDocument()
   })
+
+  it('inicializa y limita la aceptación al disponible actual por línea', () => {
+    h.aceptarCotizacionConCantidades.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-limite',
+        producto_id: 'prod-limite',
+        cantidad: 162,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 86,
+        producto: {
+          nombre: 'Tubo PVC',
+          stock: 299,
+          stock_reservado: 213,
+        } as Producto,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-ui-limite" items={items} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+
+    const entrada = screen.getByLabelText('Tubo PVC')
+    expect(entrada).toHaveValue(86)
+    expect(entrada).toHaveAttribute('max', '86')
+
+    fireEvent.change(entrada, { target: { value: '87' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar aceptación' }))
+
+    expect(h.aceptarCotizacionConCantidades).not.toHaveBeenCalled()
+  })
 })

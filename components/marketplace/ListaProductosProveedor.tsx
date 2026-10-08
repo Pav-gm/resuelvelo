@@ -29,8 +29,10 @@ export default function ListaProductosProveedor({ productos, enTarjeta = true }:
           className="flex flex-wrap items-center gap-3 px-4 py-4 sm:flex-nowrap sm:gap-4 sm:px-6"
         >
           <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-            <p className="break-words [overflow-wrap:anywhere] font-medium text-gray-900">
-              {p.nombre}
+            <p className="min-w-0 break-words [overflow-wrap:anywhere] font-medium text-gray-900">
+              <Link href={`/productos/${p.id}`} className="hover:underline">
+                {p.nombre}
+              </Link>
             </p>
             <p className="text-xs text-gray-400">
               ${p.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {p.unidad} · Stock: {p.stock}
