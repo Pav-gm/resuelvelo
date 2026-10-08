@@ -10,6 +10,26 @@ export interface Profile {
   created_at: string
 }
 
+export type NotificacionTipo =
+  | 'nueva_solicitud'
+  | 'cotizacion_respondida'
+  | 'cotizacion_aceptada'
+  | 'cotizacion_rechazada'
+  | 'cotizacion_despachada'
+  | 'cotizacion_recibida'
+  | 'cotizacion_cancelada'
+
+export interface Notificacion {
+  id: string
+  user_id: string
+  tipo: string
+  cotizacion_id: string | null
+  titulo: string
+  cuerpo: string
+  leida_at: string | null
+  created_at: string
+}
+
 export interface Proveedor {
   id: string
   user_id: string
