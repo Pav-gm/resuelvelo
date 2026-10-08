@@ -46,7 +46,10 @@ export interface Producto {
   precio: number
   unidad: string
   stock: number
-  imagen_url?: string
+  imagen_url?: string | null
+  sku?: string | null
+  especificaciones?: string | null
+  itbis_incluido?: boolean
   activo: boolean
   created_at: string
   proveedor?: Proveedor
