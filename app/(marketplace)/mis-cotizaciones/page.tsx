@@ -101,30 +101,36 @@ export default async function MisCotizacionesPage({
                 </div>
 
                 <div className="divide-y">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between px-6 py-3 text-sm">
-                      <div className="min-w-0">
-                        <span className="text-gray-700">
-                          {(item as { producto?: { nombre?: string } }).producto?.nombre ?? item.producto_id}
-                        </span>
-                        {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
-                          <p className="text-xs text-yellow-700">
-                            {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-gray-500">
-                        <span>x{item.cantidad}</span>
-                        {item.precio_unitario != null && (
-                          <span className="font-medium text-gray-700">
-                            ${(item.precio_unitario * item.cantidad).toLocaleString('es-DO', {
-                              minimumFractionDigits: 2,
-                            })}
+                  {items.map((item) => {
+                    // El comprador nunca debe ver el id interno: si la relación
+                    // con el producto falta (o el nombre viene vacío) mostramos
+                    // un texto de indisponibilidad.
+                    const nombreProducto = item.producto?.nombre?.trim()
+                    return (
+                      <div key={item.id} className="flex items-center justify-between px-6 py-3 text-sm">
+                        <div className="min-w-0">
+                          <span className="text-gray-700">
+                            {nombreProducto || 'Producto no disponible'}
                           </span>
-                        )}
+                          {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
+                            <p className="text-xs text-yellow-700">
+                              {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-gray-500">
+                          <span>x{item.cantidad}</span>
+                          {item.precio_unitario != null && (
+                            <span className="font-medium text-gray-700">
+                              ${(item.precio_unitario * item.cantidad).toLocaleString('es-DO', {
+                                minimumFractionDigits: 2,
+                              })}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {cot.total_estimado != null && (

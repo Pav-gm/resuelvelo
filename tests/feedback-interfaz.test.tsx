@@ -413,6 +413,54 @@ describe('Mis cotizaciones — acción solo en elegibles', () => {
     expect(screen.queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
   })
 
+  it('muestra el nombre de un producto inactivo en la lista y nunca el id interno', async () => {
+    const PRODUCTO_ID = 'dff6e49e-1111-4111-8111-111111111111'
+    h.cotizaciones.push(
+      cotizacion('pendiente', '11111111-1111-4111-8111-111111111111', {
+        items: [
+          item({
+            id: 'it-inactivo',
+            cotizacion_id: '11111111-1111-4111-8111-111111111111',
+            producto_id: PRODUCTO_ID,
+            cantidad: 2,
+            producto: productoNombre('Cable THHN 12 AWG'),
+          }),
+        ],
+      })
+    )
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const card = tarjeta('11111111')
+    expect(within(card).getByText('Cable THHN 12 AWG')).toBeInTheDocument()
+    expect(card).not.toHaveTextContent(PRODUCTO_ID)
+  })
+
+  it('muestra Producto no disponible cuando la línea no tiene producto relacionado', async () => {
+    const PRODUCTO_ID = 'dff6e49e-1111-4111-8111-111111111111'
+    h.cotizaciones.push(
+      cotizacion('pendiente', '11111111-1111-4111-8111-111111111111', {
+        items: [
+          item({
+            id: 'it-sin-producto',
+            cotizacion_id: '11111111-1111-4111-8111-111111111111',
+            producto_id: PRODUCTO_ID,
+            cantidad: 2,
+            producto: null as unknown as Producto,
+          }),
+        ],
+      })
+    )
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const card = tarjeta('11111111')
+    expect(within(card).getByText('Producto no disponible')).toBeInTheDocument()
+    expect(card).not.toHaveTextContent(PRODUCTO_ID)
+  })
+
   it('redirige al anónimo antes de mostrar cotizaciones', async () => {
     h.user = null
     await expect(MisCotizacionesPage({ searchParams: Promise.resolve({}) })).rejects.toThrow('REDIRECT /login')
