@@ -261,12 +261,77 @@ describe('Página de detalle de cotización', () => {
 
     render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-2' }) }))
 
-    expect(screen.getByRole('button', { name: 'Aceptar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Responder con oferta' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Rechazar' })).toBeInTheDocument()
     expect(screen.queryByText('809-555-0101')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Confirmar recepción' })).toBeNull()
     expect(screen.queryByText('Cancelar')).toBeNull()
     expect(screen.queryByLabelText('Dejar reseña del proveedor')).toBeNull()
+  })
+
+  it('el comprador ve el resumen de oferta en el detalle y en su tarjeta', async () => {
+    const itemOfertado = {
+      id: 'item-1',
+      cotizacion_id: 'cot-1',
+      producto_id: 'prod-1',
+      cantidad: 3,
+      cantidad_ofertada: 2,
+      precio_ofertado: 23,
+      precio_unitario: 10,
+      sujeta_disponibilidad: false,
+      stock_al_cotizar: 5,
+      producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+    }
+    const resumen = 'Respondida: RD$ 46.00, plazo 5 días, válida hasta 20/10/2026'
+
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'respondida',
+      total_ofertado: 46,
+      plazo_dias: 5,
+      valida_hasta: '2026-10-20',
+      condiciones: 'Entrega en almacén.',
+      items: [itemOfertado],
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.getByText(resumen)).toBeInTheDocument()
+    expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
+    expect(screen.getByText('x2')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 46.00')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Responder con oferta' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Rechazar' })).toBeNull()
+    expect(screen.queryByText('Aceptar al precio de catálogo')).toBeNull()
+
+    cleanup()
+
+    h.getCotizacionesDelComprador.mockResolvedValue([
+      {
+        id: 'cot-1',
+        numero: 42,
+        comprador_id: 'buyer-1',
+        proveedor_id: 'prov-1',
+        estado: 'respondida',
+        created_at: '2026-03-15T15:00:00.000Z',
+        total_ofertado: 46,
+        plazo_dias: 5,
+        valida_hasta: '2026-10-20',
+        condiciones: 'Entrega en almacén.',
+        items: [itemOfertado],
+      },
+    ])
+
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+
+    expect(screen.getByText(resumen)).toBeInTheDocument()
+    expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
+    expect(screen.getByText('x2')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 46.00')).toBeInTheDocument()
+    expect(screen.queryByText('Aceptar al precio de catálogo')).toBeNull()
   })
 
   it('el usuario sin sesión es redirigido a login', async () => {

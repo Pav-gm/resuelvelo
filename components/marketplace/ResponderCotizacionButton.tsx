@@ -2,98 +2,222 @@
 
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { responderCotizacion } from '@/app/(marketplace)/cotizaciones/actions'
-import { aceptarCotizacionConCantidades } from '@/app/(marketplace)/proveedor/actions'
-import type { ItemCotizacion } from '@/types'
+import {
+  ofertarCotizacion,
+  rechazarCotizacionConMotivo,
+} from '@/app/(marketplace)/proveedor/actions'
+import type { ItemCotizacion, LineaOfertaInput, OfertaCotizacionInput } from '@/types'
 
 interface Props {
   cotizacionId: string
-  /** Líneas de la cotización; definen qué cantidades se confirman al aceptar. */
+  /** Líneas de la cotización; definen precios y cantidades de la oferta. */
   items: ItemCotizacion[]
 }
 
-/** Disponibilidad actual por línea: stock menos reservas del producto actual. */
-function disponibleDeItem(item: ItemCotizacion): number {
-  const producto = item.producto
-  if (producto && typeof producto.stock === 'number') {
-    return Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+/** Precio unitario precargado: el actual del catálogo; si falta, el solicitado. */
+function precioInicial(item: ItemCotizacion): number {
+  return item.producto?.precio ?? item.precio_unitario ?? 0
+}
+
+/** Cantidad inicial: la pedida, sin superar el stock observado al cotizar. */
+function cantidadInicial(item: ItemCotizacion): number {
+  if (item.sujeta_disponibilidad) {
+    return Math.min(item.cantidad, item.stock_al_cotizar ?? item.cantidad)
   }
-  if (item.stock_al_cotizar != null) return Math.max(0, item.stock_al_cotizar)
   return item.cantidad
 }
+
+/** Fecha de hoy en ISO (YYYY-MM-DD), usada como referencia de validez. */
+function hoyISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+/** Siete días desde hoy en ISO (YYYY-MM-DD); validez por defecto de la oferta. */
+function enSieteDiasISO(): string {
+  const base = new Date()
+  const fecha = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + 7))
+  return fecha.toISOString().slice(0, 10)
+}
+
+type OfertaConstruida = { error: string } | { oferta: OfertaCotizacionInput }
 
 export default function ResponderCotizacionButton({ cotizacionId, items }: Props) {
   const [pending, startTransition] = useTransition()
   const [abierto, setAbierto] = useState(false)
+  const [rechazoAbierto, setRechazoAbierto] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [aviso, setAviso] = useState<string | null>(null)
+  const [errorRechazo, setErrorRechazo] = useState<string | null>(null)
+  const [motivoRechazo, setMotivoRechazo] = useState('')
+  const [precios, setPrecios] = useState<Record<string, number>>({})
   const [cantidades, setCantidades] = useState<Record<string, number>>({})
+  const [plazo, setPlazo] = useState('')
+  const [validaHasta, setValidaHasta] = useState('')
+  const [condiciones, setCondiciones] = useState('')
 
   function abrirDialogo() {
     setError(null)
-    setAviso(null)
-    const iniciales: Record<string, number> = {}
+    const preciosIniciales: Record<string, number> = {}
+    const cantidadesIniciales: Record<string, number> = {}
     for (const item of items) {
-      // Cantidad inicial sugerida: lo pedido, sin superar el disponible actual.
-      iniciales[item.id] = Math.min(item.cantidad, disponibleDeItem(item))
+      preciosIniciales[item.id] = precioInicial(item)
+      cantidadesIniciales[item.id] = cantidadInicial(item)
     }
-    setCantidades(iniciales)
+    setPrecios(preciosIniciales)
+    setCantidades(cantidadesIniciales)
+    setPlazo('')
+    setValidaHasta(enSieteDiasISO())
+    setCondiciones('')
     setAbierto(true)
   }
 
   function cerrarDialogo() {
     setAbierto(false)
     setError(null)
-    setAviso(null)
   }
 
-  function handleConfirmar() {
-    const seleccion: Array<{ itemId: string; cantidad: number }> = []
+  /** Valida los datos en español y arma el payload de la oferta. */
+  function construirOferta(preciosUsados: Record<string, number>): OfertaConstruida {
     for (const item of items) {
-      // El tope por línea es lo pedido, sin superar nunca el disponible actual.
-      const limite = Math.min(item.cantidad, disponibleDeItem(item))
-      const cantidad = cantidades[item.id]
-      if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > limite) {
-        setAviso('Las cantidades no pueden superar el stock disponible.')
-        return
+      const precio = preciosUsados[item.id]
+      if (!Number.isFinite(precio) || precio <= 0) {
+        return { error: 'Cada precio ofertado debe ser mayor que 0.' }
       }
-      seleccion.push({ itemId: item.id, cantidad })
-    }
-    const total = seleccion.reduce((suma, linea) => suma + linea.cantidad, 0)
-    if (total === 0) {
-      setAviso('Debes confirmar al menos una unidad o rechazar la cotización.')
-      return
     }
 
-    setError(null)
-    setAviso(null)
-    startTransition(async () => {
-      const resultado = await aceptarCotizacionConCantidades(cotizacionId, seleccion)
-      if (resultado?.error) {
-        setError(resultado.error)
-        return
+    const plazoDias = plazo.trim() === '' ? Number.NaN : Number(plazo)
+    if (!Number.isInteger(plazoDias) || plazoDias < 0 || plazoDias > 90) {
+      return { error: 'El plazo debe estar entre 0 y 90 días.' }
+    }
+
+    if (!validaHasta || validaHasta <= hoyISO()) {
+      return { error: 'La fecha de validez debe ser futura.' }
+    }
+
+    const lineas: LineaOfertaInput[] = []
+    let unidadesTotales = 0
+    for (const item of items) {
+      if (item.sujeta_disponibilidad) {
+        const cantidad = cantidades[item.id] ?? cantidadInicial(item)
+        if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > item.cantidad) {
+          return { error: 'Las cantidades no pueden superar lo solicitado.' }
+        }
+        unidadesTotales += cantidad
+        lineas.push({
+          itemId: item.id,
+          precioUnitario: preciosUsados[item.id],
+          cantidadOfertada: cantidad,
+        })
+      } else {
+        unidadesTotales += item.cantidad
+        lineas.push({
+          itemId: item.id,
+          precioUnitario: preciosUsados[item.id],
+          cantidadOfertada: null,
+        })
       }
-      setAbierto(false)
+    }
+
+    if (unidadesTotales === 0) {
+      return { error: 'Debes ofertar al menos una unidad o rechazar la cotización.' }
+    }
+
+    return {
+      oferta: {
+        lineas,
+        plazoDias,
+        validaHasta,
+        condiciones: condiciones.trim() || null,
+      },
+    }
+  }
+
+  function enviarOferta(oferta: OfertaCotizacionInput) {
+    setError(null)
+    startTransition(async () => {
+      try {
+        const resultado = await ofertarCotizacion(cotizacionId, oferta)
+        if (resultado?.error) {
+          setError(resultado.error)
+          return
+        }
+        cerrarDialogo()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'No se pudo enviar la oferta.')
+      }
+    })
+  }
+
+  function handleEnviarOferta() {
+    const resultado = construirOferta(precios)
+    if ('error' in resultado) {
+      setError(resultado.error)
+      return
+    }
+    enviarOferta(resultado.oferta)
+  }
+
+  function handleAceptarCatalogo() {
+    const preciosCatalogo: Record<string, number> = {}
+    for (const item of items) preciosCatalogo[item.id] = precioInicial(item)
+    const resultado = construirOferta(preciosCatalogo)
+    if ('error' in resultado) {
+      setError(resultado.error)
+      return
+    }
+    enviarOferta(resultado.oferta)
+  }
+
+  function cerrarRechazo() {
+    setRechazoAbierto(false)
+    setMotivoRechazo('')
+    setErrorRechazo(null)
+  }
+
+  function confirmarRechazo() {
+    const motivo = motivoRechazo.trim()
+    if (!motivo) {
+      setErrorRechazo('Escribe el motivo del rechazo.')
+      return
+    }
+    if (motivo.length > 500) {
+      setErrorRechazo('El motivo no puede superar los 500 caracteres.')
+      return
+    }
+    setErrorRechazo(null)
+    startTransition(async () => {
+      try {
+        const resultado = await rechazarCotizacionConMotivo(cotizacionId, motivo)
+        if (resultado?.error) {
+          setErrorRechazo(resultado.error)
+          return
+        }
+        cerrarRechazo()
+      } catch (e) {
+        setErrorRechazo(e instanceof Error ? e.message : 'No se pudo rechazar la cotización.')
+      }
     })
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
           className="bg-green-500 hover:bg-green-600 text-white"
           disabled={pending}
           onClick={abrirDialogo}
         >
-          Aceptar
+          Responder con oferta
         </Button>
         <Button
           size="sm"
           variant="outline"
           className="text-red-500 border-red-200 hover:bg-red-50"
           disabled={pending}
-          onClick={() => startTransition(() => responderCotizacion(cotizacionId, 'rechazada'))}
+          onClick={() => {
+            setErrorRechazo(null)
+            setRechazoAbierto(true)
+          }}
         >
           Rechazar
         </Button>
@@ -102,32 +226,50 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
       {abierto && (
         <div
           role="dialog"
-          aria-label="Confirmar cantidades"
+          aria-label="Responder con oferta"
           className="rounded-lg border border-green-200 bg-green-50 px-4 py-3"
         >
-          {items.length === 0 ? (
-            <p className="text-sm text-gray-900">
-              ¿Confirmas la aceptación de la cotización con las cantidades solicitadas?
-            </p>
-          ) : (
-            <>
-              <p className="text-sm text-gray-900">
-                Indica cuántas unidades puedes servir de cada producto.
-              </p>
-              <div className="mt-2 space-y-2">
-                {items.map((item) => {
-                  const nombre = item.producto?.nombre?.trim() || 'Producto no disponible'
-                  const limite = Math.min(item.cantidad, disponibleDeItem(item))
-                  return (
-                    <div key={item.id} className="flex items-center justify-between gap-3">
+          <p className="text-sm text-gray-900">
+            Indica el precio ofertado de cada producto y los términos de la oferta.
+          </p>
+
+          <div className="mt-2 space-y-3">
+            {items.map((item) => {
+              const nombre = item.producto?.nombre?.trim() || 'Producto no disponible'
+              return (
+                <div key={item.id} className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-gray-900">{nombre}</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label htmlFor={`precio-${item.id}`} className="text-sm text-gray-700">
+                      {`Precio unitario de ${nombre}`}
+                    </label>
+                    <input
+                      id={`precio-${item.id}`}
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={precios[item.id] ?? 0}
+                      disabled={pending}
+                      onChange={(evento) => {
+                        const valor = Number.parseFloat(evento.target.value)
+                        setPrecios((previos) => ({
+                          ...previos,
+                          [item.id]: Number.isNaN(valor) ? 0 : valor,
+                        }))
+                      }}
+                      className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                    />
+                  </div>
+                  {item.sujeta_disponibilidad ? (
+                    <div className="flex flex-wrap items-center gap-2">
                       <label htmlFor={`cantidad-${item.id}`} className="text-sm text-gray-700">
-                        {nombre}
+                        {`Cantidad de ${nombre}`}
                       </label>
                       <input
                         id={`cantidad-${item.id}`}
                         type="number"
                         min={0}
-                        max={limite}
+                        max={item.cantidad}
                         value={cantidades[item.id] ?? 0}
                         disabled={pending}
                         onChange={(evento) => {
@@ -137,36 +279,116 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                             [item.id]: Number.isNaN(valor) ? 0 : valor,
                           }))
                         }}
-                        className="w-20 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                        className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
                       />
                     </div>
-                  )
-                })}
-              </div>
-            </>
-          )}
+                  ) : (
+                    <p className="text-xs text-gray-500">{`Cantidad solicitada: ${item.cantidad}`}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
 
-          {aviso && (
-            <p className="mt-2 text-sm text-red-600" role="alert">
-              {aviso}
-            </p>
-          )}
+          <div className="mt-3 flex flex-col gap-2">
+            <label htmlFor="plazo-dias" className="text-sm text-gray-700">
+              Plazo de entrega en días
+            </label>
+            <input
+              id="plazo-dias"
+              type="number"
+              min={0}
+              max={90}
+              value={plazo}
+              disabled={pending}
+              onChange={(evento) => setPlazo(evento.target.value)}
+              className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
+            />
+            <label htmlFor="valida-hasta" className="text-sm text-gray-700">
+              Válida hasta
+            </label>
+            <input
+              id="valida-hasta"
+              type="date"
+              value={validaHasta}
+              disabled={pending}
+              onChange={(evento) => setValidaHasta(evento.target.value)}
+              className="w-40 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
+            />
+            <label htmlFor="condiciones" className="text-sm text-gray-700">
+              Condiciones
+            </label>
+            <textarea
+              id="condiciones"
+              value={condiciones}
+              disabled={pending}
+              onChange={(evento) => setCondiciones(evento.target.value)}
+              className="w-full rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
+            />
+          </div>
+
           {error && (
             <p className="mt-2 text-sm text-red-600" role="alert">
               {error}
             </p>
           )}
 
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <Button
               size="sm"
               className="bg-green-500 hover:bg-green-600 text-white"
               disabled={pending}
-              onClick={handleConfirmar}
+              onClick={handleEnviarOferta}
             >
-              {pending ? 'Confirmando…' : 'Confirmar aceptación'}
+              {pending ? 'Enviando…' : 'Enviar oferta'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={handleAceptarCatalogo}
+            >
+              Aceptar al precio de catálogo
             </Button>
             <Button size="sm" variant="outline" disabled={pending} onClick={cerrarDialogo}>
+              Volver
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {rechazoAbierto && (
+        <div
+          role="dialog"
+          aria-label="Rechazar cotización"
+          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3"
+        >
+          <p className="text-sm text-gray-900">
+            Indica el motivo del rechazo de esta cotización.
+          </p>
+          <textarea
+            aria-label="Motivo del rechazo"
+            className="mt-2 w-full rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
+            maxLength={500}
+            value={motivoRechazo}
+            disabled={pending}
+            onChange={(evento) => setMotivoRechazo(evento.target.value)}
+          />
+          {errorRechazo && (
+            <p className="mt-2 text-sm text-red-600" role="alert">
+              {errorRechazo}
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={pending}
+              onClick={confirmarRechazo}
+            >
+              Confirmar rechazo
+            </Button>
+            <Button size="sm" variant="outline" disabled={pending} onClick={cerrarRechazo}>
               Volver
             </Button>
           </div>
