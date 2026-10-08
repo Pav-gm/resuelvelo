@@ -118,7 +118,7 @@ export default async function PanelProveedorPage() {
                     {cantItems} producto{cantItems !== 1 ? 's' : ''} · {new Date(cot.created_at).toLocaleDateString('es-DO')}
                   </p>
                 </div>
-                <Link href={`/proveedor/pedidos`}>
+                <Link href={`/cotizaciones/${cot.id}`}>
                   <Button variant="outline" size="sm">Ver</Button>
                 </Link>
               </div>

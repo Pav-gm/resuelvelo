@@ -1,7 +1,9 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getCotizacionesDeProveedor } from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
+import { Button } from '@/components/ui/button'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
 import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 import AccionesVentaProveedor from '@/components/marketplace/AccionesVentaProveedor'
@@ -63,6 +65,9 @@ export default async function PedidosPage() {
                     {cot.estado === 'pendiente' && (
                       <ResponderCotizacionButton cotizacionId={cot.id} />
                     )}
+                    <Link href={`/cotizaciones/${cot.id}`}>
+                      <Button variant="outline" size="sm">Ver</Button>
+                    </Link>
                   </div>
                 </div>
 
