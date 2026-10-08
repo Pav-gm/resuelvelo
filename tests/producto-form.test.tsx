@@ -22,6 +22,16 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: mocks.createClientMock,
 }))
 
+// jsdom no implementa las URL de objeto; se simulan para cubrir la vista previa.
+Object.defineProperty(URL, 'createObjectURL', {
+  value: vi.fn(() => 'blob:nueva'),
+  configurable: true,
+})
+Object.defineProperty(URL, 'revokeObjectURL', {
+  value: vi.fn(),
+  configurable: true,
+})
+
 const CATEGORIAS: Categoria[] = [
   { id: 'cat-elec', nombre: 'Electricidad', slug: 'electricidad' },
   { id: 'cat-plom', nombre: 'Plomería', slug: 'plomeria' },
@@ -145,9 +155,13 @@ describe('ProductoForm — validaciones en español', () => {
     fireEvent.change(precio, { target: { value: '' } })
     precio.checkValidity()
     expect(precio.validationMessage).toBe('Ingresa un precio válido.')
+    expect(precio).toHaveAttribute('min', '0.01')
     fireEvent.change(precio, { target: { value: '-1' } })
     precio.checkValidity()
     expect(precio.validationMessage).toBe('El precio no puede ser negativo.')
+    fireEvent.change(precio, { target: { value: '0' } })
+    precio.checkValidity()
+    expect(precio.validationMessage).toBe('El precio debe ser mayor que cero.')
     fireEvent.change(precio, { target: { value: '100' } })
     expect(precio.validationMessage).toBe('')
 
@@ -195,6 +209,47 @@ describe('ProductoForm — validaciones en español', () => {
       />
     )
     comprobarMensajesPropios()
+  })
+
+  it('muestra el mensaje acordado cuando el precio es cero', () => {
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      activo: true,
+      created_at: '',
+    }
+
+    function comprobarPrecio() {
+      const precio = screen.getByLabelText(/^Precio \(RD\$\)/) as HTMLInputElement
+      expect(precio).toHaveAttribute('min', '0.01')
+      fireEvent.change(precio, { target: { value: '0' } })
+      precio.checkValidity()
+      expect(precio.validationMessage).toBe('El precio debe ser mayor que cero.')
+      fireEvent.change(precio, { target: { value: '-1' } })
+      precio.checkValidity()
+      expect(precio.validationMessage).toBe('El precio no puede ser negativo.')
+    }
+
+    const { unmount } = render(
+      <ProductoForm categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} />
+    )
+    comprobarPrecio()
+    unmount()
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+      />
+    )
+    comprobarPrecio()
   })
 })
 
@@ -288,6 +343,62 @@ describe('ProductoForm — obligatoriedad de subcategoría', () => {
     const enviado = mocks.actualizarMock.mock.calls[0][1] as FormData
     expect(enviado.has('imagen')).toBe(false)
     expect(enviado.get('imagen_url')).toBe('https://ejemplo.test/actual.jpg')
+    expect(mocks.createClientMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('ProductoForm — previsualización de imagen', () => {
+  it('previsualiza la imagen elegida y permite cambiarla o quitarla al editar', async () => {
+    mocks.actualizarMock.mockResolvedValue(null)
+
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      imagen_url: 'https://ejemplo.test/actual.jpg',
+      activo: true,
+      created_at: '',
+    }
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+        proveedorId="prov-1"
+      />
+    )
+
+    // Al editar se muestra la foto actual.
+    expect(screen.getByRole('img', { name: 'Vista previa del producto' })).toHaveAttribute(
+      'src',
+      'https://ejemplo.test/actual.jpg'
+    )
+
+    // Al elegir un archivo se muestra su previsualización (URL de objeto).
+    const input = screen.getByLabelText(/^Imagen del producto/) as HTMLInputElement
+    seleccionarImagen(input, new File(['png'], 'nueva.png', { type: 'image/png' }))
+    expect(screen.getByRole('img', { name: 'Vista previa del producto' })).toHaveAttribute(
+      'src',
+      'blob:nueva'
+    )
+
+    // Quitar foto limpia la selección y la imagen mostrada.
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar foto' }))
+    expect(screen.queryByRole('img', { name: 'Vista previa del producto' })).toBeNull()
+    expect(input.value).toBe('')
+
+    fireEvent.submit(input.closest('form')!)
+
+    await waitFor(() => expect(mocks.actualizarMock).toHaveBeenCalled())
+    const enviado = mocks.actualizarMock.mock.calls[0][1] as FormData
+    expect(enviado.get('imagen_url')).toBe('')
+    expect(enviado.has('imagen')).toBe(false)
     expect(mocks.createClientMock).not.toHaveBeenCalled()
   })
 })
