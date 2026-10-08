@@ -314,7 +314,10 @@ export async function getCotizacionDetalle(cotizacionId: string): Promise<Cotiza
     p_cotizacion_id: cotizacionId,
   })
 
-  if (error) propagarErrorLectura('getCotizacionDetalle', error)
+  if (error) {
+    if (error.code === '22P02' || error.message.includes('COTIZACION_NO_AUTORIZADA')) return null
+    propagarErrorLectura('getCotizacionDetalle', error)
+  }
   if (data === null) return null
   return data as unknown as CotizacionDetalle
 }

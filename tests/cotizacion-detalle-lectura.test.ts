@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 const h = vi.hoisted(() => {
   const state = {
     rpcCalls: [] as { name: string; args: Record<string, unknown> }[],
-    response: { data: null as unknown, error: null as { message: string } | null },
+    response: { data: null as unknown, error: null as { message: string; code?: string } | null },
   }
 
   const createClient = vi.fn(async () => ({
@@ -95,5 +95,23 @@ describe('getCotizacionDetalle', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     await expect(getCotizacionDetalle('cot-1')).rejects.toEqual({ message: 'timeout' })
+  })
+
+  it('getCotizacionDetalle devuelve null cuando la RPC rechaza a un usuario que no participa', async () => {
+    h.state.response = {
+      data: null,
+      error: { code: 'P0001', message: 'COTIZACION_NO_AUTORIZADA' },
+    }
+
+    await expect(getCotizacionDetalle('cot-ajena')).resolves.toBeNull()
+  })
+
+  it('getCotizacionDetalle devuelve null cuando el id no es un UUID', async () => {
+    h.state.response = {
+      data: null,
+      error: { code: '22P02', message: 'invalid input syntax for type uuid: "no-es-uuid"' },
+    }
+
+    await expect(getCotizacionDetalle('no-es-uuid')).resolves.toBeNull()
   })
 })
