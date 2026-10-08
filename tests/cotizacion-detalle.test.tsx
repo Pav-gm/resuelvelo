@@ -118,7 +118,11 @@ describe('Página de detalle de cotización', () => {
 
     expect(screen.getByText(`Cotización #${formatNumeroCotizacion(42)}`)).toBeInTheDocument()
     expect(screen.getByText('Promeria')).toBeInTheDocument()
+    expect(screen.getByText('Santo Domingo')).toBeInTheDocument()
+    expect(screen.getByText('Proveedor verificado')).toBeInTheDocument()
     expect(screen.getByText('Ana')).toBeInTheDocument()
+    expect(screen.getByText('ana@example.com')).toBeInTheDocument()
+    expect(screen.getByText('809-555-0101')).toBeInTheDocument()
     expect(screen.getByText('Entregar por la entrada norte')).toBeInTheDocument()
 
     const enlaceProducto = screen.getByRole('link', { name: 'Tubo PVC' })

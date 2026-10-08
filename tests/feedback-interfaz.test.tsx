@@ -652,6 +652,43 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
   })
 
+  it('confirmar recepción muestra el error como alerta y no falla en silencio', async () => {
+    h.cotizaciones.push(
+      cotizacion('despachada', COT_DESPACHADA, { despachada_at: DESPACHADA_AT })
+    )
+    h.confirmarRecepcion.mockRejectedValueOnce(
+      new Error('Solo puedes marcar como recibido un pedido despachado.')
+    )
+
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+
+    const card = tarjeta('DDDDDDDD')
+    fireEvent.click(within(card).getByRole('button', { name: 'Confirmar recepción' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Solo puedes marcar como recibido un pedido despachado.'
+    )
+    expect(h.confirmarRecepcion).toHaveBeenCalledWith(COT_DESPACHADA)
+    await waitFor(() => {
+      expect(within(card).getByRole('button', { name: 'Confirmar recepción' })).toBeEnabled()
+    })
+
+    cleanup()
+
+    h.confirmarRecepcion.mockRejectedValueOnce('x')
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+
+    const card2 = tarjeta('DDDDDDDD')
+    fireEvent.click(within(card2).getByRole('button', { name: 'Confirmar recepción' }))
+
+    expect(await within(card2).findByRole('alert')).toHaveTextContent(
+      'No se pudo confirmar la recepción.'
+    )
+    await waitFor(() => {
+      expect(within(card2).getByRole('button', { name: 'Confirmar recepción' })).toBeEnabled()
+    })
+  })
+
   it('en recibida completa el seguimiento y conserva el formulario de reseña', async () => {
     h.cotizaciones.push(
       cotizacion('recibida', COT_RECIBIDA, { despachada_at: DESPACHADA_AT })
