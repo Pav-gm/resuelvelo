@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useCallback, useState } from 'react'
+import { useActionState, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { crearProducto, actualizarProducto, type ProductoError } from '@/app/(marketplace)/proveedor/actions'
 import { createClient } from '@/lib/supabase/client'
@@ -70,8 +70,22 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
   const [categoriaId, setCategoriaId] = useState(producto?.categoria_id ?? '')
   const [subcategoriaId, setSubcategoriaId] = useState(producto?.subcategoria_id ?? '')
   const [imagenUrl, setImagenUrl] = useState(producto?.imagen_url ?? '')
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [errorImagen, setErrorImagen] = useState<string | null>(null)
   const [procesando, setProcesando] = useState(false)
+  const inputImagenRef = useRef<HTMLInputElement>(null)
+  const objectUrlRef = useRef<string | null>(null)
+
+  // Libera el objeto URL de la imagen elegida para no filtrar memoria.
+  const revocarPreview = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
+    }
+  }, [])
+
+  // Limpia el objeto URL al desmontar el formulario.
+  useEffect(() => revocarPreview, [revocarPreview])
 
   const ejecutarAccion = useCallback(
     async (prevState: ProductoError, formData: FormData): Promise<ProductoError> => {
@@ -115,6 +129,9 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
   function handleImagen(e: { target: HTMLInputElement }) {
     const archivo = e.target.files?.[0]
     if (!archivo) {
+      // Sin archivo (selector cancelado) se vuelve a la foto actual y a lo que se enviará.
+      revocarPreview()
+      setPreviewUrl(null)
       setErrorImagen(null)
       return
     }
@@ -122,9 +139,24 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
     if (errorValidacion) {
       setErrorImagen(errorValidacion)
       e.target.value = ''
+      revocarPreview()
+      setPreviewUrl(null)
       return
     }
     setErrorImagen(null)
+    // Sustituye la previsualización anterior liberando su objeto URL.
+    revocarPreview()
+    const url = URL.createObjectURL(archivo)
+    objectUrlRef.current = url
+    setPreviewUrl(url)
+  }
+
+  function quitarFoto() {
+    revocarPreview()
+    setPreviewUrl(null)
+    setImagenUrl('')
+    setErrorImagen(null)
+    if (inputImagenRef.current) inputImagenRef.current.value = ''
   }
 
   function limpiarValidez(e: { currentTarget: HTMLInputElement | HTMLSelectElement }) {
@@ -194,11 +226,30 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
           id="imagen"
           name="imagen"
           type="file"
+          ref={inputImagenRef}
           accept="image/jpeg,image/png,image/webp"
           onChange={handleImagen}
           className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 file:mr-3 file:rounded-md file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-orange-600"
         />
         <p className="mt-1 text-xs text-gray-400">JPG, PNG o WebP de hasta 2 MB.</p>
+        {(previewUrl || imagenUrl) && (
+          <div className="mt-3 flex items-start gap-3">
+            {/* Vista previa: la imagen elegida (objeto URL) o la foto actual al editar. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl ?? imagenUrl}
+              alt="Vista previa del producto"
+              className="h-28 w-28 rounded-lg border object-cover"
+            />
+            <button
+              type="button"
+              onClick={quitarFoto}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400/40"
+            >
+              Quitar foto
+            </button>
+          </div>
+        )}
         {errorImagen && (
           <p className="mt-1 text-sm text-red-600" role="alert">
             {errorImagen}
@@ -296,13 +347,23 @@ export default function ProductoForm({ categorias, subcategorias, producto, prov
             name="precio"
             type="number"
             required
-            min={0}
+            min={0.01}
             step="0.01"
             defaultValue={producto?.precio}
             placeholder="0.00"
-            onInvalid={(e) =>
-              marcarInvalido(e, 'Ingresa un precio válido.', 'El precio no puede ser negativo.')
-            }
+            onInvalid={(e) => {
+              const control = e.currentTarget
+              if (control.validity.valueMissing) {
+                control.setCustomValidity('Ingresa un precio válido.')
+              } else if (control.validity.rangeUnderflow && control.valueAsNumber < 0) {
+                control.setCustomValidity('El precio no puede ser negativo.')
+              } else if (control.validity.rangeUnderflow) {
+                control.setCustomValidity('El precio debe ser mayor que cero.')
+              } else {
+                // stepMismatch (p. ej. 12.345), badInput y demás rechazos de HTML.
+                control.setCustomValidity('Ingresa un precio válido.')
+              }
+            }}
             onChange={limpiarValidez}
             className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
           />

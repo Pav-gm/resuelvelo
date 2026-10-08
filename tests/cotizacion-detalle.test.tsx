@@ -108,7 +108,7 @@ describe('Página de detalle de cotización', () => {
           precio_unitario: 10,
           sujeta_disponibilidad: false,
           stock_al_cotizar: 5,
-          producto: { id: 'prod-1', nombre: 'Tubo PVC' },
+          producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
         },
       ],
     })
@@ -125,7 +125,7 @@ describe('Página de detalle de cotización', () => {
     expect(screen.getByText('Entregar por la entrada norte')).toBeInTheDocument()
 
     const enlaceProducto = screen.getByRole('link', { name: 'Tubo PVC' })
-    expect(enlaceProducto).toHaveAttribute('href', '/catalogo?busqueda=Tubo%20PVC')
+    expect(enlaceProducto).toHaveAttribute('href', '/productos/prod-1')
 
     expect(screen.getByText('x2')).toBeInTheDocument()
     expect(screen.getByText('$10.00 c/u')).toBeInTheDocument()
@@ -139,6 +139,62 @@ describe('Página de detalle de cotización', () => {
     expect(screen.queryByText('Rechazar')).toBeNull()
     expect(screen.queryByText('Marcar como despachada')).toBeNull()
     expect(screen.queryByText('Cancelar venta')).toBeNull()
+  })
+
+  it('el nombre de un producto activo enlaza a su ficha', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'pendiente',
+      items: [
+        {
+          id: 'item-1',
+          cotizacion_id: 'cot-1',
+          producto_id: 'prod-1',
+          cantidad: 2,
+          precio_unitario: 10,
+          sujeta_disponibilidad: false,
+          stock_al_cotizar: 5,
+          producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+        },
+      ],
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.getByRole('link', { name: 'Tubo PVC' })).toHaveAttribute(
+      'href',
+      '/productos/prod-1'
+    )
+  })
+
+  it('el nombre de un producto inactivo se muestra sin enlace', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'pendiente',
+      items: [
+        {
+          id: 'item-1',
+          cotizacion_id: 'cot-1',
+          producto_id: 'prod-1',
+          cantidad: 2,
+          precio_unitario: 10,
+          sujeta_disponibilidad: false,
+          stock_al_cotizar: 5,
+          producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: false },
+        },
+      ],
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.getByText('Tubo PVC')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Tubo PVC' })).toBeNull()
   })
 
   it('el proveedor ve los controles de pendiente y no las acciones del comprador', async () => {

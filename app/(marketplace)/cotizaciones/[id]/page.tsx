@@ -106,7 +106,8 @@ export default async function CotizacionDetallePage({
       <div className="mt-4 overflow-hidden rounded-2xl border bg-white shadow-sm">
         <div className="divide-y">
           {items.map((item) => {
-            const nombre = item.producto?.nombre
+            const producto = item.producto
+            const nombre = producto?.nombre
             const subtotal = item.precio_unitario != null
               ? item.precio_unitario * item.cantidad
               : null
@@ -120,13 +121,17 @@ export default async function CotizacionDetallePage({
                   data-testid="detalle-item-nombre"
                   className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]"
                 >
-                  {nombre ? (
+                  {nombre && producto?.activo ? (
                     <Link
-                      href={`/catalogo?busqueda=${encodeURIComponent(nombre)}`}
+                      href={`/productos/${producto.id}`}
                       className="break-words [overflow-wrap:anywhere] text-gray-700 hover:underline"
                     >
                       {nombre}
                     </Link>
+                  ) : nombre ? (
+                    <span className="break-words [overflow-wrap:anywhere] text-gray-700">
+                      {nombre}
+                    </span>
                   ) : (
                     <span className="break-words [overflow-wrap:anywhere] text-gray-700">
                       {item.producto_id}

@@ -34,6 +34,9 @@ export default function ListaProductosProveedor({ productos, enTarjeta = true }:
             </p>
             <p className="text-xs text-gray-400">
               ${p.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {p.unidad} · Stock: {p.stock}
+              {p.stock_reservado && p.stock_reservado > 0
+                ? ` (${p.stock_reservado} ${p.stock_reservado === 1 ? 'reservada' : 'reservadas'})`
+                : ''}
             </p>
           </div>
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${p.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
