@@ -72,6 +72,37 @@ describe('ProductoCard — diseño responsive', () => {
   })
 })
 
+describe('ProductoCard — enlace a la ficha', () => {
+  it('enlaza la miniatura y el nombre a la ficha sin envolver el botón Agregar', () => {
+    render(
+      <ProductoCard
+        producto={producto({
+          id: 'prod-1',
+          nombre: 'Tubo PVC 4 pulgadas',
+          proveedor_id: 'prov-1',
+          categoria_id: 'cat-1',
+          subcategoria_id: null,
+          precio: 680,
+          unidad: 'unidad',
+          stock: 5,
+          activo: true,
+          created_at: '',
+        })}
+      />
+    )
+
+    const miniatura = screen.getByRole('img', { name: 'Tubo PVC 4 pulgadas' })
+    expect(miniatura.closest('a')).toHaveAttribute('href', '/productos/prod-1')
+
+    const nombre = screen.getByRole('heading', { name: 'Tubo PVC 4 pulgadas' })
+    expect(nombre.closest('a')).toHaveAttribute('href', '/productos/prod-1')
+
+    const boton = screen.getByRole('button', { name: 'Agregar' })
+    expect(boton).toBeEnabled()
+    expect(boton.closest('a')).toBeNull()
+  })
+})
+
 describe('ProductoCard — estados de stock', () => {
   it('muestra Agregar habilitado cuando hay stock y el carrito no llegó al tope', () => {
     render(<ProductoCard producto={producto({ stock: 5 })} />)
