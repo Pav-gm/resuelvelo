@@ -83,4 +83,16 @@ describe('aceptarCotizacionConCantidades', () => {
     expect(h.rpc).not.toHaveBeenCalled()
     expect(h.revalidatePath).not.toHaveBeenCalled()
   })
+
+  it('rechaza una selección cuyo total es cero antes de llamar al RPC', async () => {
+    const resultado = await aceptarCotizacionConCantidades('cot-1', [
+      { itemId: 'item-1', cantidad: 0 },
+      { itemId: 'item-2', cantidad: 0 },
+    ])
+
+    expect(resultado).toEqual({ error: 'Si no puedes servir nada, rechaza la cotización' })
+    expect(h.createClient).not.toHaveBeenCalled()
+    expect(h.rpc).not.toHaveBeenCalled()
+    expect(h.revalidatePath).not.toHaveBeenCalled()
+  })
 })
