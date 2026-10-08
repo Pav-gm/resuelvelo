@@ -923,7 +923,7 @@ begin
           'stock_al_cotizar', i.stock_al_cotizar,
           'producto', case
             when producto.id is null then null
-            else jsonb_build_object('id', producto.id, 'nombre', producto.nombre)
+            else jsonb_build_object('id', producto.id, 'nombre', producto.nombre, 'activo', producto.activo)
           end
         ) order by i.id
       )
