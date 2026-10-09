@@ -145,6 +145,35 @@ describe('ProductoCard — insignia de proveedor verificado', () => {
   })
 })
 
+describe('ProductoCard — nombres largos', () => {
+  it('el catálogo permite leer nombres largos en dos líneas y conserva el nombre accesible de la insignia', () => {
+    render(
+      <ProductoCard
+        producto={producto({
+          nombre: 'Cemento Portland Tipo I de alta resistencia',
+          proveedor: {
+            id: 'prov-1',
+            user_id: 'user-1',
+            nombre_empresa: 'Promeria',
+            verificado: true,
+            verificacion_estado: 'verificado',
+            verificado_at: '2026-01-02T00:00:00.000Z',
+            created_at: '',
+          },
+        })}
+      />
+    )
+
+    const nombre = screen.getByRole('heading', {
+      name: 'Cemento Portland Tipo I de alta resistencia',
+    })
+    expect(nombre).toHaveClass('line-clamp-2', 'break-words', '[overflow-wrap:anywhere]')
+
+    const insignia = screen.getByRole('link', { name: 'Verificado' })
+    expect(insignia).toBeInTheDocument()
+  })
+})
+
 describe('ProductoCard — estados de stock', () => {
   it('muestra Agregar habilitado cuando hay stock y el carrito no llegó al tope', () => {
     render(<ProductoCard producto={producto({ stock: 5 })} />)

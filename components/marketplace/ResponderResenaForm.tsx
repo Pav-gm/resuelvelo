@@ -23,7 +23,7 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
   // Tras el éxito el formulario se reemplaza y no ofrece otro envío.
   if (publicada) {
     return (
-      <p className="text-sm font-medium text-teal-700" role="status">
+      <p className="text-sm font-medium text-teal-700" role="status" aria-live="polite">
         Respuesta publicada.
       </p>
     )
