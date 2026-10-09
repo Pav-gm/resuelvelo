@@ -684,8 +684,8 @@ create or replace view public.feedback_publico
 with (security_invoker = true, security_barrier = true)
 as
   select id, proveedor_id, calificacion, comentario, created_at,
-         respuesta, respuesta_at,
-         'Comprador verificado'::text as autor_anonimo
+         'Comprador verificado'::text as autor_anonimo,
+         respuesta, respuesta_at
   from public.feedback;
 
 revoke all on public.feedback from anon, authenticated;
