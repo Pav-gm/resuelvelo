@@ -265,6 +265,8 @@ alter table public.productos         enable row level security;
 alter table public.cotizaciones      enable row level security;
 alter table public.items_cotizacion  enable row level security;
 alter table public.direcciones_obra  enable row level security;
+revoke all on public.direcciones_obra from public, anon, authenticated;
+grant select, insert, update, delete on public.direcciones_obra to authenticated;
 
 -- ─── direcciones_obra ───────────────────────────────────────
 drop policy if exists "direcciones_obra: usuario ve las suyas" on public.direcciones_obra;
