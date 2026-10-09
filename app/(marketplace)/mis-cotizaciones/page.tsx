@@ -208,7 +208,12 @@ export default async function MisCotizacionesPage({
                         <div className="flex items-center gap-4 text-gray-500">
                           {ofertada && item.precio_ofertado != null ? (
                             <>
-                              {item.precio_unitario != null && (
+                              {/* Al aceptar, aceptar_oferta_cotizacion fija
+                                  items_cotizacion.precio_unitario =
+                                  precio_ofertado; en estados confirmados esa
+                                  columna ya no es el precio de catálogo, así
+                                  que no mostramos la etiqueta «Catálogo». */}
+                              {!confirmado && item.precio_unitario != null && (
                                 <span>{`Catálogo: ${dineroOferta(item.precio_unitario)} c/u`}</span>
                               )}
                               <span>{`Oferta: ${dineroOferta(item.precio_ofertado)} c/u`}</span>
