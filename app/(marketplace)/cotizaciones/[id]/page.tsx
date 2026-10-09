@@ -25,6 +25,9 @@ const estadoBadge: Record<string, string> = {
 // solo existe la cantidad pedida.
 const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
 
+// Estados en los que la oferta del proveedor sigue vigente y debe mostrarse.
+const ESTADOS_CON_OFERTA = ['respondida', 'aceptada', 'despachada', 'recibida']
+
 function dinero(valor: number): string {
   return `$${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
 }
@@ -109,8 +112,9 @@ export default async function CotizacionDetallePage({
 
   const items = detalle.items ?? []
   const confirmado = ESTADOS_CONFIRMADOS.includes(detalle.estado)
+  // «respondida» limita las acciones de decisión y la expiración de la oferta.
   const respondida = detalle.estado === 'respondida'
-  const tieneOferta = respondida && detalle.total_ofertado != null
+  const tieneOferta = ESTADOS_CON_OFERTA.includes(detalle.estado) && detalle.total_ofertado != null
   const vencida = tieneOferta && ofertaVencida(detalle.valida_hasta)
   const totalConfirmado = items.reduce((sum, i) => {
     const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
@@ -180,10 +184,13 @@ export default async function CotizacionDetallePage({
             const producto = item.producto
             const nombre = producto?.nombre
             // Con oferta manda el precio/cantidad ofertados; desde aceptada en
-            // adelante, lo confirmado; antes de responder, lo pedido.
-            const ofertada = respondida && item.precio_ofertado != null
+            // adelante, la cantidad confirmada; antes de aceptar, la ofertada;
+            // antes de responder, lo pedido.
+            const ofertada = (respondida || tieneOferta) && item.precio_ofertado != null
             const unidades = ofertada
-              ? (item.cantidad_ofertada ?? item.cantidad)
+              ? confirmado
+                ? (item.cantidad_confirmada ?? item.cantidad)
+                : (item.cantidad_ofertada ?? item.cantidad)
               : confirmado
                 ? (item.cantidad_confirmada ?? item.cantidad)
                 : item.cantidad
@@ -234,7 +241,7 @@ export default async function CotizacionDetallePage({
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
                   {ofertada && item.precio_ofertado != null ? (
                     <>
-                      {item.precio_unitario != null && (
+                      {!confirmado && item.precio_unitario != null && (
                         <span>{`Catálogo: ${dineroOferta(item.precio_unitario)} c/u`}</span>
                       )}
                       <span>{`Oferta: ${dineroOferta(item.precio_ofertado)} c/u`}</span>
@@ -263,30 +270,28 @@ export default async function CotizacionDetallePage({
           )}
         </div>
 
-        {confirmado
+        {tieneOferta ? (
+          <>
+            {detalle.total_estimado != null && (
+              <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+                {`Total estimado: ${dinero(Number(detalle.total_estimado))}`}
+              </div>
+            )}
+            <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+              {`Total ofertado: ${dineroOferta(Number(detalle.total_ofertado))}`}
+            </div>
+          </>
+        ) : confirmado
           ? items.length > 0 && (
               <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
                 Total confirmado: {dinero(totalConfirmado)}
               </div>
             )
-          : tieneOferta
-            ? (
-                <>
-                  {detalle.total_estimado != null && (
-                    <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-                      {`Total estimado: ${dinero(Number(detalle.total_estimado))}`}
-                    </div>
-                  )}
-                  <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-                    {`Total ofertado: ${dineroOferta(Number(detalle.total_ofertado))}`}
-                  </div>
-                </>
-              )
-            : detalle.total_estimado != null && (
-                <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-                  Total estimado: {dinero(Number(detalle.total_estimado))}
-                </div>
-              )}
+          : detalle.total_estimado != null && (
+              <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+                Total estimado: {dinero(Number(detalle.total_estimado))}
+              </div>
+            )}
       </div>
 
       {tieneOferta && (
