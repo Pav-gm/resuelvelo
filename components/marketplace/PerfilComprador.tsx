@@ -37,7 +37,7 @@ const ERROR_RNC = 'El RNC debe tener 9 u 11 dígitos numéricos.'
 const ERROR_CAMPOS_DIRECCION = 'La etiqueta, la dirección y la provincia son obligatorias.'
 
 function nuevoId(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `dir-${Date.now()}`
+  return `tmp-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`
 }
 
 const claseInput =
@@ -76,6 +76,13 @@ export default function PerfilComprador({
   const [mensajePerfil, setMensajePerfil] = useState<Mensaje>(null)
 
   const [listaDirecciones, setListaDirecciones] = useState<DireccionObra[]>(direcciones)
+  // Sincroniza la lista con las direcciones que entrega el servidor tras `revalidatePath('/perfil')`:
+  // así los ids reales sustituyen a los temporales de las direcciones recién creadas.
+  const [direccionesServidor, setDireccionesServidor] = useState(direcciones)
+  if (direcciones !== direccionesServidor) {
+    setDireccionesServidor(direcciones)
+    setListaDirecciones(direcciones)
+  }
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [etiqueta, setEtiqueta] = useState('')
   const [direccion, setDireccion] = useState('')
@@ -291,7 +298,7 @@ export default function PerfilComprador({
                   <button
                     type="button"
                     onClick={() => empezarEdicion(d)}
-                    disabled={guardandoDireccion}
+                    disabled={guardandoDireccion || d.id.startsWith('tmp-')}
                     aria-label={`Editar ${d.etiqueta}`}
                     className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
                   >
@@ -300,7 +307,7 @@ export default function PerfilComprador({
                   <button
                     type="button"
                     onClick={() => quitarDireccion(d.id)}
-                    disabled={guardandoDireccion}
+                    disabled={guardandoDireccion || d.id.startsWith('tmp-')}
                     aria-label={`Quitar ${d.etiqueta}`}
                     className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
                   >
