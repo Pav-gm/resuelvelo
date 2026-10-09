@@ -269,7 +269,7 @@ describe('Página de detalle de cotización', () => {
     expect(screen.queryByLabelText('Dejar reseña del proveedor')).toBeNull()
   })
 
-  it('el comprador ve el resumen de oferta en el detalle y en su tarjeta', async () => {
+  it('el comprador ve el total ofertado en lugar del total estimado en el detalle y su tarjeta', async () => {
     const itemOfertado = {
       id: 'item-1',
       cotizacion_id: 'cot-1',
@@ -282,7 +282,8 @@ describe('Página de detalle de cotización', () => {
       stock_al_cotizar: 5,
       producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
     }
-    const resumen = 'Respondida: RD$ 46.00, plazo 5 días, válida hasta 20/10/2026'
+    const resumen = 'Respondida: RD$ 2,900.00, plazo 5 días, válida hasta 20/10/2026'
+    const totalOfertado = 'Total ofertado: RD$ 2,900.00'
 
     h.state.user = { id: 'buyer-1' }
     h.getCotizacionDetalle.mockResolvedValue({
@@ -290,7 +291,8 @@ describe('Página de detalle de cotización', () => {
       id: 'cot-1',
       numero: 42,
       estado: 'respondida',
-      total_ofertado: 46,
+      total_estimado: 2960,
+      total_ofertado: 2900,
       plazo_dias: 5,
       valida_hasta: '2026-10-20',
       condiciones: 'Entrega en almacén.',
@@ -299,10 +301,12 @@ describe('Página de detalle de cotización', () => {
 
     render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
 
+    expect(screen.getAllByText(totalOfertado).length).toBeGreaterThan(0)
     expect(screen.getByText(resumen)).toBeInTheDocument()
     expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
     expect(screen.getByText('x2')).toBeInTheDocument()
     expect(screen.getByText('RD$ 46.00')).toBeInTheDocument()
+    expect(screen.queryByText('Total estimado: $2,960.00')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Responder con oferta' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Rechazar' })).toBeNull()
     expect(screen.queryByText('Aceptar al precio de catálogo')).toBeNull()
@@ -317,7 +321,8 @@ describe('Página de detalle de cotización', () => {
         proveedor_id: 'prov-1',
         estado: 'respondida',
         created_at: '2026-03-15T15:00:00.000Z',
-        total_ofertado: 46,
+        total_estimado: 2960,
+        total_ofertado: 2900,
         plazo_dias: 5,
         valida_hasta: '2026-10-20',
         condiciones: 'Entrega en almacén.',
@@ -327,11 +332,115 @@ describe('Página de detalle de cotización', () => {
 
     render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
 
+    expect(screen.getAllByText(totalOfertado).length).toBeGreaterThan(0)
     expect(screen.getByText(resumen)).toBeInTheDocument()
     expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
     expect(screen.getByText('x2')).toBeInTheDocument()
     expect(screen.getByText('RD$ 46.00')).toBeInTheDocument()
+    expect(screen.queryByText(/Total estimado/)).toBeNull()
     expect(screen.queryByText('Aceptar al precio de catálogo')).toBeNull()
+  })
+
+  it('la bandeja del proveedor muestra la oferta por línea, el total y sus términos', async () => {
+    h.state.user = { id: 'provider-user-1' }
+    h.getProveedorDelUsuario.mockResolvedValue({
+      id: 'prov-1',
+      user_id: 'provider-user-1',
+      nombre_empresa: 'Promeria',
+      verificado: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+    })
+    h.getCotizacionesDeProveedor.mockResolvedValue([
+      {
+        id: 'cot-1',
+        numero: 42,
+        comprador_id: 'buyer-1',
+        proveedor_id: 'prov-1',
+        estado: 'respondida',
+        created_at: '2026-03-15T15:00:00.000Z',
+        total_estimado: 2960,
+        total_ofertado: 2900,
+        plazo_dias: 5,
+        valida_hasta: '2026-10-20',
+        items: [
+          {
+            id: 'item-1',
+            cotizacion_id: 'cot-1',
+            producto_id: 'prod-1',
+            cantidad: 3,
+            cantidad_ofertada: 2,
+            precio_ofertado: 1450,
+            precio_unitario: 1480,
+            sujeta_disponibilidad: false,
+            stock_al_cotizar: 5,
+            producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+          },
+        ],
+      },
+    ])
+
+    render(await PedidosPage())
+
+    expect(screen.getByText('x2')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 1,450.00 c/u')).toBeInTheDocument()
+    expect(screen.getAllByText('Total ofertado: RD$ 2,900.00').length).toBeGreaterThan(0)
+    expect(
+      screen.getByText('Respondida: RD$ 2,900.00, plazo 5 días, válida hasta 20/10/2026')
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/2,960\.00/)).toBeNull()
+  })
+
+  it('comprador y proveedor ven fecha y motivo del rechazo en tarjeta y detalle', async () => {
+    const itemRechazado = {
+      id: 'item-1',
+      cotizacion_id: 'cot-1',
+      producto_id: 'prod-1',
+      cantidad: 3,
+      precio_unitario: 10,
+      sujeta_disponibilidad: false,
+      stock_al_cotizar: 5,
+      producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+    }
+    const texto = 'Rechazada por el proveedor el 7/10/2026: No puedo abastecer este producto.'
+    const comun = {
+      id: 'cot-1',
+      numero: 42,
+      comprador_id: 'buyer-1',
+      proveedor_id: 'prov-1',
+      estado: 'rechazada',
+      created_at: '2026-10-08T15:00:00.000Z',
+      rechazada_at: '2026-10-08T02:30:00.000Z',
+      motivo_rechazo: 'No puedo abastecer este producto.',
+      items: [itemRechazado],
+    }
+
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({ ...detalleBase, ...comun })
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    cleanup()
+
+    h.getCotizacionesDelComprador.mockResolvedValue([comun])
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    cleanup()
+
+    h.state.user = { id: 'provider-user-1' }
+    h.getProveedorDelUsuario.mockResolvedValue({
+      id: 'prov-1',
+      user_id: 'provider-user-1',
+      nombre_empresa: 'Promeria',
+      verificado: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+    })
+    h.getCotizacionesDeProveedor.mockResolvedValue([comun])
+    render(await PedidosPage())
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    cleanup()
+
+    h.getCotizacionDetalle.mockResolvedValue({ ...detalleBase, ...comun })
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
   })
 
   it('el usuario sin sesión es redirigido a login', async () => {
@@ -433,7 +542,9 @@ describe('Página de detalle de cotización', () => {
     ).toBe(true)
 
     expect(screen.getByTestId('detalle-header').className).toContain('flex-wrap')
-    expect(screen.getByTestId('detalle-item-row').className).toContain('flex-wrap')
+    const fila = screen.getByTestId('detalle-item-row').className
+    expect(fila).toContain('flex-col')
+    expect(fila).toContain('sm:flex-row')
 
     const infractores = Array.from(container.querySelectorAll<HTMLElement>('*')).filter((el) => {
       if (typeof el.className !== 'string') return false

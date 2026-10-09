@@ -23,10 +23,44 @@ const estadoBadge: Record<string, string> = {
 // solo existe la cantidad pedida.
 const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
 
+/** Importes de la oferta del proveedor, siempre en pesos dominicanos. */
+function dineroOferta(valor: number): string {
+  return `RD$ ${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
+}
+
+/** Fecha de validez (YYYY-MM-DD) como dd/mm/aaaa, sin desfase de zona horaria. */
+function fechaValidez(fecha: string): string {
+  const [anio, mes, dia] = fecha.slice(0, 10).split('-')
+  return `${dia}/${mes}/${anio}`
+}
+
+/** Fecha de un instante como día calendario en Santo Domingo (d/m/aaaa). */
+function fechaEnSantoDomingo(instante: string): string {
+  return new Date(instante).toLocaleDateString('es-DO', {
+    timeZone: 'America/Santo_Domingo',
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  })
+}
+
+/** Texto del rechazo: autor, fecha local en Santo Domingo y motivo. */
+function textoRechazo(cot: {
+  rechazada_at?: string | null
+  created_at: string
+  motivo_rechazo?: string | null
+}): string {
+  const fecha = fechaEnSantoDomingo(cot.rechazada_at ?? cot.created_at)
+  const motivo = cot.motivo_rechazo?.trim() || 'Motivo no especificado.'
+  return `Rechazada por el proveedor el ${fecha}: ${motivo}`
+}
+
 /** Tarjeta de una cotización con su contenido y acciones de venta existentes. */
 function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
   const items = cot.items ?? []
   const confirmado = ESTADOS_CONFIRMADOS.includes(cot.estado)
+  const respondida = cot.estado === 'respondida'
+  const tieneOferta = respondida && cot.total_ofertado != null
   const total = items.reduce((sum, i) => {
     const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
     return sum + (i.precio_unitario ?? 0) * unidades
@@ -60,11 +94,15 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
 
       <div className="divide-y">
         {items.map((item) => {
-          // Desde aceptada en adelante manda lo confirmado; lo pedido
-          // queda visible como referencia.
-          const unidades = confirmado
-            ? (item.cantidad_confirmada ?? item.cantidad)
-            : item.cantidad
+          // Con oferta manda el precio/cantidad ofertados; desde aceptada en
+          // adelante, lo confirmado; antes, lo pedido.
+          const ofertada = respondida && item.precio_ofertado != null
+          const unidades = ofertada
+            ? (item.cantidad_ofertada ?? item.cantidad)
+            : confirmado
+              ? (item.cantidad_confirmada ?? item.cantidad)
+              : item.cantidad
+          const precioUnitario = ofertada ? item.precio_ofertado : item.precio_unitario
           return (
             <div key={item.id} data-testid="order-item-row" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm sm:flex-nowrap sm:px-6">
               <div className="min-w-0 flex-1">
@@ -89,12 +127,17 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
                 <span>x{unidades}</span>
-                {item.precio_unitario != null && (
-                  <span className="font-medium text-gray-700">
-                    ${(item.precio_unitario * unidades).toLocaleString('es-DO', {
-                      minimumFractionDigits: 2,
-                    })}
-                  </span>
+                {precioUnitario != null && (
+                  <>
+                    <span>{ofertada ? dineroOferta(precioUnitario) : `$${precioUnitario.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`} c/u</span>
+                    <span className="font-medium text-gray-700">
+                      {ofertada
+                        ? dineroOferta(precioUnitario * unidades)
+                        : `$${(precioUnitario * unidades).toLocaleString('es-DO', {
+                            minimumFractionDigits: 2,
+                          })}`}
+                    </span>
+                  </>
                 )}
               </div>
             </div>
@@ -102,9 +145,42 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
         })}
       </div>
 
-      {total > 0 && (
-        <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
-          {confirmado ? 'Total confirmado' : 'Total estimado'}: ${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+      {tieneOferta && (
+        <div className="border-t bg-blue-50 px-4 py-3 sm:px-6">
+          <p className="text-sm font-medium text-gray-900">
+            {`Respondida: ${dineroOferta(Number(cot.total_ofertado))}, plazo ${cot.plazo_dias ?? 0} días, válida hasta ${fechaValidez(cot.valida_hasta ?? '')}`}
+          </p>
+          {cot.condiciones && (
+            <p className="mt-1 break-words [overflow-wrap:anywhere] text-sm text-gray-700">
+              {cot.condiciones}
+            </p>
+          )}
+        </div>
+      )}
+
+      {confirmado
+        ? total > 0 && (
+            <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
+              {`Total confirmado: $${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`}
+            </div>
+          )
+        : tieneOferta
+          ? (
+              <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
+                {`Total ofertado: ${dineroOferta(Number(cot.total_ofertado))}`}
+              </div>
+            )
+          : total > 0 && (
+              <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
+                {`Total estimado: $${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`}
+              </div>
+            )}
+
+      {cot.estado === 'rechazada' && (
+        <div className="border-t bg-red-50 px-4 py-3 sm:px-6">
+          <p className="break-words [overflow-wrap:anywhere] text-sm text-red-700">
+            {textoRechazo(cot)}
+          </p>
         </div>
       )}
 
