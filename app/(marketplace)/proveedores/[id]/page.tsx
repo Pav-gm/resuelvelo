@@ -204,6 +204,12 @@ export default async function ProveedorPage({
                 {reseña.comentario && (
                   <p className="mt-2 text-sm text-gray-700">{reseña.comentario}</p>
                 )}
+                {reseña.respuesta && reseña.respuesta.trim() && (
+                  <div className="mt-3 rounded-lg border bg-gray-50 px-4 py-3">
+                    <p className="text-xs font-medium text-gray-600">Respuesta del proveedor</p>
+                    <p className="mt-1 text-sm text-gray-700">{reseña.respuesta}</p>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

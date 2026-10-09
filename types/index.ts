@@ -52,6 +52,8 @@ export interface Proveedor {
   verificacion_solicitada_at?: string | null
   verificado_at?: string | null
   created_at: string
+  promedio_feedback?: number
+  conteo_feedback?: number
 }
 
 export type PerfilProveedor = Proveedor & {
@@ -177,6 +179,8 @@ export interface Feedback {
   created_at: string
   /** Identidad pública anonimizada; no representa un dato de perfil. */
   autor_anonimo: string
+  respuesta?: string | null
+  respuesta_at?: string | null
 }
 
 export type FeedbackPublico = Omit<Feedback, 'cotizacion_id'>

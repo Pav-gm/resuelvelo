@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   getStatsProveedor: vi.fn(),
   getCotizacionesDeProveedor: vi.fn(),
   getProductosDeProveedor: vi.fn(),
+  getFeedbackDeProveedor: vi.fn(),
   redirect: vi.fn(),
   toggleProducto: vi.fn(),
   eliminarProducto: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock('@/lib/data', () => ({
   getStatsProveedor: mocks.getStatsProveedor,
   getCotizacionesDeProveedor: mocks.getCotizacionesDeProveedor,
   getProductosDeProveedor: mocks.getProductosDeProveedor,
+  getFeedbackDeProveedor: mocks.getFeedbackDeProveedor,
 }))
 
 vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
@@ -112,6 +114,7 @@ beforeEach(() => {
   })
   mocks.getCotizacionesDeProveedor.mockResolvedValue([])
   mocks.getProductosDeProveedor.mockResolvedValue([])
+  mocks.getFeedbackDeProveedor.mockResolvedValue(null)
 })
 
 afterEach(() => {

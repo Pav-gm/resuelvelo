@@ -737,6 +737,8 @@ create table if not exists public.feedback (
   calificacion   smallint not null check (calificacion between 1 and 5),
   comentario     text check (comentario is null or char_length(comentario) <= 1000),
   created_at     timestamptz not null default now(),
+  respuesta      text,
+  respuesta_at   timestamptz,
   constraint feedback_cotizacion_id_key unique (cotizacion_id)
 );
 
@@ -754,18 +756,38 @@ create policy "feedback: lectura publica"
   on public.feedback for select to anon, authenticated
   using (true);
 
+drop policy if exists "feedback: proveedor responde una vez" on public.feedback;
+create policy "feedback: proveedor responde una vez"
+  on public.feedback for update to authenticated
+  using (
+    respuesta is null
+    and exists (
+      select 1 from public.proveedores p
+      where p.id = feedback.proveedor_id and p.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.proveedores p
+      where p.id = feedback.proveedor_id and p.user_id = auth.uid()
+    )
+  );
+
 -- La API pública recibe solo contenido de reseña y una etiqueta anónima. La vista usa los permisos de quien consulta
 -- (security_invoker): no se salta RLS ni los permisos por columna.
 create or replace view public.feedback_publico
 with (security_invoker = true, security_barrier = true)
 as
   select id, proveedor_id, calificacion, comentario, created_at,
-         'Comprador verificado'::text as autor_anonimo
+         'Comprador verificado'::text as autor_anonimo,
+         respuesta, respuesta_at
   from public.feedback;
 
 revoke all on public.feedback from anon, authenticated;
-grant select (id, proveedor_id, calificacion, comentario, created_at) on public.feedback to anon;
-grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id) on public.feedback to authenticated;
+grant select (id, proveedor_id, calificacion, comentario, created_at, respuesta, respuesta_at) on public.feedback to anon;
+grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id, respuesta, respuesta_at) on public.feedback to authenticated;
+revoke update on public.feedback from authenticated;
+grant update (respuesta, respuesta_at) on public.feedback to authenticated;
 revoke all on public.feedback_publico from public, anon, authenticated;
 grant select on public.feedback_publico to anon, authenticated;
 

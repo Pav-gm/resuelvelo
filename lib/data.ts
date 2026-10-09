@@ -183,6 +183,8 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
       productos_count: PRODUCTOS_MOCK.filter(
         (p) => p.proveedor?.id === prov.id && p.activo
       ).length,
+      promedio_feedback: 0,
+      conteo_feedback: 0,
     }))
   }
 
@@ -196,6 +198,19 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
   if (error) propagarErrorLectura('getProveedores', error)
   if (data === null) errorSinDatos('getProveedores')
 
+  const { data: feedbackData, error: feedbackError } = await supabase
+    .from('feedback_publico')
+    .select('proveedor_id, calificacion')
+  if (feedbackError) propagarErrorLectura('getProveedores', feedbackError)
+  if (feedbackData === null) errorSinDatos('getProveedores')
+  const agregadosFeedback = new Map<string, { total: number; conteo: number }>()
+  for (const feedback of (feedbackData ?? []) as Array<{ proveedor_id: string; calificacion: number }>) {
+    const agregado = agregadosFeedback.get(feedback.proveedor_id) ?? { total: 0, conteo: 0 }
+    agregado.total += feedback.calificacion
+    agregado.conteo += 1
+    agregadosFeedback.set(feedback.proveedor_id, agregado)
+  }
+
   return data.map((prov) => {
     const { productos, proveedor_zonas, ...rest } = prov as Proveedor & {
       productos?: { count: number }[]
@@ -205,6 +220,11 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
       ...(rest as Proveedor),
       zonas_cobertura: ordenarZonas(proveedor_zonas),
       productos_count: productos?.[0]?.count ?? 0,
+      promedio_feedback: (() => {
+        const agregado = agregadosFeedback.get(prov.id)
+        return agregado ? Math.round((agregado.total / agregado.conteo) * 100) / 100 : 0
+      })(),
+      conteo_feedback: agregadosFeedback.get(prov.id)?.conteo ?? 0,
     }
   })
 }
@@ -430,7 +450,7 @@ export async function getFeedbackDeProveedor(
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('feedback_publico')
-    .select('id, proveedor_id, calificacion, comentario, created_at, autor_anonimo')
+    .select('id, proveedor_id, calificacion, comentario, created_at, autor_anonimo, respuesta, respuesta_at')
     .eq('proveedor_id', proveedorId)
     .order('created_at', { ascending: false })
 
