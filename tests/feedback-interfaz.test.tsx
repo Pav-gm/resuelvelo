@@ -103,6 +103,9 @@ vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
   confirmarRecepcion: h.confirmarRecepcion,
   cancelarVenta: h.cancelarVenta,
   responderCotizacion: vi.fn(),
+  aceptarOfertaCotizacion: vi.fn(),
+  rechazarOfertaCotizacion: vi.fn(),
+  solicitarNuevaOferta: vi.fn(),
 }))
 
 vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
@@ -418,10 +421,10 @@ describe('Mis cotizaciones — acción solo en elegibles', () => {
     for (const prefijo of ['11111111', '22222222', '44444444', '55555555', '66666666', 'FFFFFFFF', 'EEEEEEEE']) {
       expect(within(tarjeta(prefijo)).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
     }
-    for (const prefijo of ['33333333', '55555555', '66666666', 'FFFFFFFF', 'EEEEEEEE']) {
+    for (const prefijo of ['11111111', '22222222', '33333333', '55555555', '66666666', 'FFFFFFFF', 'EEEEEEEE']) {
       expect(within(tarjeta(prefijo)).getByRole('region', { name: 'Seguimiento de la cotización' })).toBeInTheDocument()
     }
-    for (const prefijo of ['11111111', '22222222', '44444444']) {
+    for (const prefijo of ['44444444']) {
       expect(within(tarjeta(prefijo)).queryByRole('region', { name: 'Seguimiento de la cotización' })).not.toBeInTheDocument()
     }
     expect(screen.queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
@@ -585,9 +588,11 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
 
     const card = tarjeta('33333333')
     const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
-    expect(pasoSeguimiento(linea, 1, 'Aceptada').className).toContain('font-medium')
-    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('text-gray-400')
-    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 1, 'Pendiente').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 2, 'Respondida').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 3, 'Aceptada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 4, 'Despachada').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 5, 'Recibida').className).toContain('text-gray-400')
 
     fireEvent.click(within(card).getByRole('button', { name: 'Cancelar' }))
 
@@ -656,8 +661,8 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     const card = tarjeta('DDDDDDDD')
     const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
     expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
-    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('font-medium')
-    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 4, 'Despachada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 5, 'Recibida').className).toContain('text-gray-400')
     expect(within(card).getByRole('button', { name: 'Confirmar recepción' })).toBeInTheDocument()
     expect(within(card).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
     expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
@@ -711,7 +716,7 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     const card = tarjeta('FFFFFFFF')
     const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
     expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
-    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 5, 'Recibida').className).toContain('font-medium')
     expect(within(card).getByRole('form', { name: 'Dejar reseña del proveedor' })).toBeInTheDocument()
     expect(within(card).queryByRole('button', { name: 'Confirmar recepción' })).not.toBeInTheDocument()
     expect(within(card).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
@@ -730,8 +735,8 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     const card = tarjeta('66666666')
     const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
     expect(within(linea).getByRole('status')).toHaveTextContent('Cancelada por el comprador.')
-    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('text-gray-400')
-    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 4, 'Despachada').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 5, 'Recibida').className).toContain('text-gray-400')
     expect(within(card).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
     expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
   })
@@ -775,12 +780,54 @@ describe('Mis cotizaciones — seguimiento, fecha y cancelación', () => {
     )
     expect(lineaComprador).toHaveTextContent(fecha)
     expect(lineaProveedor).toHaveTextContent(fecha)
-    expect(pasoSeguimiento(lineaComprador, 4, 'Cancelada').className).toContain('font-medium')
-    expect(pasoSeguimiento(lineaProveedor, 4, 'Cancelada').className).toContain('font-medium')
-    expect(pasoSeguimiento(lineaComprador, 3, 'Recibida').className).toContain('text-gray-400')
-    expect(pasoSeguimiento(lineaProveedor, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(lineaComprador, 6, 'Cancelada').className).toContain('font-medium')
+    expect(pasoSeguimiento(lineaProveedor, 6, 'Cancelada').className).toContain('font-medium')
+    expect(pasoSeguimiento(lineaComprador, 5, 'Recibida').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(lineaProveedor, 5, 'Recibida').className).toContain('text-gray-400')
     expect(within(cardComprador).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
     expect(within(cardProveedor).queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
+  })
+
+  it('LineaSeguimiento muestra pendiente y respondida antes de aceptada', async () => {
+    const prefijos = ['11111111', '22222222', '33333333']
+    const estados: Cotizacion['estado'][] = ['pendiente', 'respondida', 'aceptada']
+    estados.forEach((estado, indice) => {
+      h.cotizaciones.push(
+        cotizacion(estado, `${prefijos[indice]}-1111-4111-8111-111111111111`)
+      )
+    })
+
+    const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
+    render(ui)
+
+    const etapas: { numero: number; etiqueta: string }[] = [
+      { numero: 1, etiqueta: 'Pendiente' },
+      { numero: 2, etiqueta: 'Respondida' },
+      { numero: 3, etiqueta: 'Aceptada' },
+      { numero: 4, etiqueta: 'Despachada' },
+      { numero: 5, etiqueta: 'Recibida' },
+    ]
+
+    const alcanzadas: Record<string, number> = {
+      '11111111': 1,
+      '22222222': 2,
+      '33333333': 3,
+    }
+
+    for (const prefijo of prefijos) {
+      const linea = within(tarjeta(prefijo)).getByRole('region', {
+        name: 'Seguimiento de la cotización',
+      })
+      for (const { numero, etiqueta } of etapas) {
+        const paso = pasoSeguimiento(linea, numero, etiqueta)
+        expect(paso).toBeInTheDocument()
+        if (numero <= alcanzadas[prefijo]) {
+          expect(paso.className).toContain('font-medium')
+        } else {
+          expect(paso.className).toContain('text-gray-400')
+        }
+      }
+    }
   })
 })
 
@@ -811,7 +858,13 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
       if (puedeCancelar) expect(cancelacion).toBeInTheDocument()
       else expect(cancelacion).not.toBeInTheDocument()
 
-      const conSeguimiento = estado === 'aceptada' || estado === 'despachada' || estado === 'recibida' || estado === 'cancelada'
+      const conSeguimiento =
+        estado === 'pendiente' ||
+        estado === 'respondida' ||
+        estado === 'aceptada' ||
+        estado === 'despachada' ||
+        estado === 'recibida' ||
+        estado === 'cancelada'
       const linea = within(card).queryByRole('region', { name: 'Seguimiento de la cotización' })
       if (conSeguimiento) expect(linea).toBeInTheDocument()
       else expect(linea).not.toBeInTheDocument()
@@ -898,8 +951,8 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
     const card = tarjeta('DDDDDDDD')
     const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
     expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
-    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('font-medium')
-    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 4, 'Despachada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 5, 'Recibida').className).toContain('text-gray-400')
     expect(within(card).queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
 
     fireEvent.click(within(card).getByRole('button', { name: 'Cancelar venta' }))
@@ -949,10 +1002,45 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
     const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
     expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
     expect(within(linea).getByRole('status')).toHaveTextContent('Cancelada por el proveedor.')
-    expect(pasoSeguimiento(linea, 2, 'Despachada').className).toContain('font-medium')
-    expect(pasoSeguimiento(linea, 3, 'Recibida').className).toContain('text-gray-400')
+    expect(pasoSeguimiento(linea, 4, 'Despachada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 5, 'Recibida').className).toContain('text-gray-400')
     expect(within(card).queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
     expect(within(card).queryByRole('button', { name: 'Cancelar venta' })).not.toBeInTheDocument()
+  })
+
+  it('la tarjeta del proveedor muestra el resumen de oferta respondida sin controles de decisión', async () => {
+    h.cotizacionesProveedor.push(
+      cotizacion('respondida', 'aaaaaaaa-1111-4111-8111-111111111111', {
+        total_estimado: 30,
+        total_ofertado: 46,
+        plazo_dias: 5,
+        valida_hasta: '2026-10-20',
+        condiciones: 'Entrega en almacén.',
+        items: [
+          item({
+            id: 'item-1',
+            producto_id: 'prod-1',
+            cantidad: 3,
+            cantidad_ofertada: 2,
+            precio_ofertado: 23,
+            precio_unitario: 10,
+            producto: productoNombre('Tubo PVC'),
+          }),
+        ],
+      })
+    )
+
+    render(await PedidosPage())
+
+    const card = tarjeta('AAAAAAAA')
+    expect(within(card).getByText('Catálogo: RD$ 10.00 c/u')).toBeInTheDocument()
+    expect(within(card).getByText('Oferta: RD$ 23.00 c/u')).toBeInTheDocument()
+    expect(within(card).getByText('Total ofertado: RD$ 46.00')).toBeInTheDocument()
+    expect(within(card).getByText('plazo 5 días')).toBeInTheDocument()
+    expect(within(card).getByText('válida hasta 20/10/2026')).toBeInTheDocument()
+    expect(within(card).getByText('Entrega en almacén.')).toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Aceptar oferta' })).not.toBeInTheDocument()
+    expect(within(card).queryByRole('button', { name: 'Rechazar oferta' })).not.toBeInTheDocument()
   })
 })
 

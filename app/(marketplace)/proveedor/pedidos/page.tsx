@@ -126,17 +126,30 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
-                <span>x{unidades}</span>
-                {precioUnitario != null && (
+                {ofertada && item.precio_ofertado != null ? (
                   <>
-                    <span>{ofertada ? dineroOferta(precioUnitario) : `$${precioUnitario.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`} c/u</span>
+                    {item.precio_unitario != null && (
+                      <span>{`Catálogo: ${dineroOferta(item.precio_unitario)} c/u`}</span>
+                    )}
+                    <span>{`Oferta: ${dineroOferta(item.precio_ofertado)} c/u`}</span>
+                    <span>x{unidades}</span>
                     <span className="font-medium text-gray-700">
-                      {ofertada
-                        ? dineroOferta(precioUnitario * unidades)
-                        : `$${(precioUnitario * unidades).toLocaleString('es-DO', {
+                      {dineroOferta(item.precio_ofertado * unidades)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span>x{unidades}</span>
+                    {precioUnitario != null && (
+                      <>
+                        <span>{`$${precioUnitario.toLocaleString('es-DO', { minimumFractionDigits: 2 })} c/u`}</span>
+                        <span className="font-medium text-gray-700">
+                          {`$${(precioUnitario * unidades).toLocaleString('es-DO', {
                             minimumFractionDigits: 2,
                           })}`}
-                    </span>
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -147,9 +160,11 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
 
       {tieneOferta && (
         <div className="border-t bg-blue-50 px-4 py-3 sm:px-6">
-          <p className="text-sm font-medium text-gray-900">
-            {`Respondida: ${dineroOferta(Number(cot.total_ofertado))}, plazo ${cot.plazo_dias ?? 0} días, válida hasta ${fechaValidez(cot.valida_hasta ?? '')}`}
-          </p>
+          <p className="text-sm font-medium text-gray-900">Oferta registrada</p>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700">
+            <span>{`plazo ${cot.plazo_dias ?? 0} días`}</span>
+            <span>{`válida hasta ${fechaValidez(cot.valida_hasta ?? '')}`}</span>
+          </div>
           {cot.condiciones && (
             <p className="mt-1 break-words [overflow-wrap:anywhere] text-sm text-gray-700">
               {cot.condiciones}
