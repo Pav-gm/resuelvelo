@@ -164,4 +164,23 @@ describe('PerfilComprador', () => {
     expect(await screen.findByText('Dirección eliminada.')).toBeInTheDocument()
     expect(screen.queryByText('Obra Norte')).toBeNull()
   })
+
+  it('sincroniza la lista con las direcciones que entrega el servidor', () => {
+    const { rerender } = render(
+      <PerfilComprador perfil={PERFIL} direcciones={[DIRECCION]} errorCargaDirecciones={null} />
+    )
+
+    expect(screen.getByText('Obra Centro')).toBeInTheDocument()
+
+    rerender(
+      <PerfilComprador
+        perfil={PERFIL}
+        direcciones={[{ ...DIRECCION, id: 'dir-2', etiqueta: 'Obra Sur' }]}
+        errorCargaDirecciones={null}
+      />
+    )
+
+    expect(screen.getByText('Obra Sur')).toBeInTheDocument()
+    expect(screen.queryByText('Obra Centro')).toBeNull()
+  })
 })
