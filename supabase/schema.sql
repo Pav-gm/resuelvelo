@@ -429,7 +429,7 @@ begin
 end;
 $$;
 
-revoke all on function public.sincronizar_verificacion_proveedor() from public;
+revoke all on function public.sincronizar_verificacion_proveedor() from public, anon, authenticated;
 
 drop trigger if exists sincronizar_verificacion_proveedor on public.proveedores;
 create trigger sincronizar_verificacion_proveedor
@@ -466,7 +466,7 @@ begin
 end;
 $$;
 
-revoke all on function public.solicitar_verificacion_proveedor() from public;
+revoke all on function public.solicitar_verificacion_proveedor() from public, anon;
 grant execute on function public.solicitar_verificacion_proveedor() to authenticated;
 
 drop policy if exists "proveedor_zonas: lectura pública" on public.proveedor_zonas;
