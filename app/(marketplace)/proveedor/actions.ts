@@ -339,3 +339,46 @@ export async function rechazarCotizacionConMotivo(
   revalidatePath('/mis-cotizaciones')
   return null
 }
+
+export async function responderFeedbackProveedor(
+  feedbackId: string,
+  respuesta: string
+): Promise<
+  | { success: true }
+  | { error: 'FEEDBACK_RESPUESTA_VALIDACION' | 'FEEDBACK_NO_DISPONIBLE' | 'FEEDBACK_RESPUESTA_ERROR' }
+> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const respuestaRecortada = respuesta.trim()
+  if (!respuestaRecortada || respuestaRecortada.length > 1000) {
+    return { error: 'FEEDBACK_RESPUESTA_VALIDACION' }
+  }
+
+  try {
+    const { data: proveedor, error: proveedorError } = await supabase
+      .from('proveedores')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (proveedorError) return { error: 'FEEDBACK_RESPUESTA_ERROR' }
+    if (!proveedor) return { error: 'FEEDBACK_NO_DISPONIBLE' }
+
+    const { data, error } = await supabase
+      .from('feedback')
+      .update({ respuesta: respuestaRecortada, respuesta_at: new Date().toISOString() })
+      .eq('id', feedbackId)
+      .eq('proveedor_id', proveedor.id)
+      .is('respuesta', null)
+      .select('id')
+    if (error) return { error: 'FEEDBACK_RESPUESTA_ERROR' }
+    if (!data?.length) return { error: 'FEEDBACK_NO_DISPONIBLE' }
+
+    revalidatePath('/proveedor')
+    revalidatePath(`/proveedores/${proveedor.id}`)
+    return { success: true }
+  } catch {
+    return { error: 'FEEDBACK_RESPUESTA_ERROR' }
+  }
+}

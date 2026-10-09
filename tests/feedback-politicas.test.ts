@@ -102,7 +102,7 @@ describe('C-ELIGIBILIDAD y C-CREACION en schema.sql', () => {
     expect(schema).toContain('create policy "feedback: lectura publica"')
     expect(schema).not.toContain('create policy "feedback: comprador consulta la suya"')
     expect(schema).not.toMatch(/on public\.feedback for insert/)
-    expect(schema).not.toMatch(/on public\.feedback for update/)
+    expect(schema).toContain('create policy "feedback: proveedor responde una vez"')
     expect(schema).not.toMatch(/on public\.feedback for delete/)
     expect(schema).toContain('revoke all on public.feedback from anon, authenticated;')
     expect(schema).toContain(
@@ -145,6 +145,7 @@ describe('C-LECTURA — superficie pública', () => {
     expect(vista).toContain('security_invoker = true')
     expect(vista).toContain('security_barrier = true')
     expect(vista).toContain('id, proveedor_id, calificacion, comentario, created_at')
+    expect(vista).toContain('respuesta, respuesta_at')
     expect(vista).toContain("'Comprador verificado'::text as autor_anonimo")
     expect(vista).not.toMatch(/comprador_id|email|telefono|correo/)
     expect(schema).toContain('revoke all on public.feedback_publico from public, anon, authenticated;')
@@ -153,14 +154,20 @@ describe('C-LECTURA — superficie pública', () => {
 
   it('comprador_id no es legible por ningún rol de la API: solo hay permisos por columna', () => {
     expect(schema).toContain(
-      'grant select (id, proveedor_id, calificacion, comentario, created_at) on public.feedback to anon;'
+      'grant select (id, proveedor_id, calificacion, comentario, created_at, respuesta, respuesta_at) on public.feedback to anon;'
     )
     expect(schema).toContain(
-      'grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id) on public.feedback to authenticated;'
+      'grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id, respuesta, respuesta_at) on public.feedback to authenticated;'
     )
     expect(schema).not.toMatch(/grant select on public\.feedback to/)
     expect(schema).not.toMatch(/grant select \([^)]*comprador_id[^)]*\) on public\.feedback/)
     expect(schema).toContain('create policy "feedback: lectura publica"')
+    expect(schema).toContain('grant update (respuesta, respuesta_at) on public.feedback to authenticated;')
+    const responder = bloqueFuente(schema, 'create policy "feedback: proveedor responde una vez"', ');')
+    expect(responder).toContain('on public.feedback for update to authenticated')
+    expect(responder).toContain('respuesta is null')
+    expect(responder.match(/p\.user_id = auth\.uid\(\)/g)).toHaveLength(2)
+    expect(responder).toContain('p.id = feedback.proveedor_id')
   })
 })
 
