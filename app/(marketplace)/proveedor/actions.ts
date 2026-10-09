@@ -172,39 +172,9 @@ export async function aceptarCotizacionConCantidades(
   cotizacionId: string,
   cantidades: Array<{ itemId: string; cantidad: number }>
 ): Promise<{ error: string } | null> {
-  if (
-    !Array.isArray(cantidades) ||
-    cantidades.length === 0 ||
-    cantidades.some((entrada) =>
-      !entrada ||
-      typeof entrada.itemId !== 'string' ||
-      entrada.itemId.trim().length === 0 ||
-      !Number.isInteger(entrada.cantidad) ||
-      entrada.cantidad < 0
-    ) ||
-    new Set(cantidades.map((entrada) => entrada?.itemId)).size !== cantidades.length
-  ) {
-    return { error: 'Datos de cantidades inválidos.' }
-  }
-
-  const supabase = await createClient()
-  await getProveedorId(supabase)
-
-  const { error } = await supabase.rpc('aceptar_cotizacion_con_cantidades', {
-    p_cotizacion_id: cotizacionId,
-    p_cantidades: cantidades.map(({ itemId, cantidad }) => ({
-      item_id: itemId,
-      cantidad,
-    })),
-  })
-  if (error) return { error: error.message }
-
-  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_aceptada')
-
-  revalidatePath('/proveedor')
-  revalidatePath('/proveedor/pedidos')
-  revalidatePath('/mis-cotizaciones')
-  return null
+  void cotizacionId
+  void cantidades
+  return { error: 'Solo el comprador puede aceptar una oferta respondida.' }
 }
 
 export async function ofertarCotizacion(
