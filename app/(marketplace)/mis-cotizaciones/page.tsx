@@ -25,6 +25,10 @@ const estadoBadge: Record<string, string> = {
 // solo existe la cantidad pedida.
 const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
 
+// Estados en los que la cotización conserva una oferta del proveedor que el
+// comprador debe seguir viendo, también después de aceptar.
+const ESTADOS_CON_OFERTA = ['respondida', 'aceptada', 'despachada', 'recibida']
+
 /** Importes de la oferta del proveedor, siempre en pesos dominicanos. */
 function dineroOferta(valor: number): string {
   return `RD$ ${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
@@ -128,8 +132,9 @@ export default async function MisCotizacionesPage({
             const items = cot.items ?? []
             const confirmado = ESTADOS_CONFIRMADOS.includes(cot.estado)
             const respondida = cot.estado === 'respondida'
-            const tieneOferta = respondida && cot.total_ofertado != null
-            const vencida = tieneOferta && ofertaVencida(cot.valida_hasta)
+            const tieneOferta =
+              ESTADOS_CON_OFERTA.includes(cot.estado) && cot.total_ofertado != null
+            const vencida = respondida && tieneOferta && ofertaVencida(cot.valida_hasta)
             const totalConfirmado = items.reduce((sum, i) => {
               const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
               return sum + (i.precio_unitario ?? 0) * unidades
@@ -169,13 +174,13 @@ export default async function MisCotizacionesPage({
                     // con el producto falta (o el nombre viene vacío) mostramos
                     // un texto de indisponibilidad.
                     const nombreProducto = item.producto?.nombre?.trim()
-                    // Con oferta manda el precio/cantidad ofertados; desde
-                    // aceptada en adelante, lo confirmado; antes, lo pedido.
-                    const ofertada = respondida && item.precio_ofertado != null
-                    const unidades = ofertada
-                      ? (item.cantidad_ofertada ?? item.cantidad)
-                      : confirmado
-                        ? (item.cantidad_confirmada ?? item.cantidad)
+                    // Con oferta manda el precio ofertado; desde aceptada en
+                    // adelante rige la cantidad confirmada; antes, lo pedido.
+                    const ofertada = tieneOferta && item.precio_ofertado != null
+                    const unidades = confirmado
+                      ? (item.cantidad_confirmada ?? item.cantidad)
+                      : ofertada
+                        ? (item.cantidad_ofertada ?? item.cantidad)
                         : item.cantidad
                     const precioUnitario = ofertada ? item.precio_ofertado : item.precio_unitario
                     return (
@@ -246,13 +251,18 @@ export default async function MisCotizacionesPage({
                 )}
 
                 {confirmado
-                  ? items.length > 0 && (
+                  ? items.length > 0 &&
+                    (tieneOferta ? (
+                      <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
+                        {`Total ofertado: ${dineroOferta(Number(cot.total_ofertado))}`}
+                      </div>
+                    ) : (
                       <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
                         Total confirmado: ${totalConfirmado.toLocaleString('es-DO', {
                           minimumFractionDigits: 2,
                         })}
                       </div>
-                    )
+                    ))
                   : tieneOferta
                     ? (
                         <>

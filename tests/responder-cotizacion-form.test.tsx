@@ -57,7 +57,7 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
 
     expect(screen.getByLabelText('Precio unitario de Tubo PVC')).toHaveValue(15)
-    expect(screen.getByLabelText('Plazo de entrega en días')).toHaveValue(null)
+    expect(screen.getByLabelText('Plazo de entrega en días')).toHaveValue(0)
     expect(screen.getByLabelText('Válida hasta')).toHaveValue('2026-10-15')
     expect(screen.getByLabelText('Condiciones')).toHaveValue('')
   })
@@ -147,19 +147,18 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
     fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
 
-    fireEvent.change(screen.getByLabelText('Precio unitario de Tubo PVC'), { target: { value: '9' } })
-    fireEvent.change(screen.getByLabelText('Plazo de entrega en días'), { target: { value: '5' } })
-    fireEvent.change(screen.getByLabelText('Válida hasta'), { target: { value: '2026-10-20' } })
-    fireEvent.change(screen.getByLabelText('Condiciones'), { target: { value: 'Entrega en almacén.' } })
+    expect(screen.getByRole('button', { name: 'Ofertar al precio de catálogo' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Plazo de entrega en días')).toHaveValue(0)
+    expect(screen.getByLabelText('Válida hasta')).toHaveValue('2026-10-15')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Aceptar al precio de catálogo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ofertar al precio de catálogo' }))
 
     await waitFor(() => {
       expect(h.ofertarCotizacion).toHaveBeenCalledWith('cot-1', {
         lineas: [{ itemId: 'item-1', precioUnitario: 15, cantidadOfertada: null }],
-        plazoDias: 5,
-        validaHasta: '2026-10-20',
-        condiciones: 'Entrega en almacén.',
+        plazoDias: 0,
+        validaHasta: '2026-10-15',
+        condiciones: null,
       })
     })
   })
