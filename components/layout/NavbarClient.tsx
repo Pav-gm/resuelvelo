@@ -13,19 +13,9 @@ import {
   marcarTodasLasNotificacionesLeidas,
   obtenerNotificaciones,
 } from '@/app/(marketplace)/notificaciones/actions'
+import { NotificacionLink } from '@/components/marketplace/NotificacionLink'
+import { formatearFechaNotificacion } from '@/lib/notificaciones'
 import type { Notificacion } from '@/types'
-
-/** Tiempo relativo en español para los avisos recientes. */
-function tiempoRelativo(iso: string): string {
-  const segundos = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-  if (segundos < 60) return 'hace unos segundos'
-  const minutos = Math.floor(segundos / 60)
-  if (minutos < 60) return minutos === 1 ? 'hace 1 minuto' : `hace ${minutos} minutos`
-  const horas = Math.floor(minutos / 60)
-  if (horas < 24) return horas === 1 ? 'hace 1 hora' : `hace ${horas} horas`
-  const dias = Math.floor(horas / 24)
-  return dias === 1 ? 'hace 1 día' : `hace ${dias} días`
-}
 
 /**
  * Campana de avisos: contador de no leídas que se refresca al montar, al
@@ -34,7 +24,8 @@ function tiempoRelativo(iso: string): string {
  */
 function CampanaNotificaciones() {
   const pathname = usePathname()
-  const [abierto, setAbierto] = useState(false)
+  const [abiertoEn, setAbiertoEn] = useState<string | null>(null)
+  const abierto = abiertoEn === pathname
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [noLeidas, setNoLeidas] = useState(0)
   const [cargando, setCargando] = useState(false)
@@ -67,7 +58,7 @@ function CampanaNotificaciones() {
   }, [pathname])
 
   async function abrir() {
-    setAbierto(true)
+    setAbiertoEn(pathname)
     await cargar()
   }
 
@@ -82,6 +73,14 @@ function CampanaNotificaciones() {
     setNotificaciones((previas) =>
       previas.map((n) => (n.leida_at ? n : { ...n, leida_at: ahora }))
     )
+  }
+
+  function marcarUnaComoLeida(id: string) {
+    const ahora = new Date().toISOString()
+    setNotificaciones((previas) =>
+      previas.map((n) => (n.id === id ? { ...n, leida_at: ahora } : n))
+    )
+    setNoLeidas((previas) => Math.max(0, previas - 1))
   }
 
   return (
@@ -107,7 +106,7 @@ function CampanaNotificaciones() {
             <h2 className="text-sm font-semibold text-gray-900">Notificaciones</h2>
             <button
               type="button"
-              onClick={() => setAbierto(false)}
+              onClick={() => setAbiertoEn(null)}
               aria-label="Cerrar"
               className="text-gray-400 hover:text-gray-600"
             >
@@ -142,19 +141,21 @@ function CampanaNotificaciones() {
                       )}
                       <div className="min-w-0 flex-1">
                         {n.cotizacion_id ? (
-                          <Link
+                          <NotificacionLink
+                            id={n.id}
+                            leida={Boolean(n.leida_at)}
                             href={`/cotizaciones/${n.cotizacion_id}`}
                             className="block text-sm font-medium text-gray-900 hover:underline"
-                            onClick={() => setAbierto(false)}
+                            onMarkedRead={marcarUnaComoLeida}
                           >
                             {n.titulo}
-                          </Link>
+                          </NotificacionLink>
                         ) : (
                           <p className="text-sm font-medium text-gray-900">{n.titulo}</p>
                         )}
                         <p className="mt-0.5 text-xs text-gray-600">{n.cuerpo}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                          <span>{tiempoRelativo(n.created_at)}</span>
+                          <span>{formatearFechaNotificacion(n.created_at)}</span>
                           {!n.cotizacion_id && <span>Sin cotización asociada</span>}
                         </div>
                       </div>
@@ -169,7 +170,7 @@ function CampanaNotificaciones() {
             <Link
               href="/notificaciones"
               className="text-sm font-medium text-orange-500 hover:underline"
-              onClick={() => setAbierto(false)}
+              onClick={() => setAbiertoEn(null)}
             >
               Ver todas
             </Link>
