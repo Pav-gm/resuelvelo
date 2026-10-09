@@ -12,7 +12,7 @@ const categorias = [
 const beneficios = [
   { icono: Search, titulo: 'Compara precios al instante', descripcion: 'Consulta catálogos de múltiples proveedores en un solo lugar, sin llamadas ni visitas.' },
   { icono: Zap, titulo: 'Cotiza en minutos', descripcion: 'Envía solicitudes de cotización a varios proveedores simultáneamente y recibe respuestas rápidas.' },
-  { icono: Shield, titulo: 'Proveedores verificados', descripcion: 'Los proveedores pueden solicitar que revisemos su RNC y sus datos de contacto. La insignia «Verificado» aparece tras la aprobación.' },
+  { icono: Shield, titulo: 'Verificación de proveedores', descripcion: 'Los proveedores pueden solicitar que revisemos su RNC y sus datos de contacto. La insignia «Verificado» aparece tras la aprobación.' },
   { icono: Star, titulo: 'Historial y trazabilidad', descripcion: 'Todas tus cotizaciones, pedidos y facturas en un solo lugar, siempre disponibles.' },
 ]
 
