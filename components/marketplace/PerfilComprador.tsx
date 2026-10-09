@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import {
   actualizarDireccionObra,
   crearDireccionObra,
@@ -230,7 +231,10 @@ export default function PerfilComprador({
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <h1 className="mb-2 text-2xl font-bold text-gray-900">Mi perfil</h1>
       <p className="mb-6 text-sm text-gray-500">
-        Tus datos de empresa y contacto y las direcciones de tus obras.
+        Tus datos de empresa y contacto y las direcciones de tus obras. ¿Necesitas ayuda?{' '}
+        <Link href="/contacto" className="font-medium text-orange-500 hover:underline">
+          Contacto
+        </Link>
       </p>
 
       <section className="rounded-2xl border bg-white p-6 shadow-sm" aria-labelledby="datos-perfil">
