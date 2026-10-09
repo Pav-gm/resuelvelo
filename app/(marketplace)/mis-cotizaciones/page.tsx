@@ -9,6 +9,7 @@ import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
 import ConfirmarRecepcionButton from '@/components/marketplace/ConfirmarRecepcionButton'
 import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 import CancelarVentaButton from '@/components/marketplace/CancelarVentaButton'
+import AccionesOfertaComprador from '@/components/marketplace/AccionesOfertaComprador'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
@@ -35,6 +36,19 @@ function fechaValidez(fecha: string): string {
   return `${dia}/${mes}/${anio}`
 }
 
+/**
+ * ¿La oferta venció? Se compara la fecha calendario `valida_hasta` (ISO) con la
+ * fecha local actual sin convertir la fecha a otro huso horario.
+ */
+function ofertaVencida(validaHasta: string | null | undefined): boolean {
+  if (!validaHasta) return false
+  const hoy = new Date()
+  const hoyISO = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(
+    hoy.getDate()
+  ).padStart(2, '0')}`
+  return validaHasta.slice(0, 10) < hoyISO
+}
+
 /** Fecha de un instante como día calendario en Santo Domingo (d/m/aaaa). */
 function fechaEnSantoDomingo(instante: string): string {
   return new Date(instante).toLocaleDateString('es-DO', {
@@ -50,8 +64,13 @@ function textoRechazo(cot: {
   rechazada_at?: string | null
   created_at: string
   motivo_rechazo?: string | null
+  rechazada_motivo?: string | null
 }): string {
   const fecha = fechaEnSantoDomingo(cot.rechazada_at ?? cot.created_at)
+  const motivoComprador = cot.rechazada_motivo?.trim()
+  if (motivoComprador) {
+    return `Rechazada por el comprador el ${fecha}: ${motivoComprador}`
+  }
   const motivo = cot.motivo_rechazo?.trim() || 'Motivo no especificado.'
   return `Rechazada por el proveedor el ${fecha}: ${motivo}`
 }
@@ -110,6 +129,7 @@ export default async function MisCotizacionesPage({
             const confirmado = ESTADOS_CONFIRMADOS.includes(cot.estado)
             const respondida = cot.estado === 'respondida'
             const tieneOferta = respondida && cot.total_ofertado != null
+            const vencida = tieneOferta && ofertaVencida(cot.valida_hasta)
             const totalConfirmado = items.reduce((sum, i) => {
               const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
               return sum + (i.precio_unitario ?? 0) * unidades
@@ -181,15 +201,28 @@ export default async function MisCotizacionesPage({
                           )}
                         </div>
                         <div className="flex items-center gap-4 text-gray-500">
-                          <span>x{unidades}</span>
-                          {precioUnitario != null && (
-                            <span className="font-medium text-gray-700">
-                              {ofertada
-                                ? dineroOferta(precioUnitario * unidades)
-                                : `$${(precioUnitario * unidades).toLocaleString('es-DO', {
+                          {ofertada && item.precio_ofertado != null ? (
+                            <>
+                              {item.precio_unitario != null && (
+                                <span>{`Catálogo: ${dineroOferta(item.precio_unitario)} c/u`}</span>
+                              )}
+                              <span>{`Oferta: ${dineroOferta(item.precio_ofertado)} c/u`}</span>
+                              <span>x{unidades}</span>
+                              <span className="font-medium text-gray-700">
+                                {dineroOferta(item.precio_ofertado * unidades)}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span>x{unidades}</span>
+                              {precioUnitario != null && (
+                                <span className="font-medium text-gray-700">
+                                  {`$${(precioUnitario * unidades).toLocaleString('es-DO', {
                                     minimumFractionDigits: 2,
                                   })}`}
-                            </span>
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -199,9 +232,11 @@ export default async function MisCotizacionesPage({
 
                 {tieneOferta && (
                   <div className="border-t bg-blue-50 px-6 py-3">
-                    <p className="text-sm font-medium text-gray-900">
-                      {`Respondida: ${dineroOferta(Number(cot.total_ofertado))}, plazo ${cot.plazo_dias ?? 0} días, válida hasta ${fechaValidez(cot.valida_hasta ?? '')}`}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">Oferta del proveedor</p>
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700">
+                      <span>{`plazo ${cot.plazo_dias ?? 0} días`}</span>
+                      <span>{`válida hasta ${fechaValidez(cot.valida_hasta ?? '')}`}</span>
+                    </div>
                     {cot.condiciones && (
                       <p className="mt-1 break-words [overflow-wrap:anywhere] text-sm text-gray-700">
                         {cot.condiciones}
@@ -220,9 +255,18 @@ export default async function MisCotizacionesPage({
                     )
                   : tieneOferta
                     ? (
-                        <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
-                          {`Total ofertado: ${dineroOferta(Number(cot.total_ofertado))}`}
-                        </div>
+                        <>
+                          {cot.total_estimado != null && (
+                            <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
+                              {`Total estimado: $${Number(cot.total_estimado).toLocaleString('es-DO', {
+                                minimumFractionDigits: 2,
+                              })}`}
+                            </div>
+                          )}
+                          <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
+                            {`Total ofertado: ${dineroOferta(Number(cot.total_ofertado))}`}
+                          </div>
+                        </>
                       )
                     : cot.total_estimado != null && (
                         <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
@@ -247,6 +291,12 @@ export default async function MisCotizacionesPage({
                   canceladaAt={cot.cancelada_at}
                   canceladaMotivo={cot.cancelada_motivo}
                 />
+
+                {cot.estado === 'respondida' && (
+                  <div className="border-t px-6 py-4">
+                    <AccionesOfertaComprador cotizacionId={cot.id} vencida={vencida} />
+                  </div>
+                )}
 
                 {/* El comprador espera el despacho y solo puede cancelar mientras está aceptada. */}
                 {cot.estado === 'aceptada' && (
