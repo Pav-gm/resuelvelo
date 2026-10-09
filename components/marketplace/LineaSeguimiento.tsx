@@ -23,14 +23,15 @@ function formatearFecha(fecha: string): string {
 
 /**
  * Línea de seguimiento compartida por las vistas del proveedor y del comprador:
- * Aceptada → Despachada → Recibida, con la fecha de despacho cuando existe y,
- * en cancelada, un cuarto paso «Cancelada» completo con la fecha de la
- * cancelación. En cancelada se muestra el actor y, cuando existen fecha y
- * motivo, el texto «Cancelada por … el <fecha>: <motivo>»; si faltan datos
- * históricos se conserva «Cancelada por …». Los pasos se renderizan siempre;
- * «Recibida» aparece como pendiente (text-gray-400, punto gris) y nunca como
- * completada, conforme a TRACKING-UI. Las etiquetas se muestran numeradas
- * («1 · Aceptada») para diferenciarse de los badges de estado.
+ * Pendiente → Respondida → Aceptada → Despachada → Recibida, con la fecha de
+ * despacho cuando existe y, en cancelada, un último paso «Cancelada» completo
+ * con la fecha de la cancelación. En cancelada se muestra el actor y, cuando
+ * existen fecha y motivo, el texto «Cancelada por … el <fecha>: <motivo>»; si
+ * faltan datos históricos se conserva «Cancelada por …». Los pasos se
+ * renderizan siempre; cada etapa queda completa solo si la cotización la
+ * alcanzó (en cancelada, «Despachada» depende de que haya fecha de despacho y
+ * «Recibida» nunca se completa). Las etiquetas se muestran numeradas
+ * («1 · Pendiente») para diferenciarse de los badges de estado.
  */
 export default function LineaSeguimiento({
   estado,
@@ -40,6 +41,8 @@ export default function LineaSeguimiento({
   canceladaMotivo,
 }: Props) {
   const conSeguimiento =
+    estado === 'pendiente' ||
+    estado === 'respondida' ||
     estado === 'aceptada' ||
     estado === 'despachada' ||
     estado === 'recibida' ||
@@ -47,25 +50,25 @@ export default function LineaSeguimiento({
   if (!conSeguimiento) return null
 
   const cancelada = estado === 'cancelada'
+  const respondidaCompleta = estado !== 'pendiente'
+  const aceptadaCompleta =
+    estado === 'aceptada' || estado === 'despachada' || estado === 'recibida' || cancelada
   const despachadaCompleta = cancelada
     ? !!despachadaAt
     : estado === 'despachada' || estado === 'recibida'
+  const recibidaCompleta = estado === 'recibida'
 
   // Los pasos se renderizan siempre; en cancelada «Recibida» queda como
   // pendiente (completa es false) porque la venta no llegó a recibirse, y se
-  // añade un cuarto paso «Cancelada» marcado como completo.
-  const pasos = cancelada
-    ? [
-        { etiqueta: 'Aceptada', completa: true },
-        { etiqueta: 'Despachada', completa: despachadaCompleta },
-        { etiqueta: 'Recibida', completa: false },
-        { etiqueta: 'Cancelada', completa: true },
-      ]
-    : [
-        { etiqueta: 'Aceptada', completa: true },
-        { etiqueta: 'Despachada', completa: despachadaCompleta },
-        { etiqueta: 'Recibida', completa: estado === 'recibida' },
-      ]
+  // añade un último paso «Cancelada» marcado como completo.
+  const base = [
+    { etiqueta: 'Pendiente', completa: true },
+    { etiqueta: 'Respondida', completa: respondidaCompleta },
+    { etiqueta: 'Aceptada', completa: aceptadaCompleta },
+    { etiqueta: 'Despachada', completa: despachadaCompleta },
+    { etiqueta: 'Recibida', completa: recibidaCompleta },
+  ]
+  const pasos = cancelada ? [...base, { etiqueta: 'Cancelada', completa: true }] : base
 
   return (
     <div
