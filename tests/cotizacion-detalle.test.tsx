@@ -504,6 +504,58 @@ describe('Página de detalle de cotización', () => {
     expect(screen.getByText(texto)).toBeInTheDocument()
   })
 
+  it('comprador y proveedor ven el rechazo de la oferta por el comprador con su motivo', async () => {
+    const itemRechazado = {
+      id: 'item-1',
+      cotizacion_id: 'cot-1',
+      producto_id: 'prod-1',
+      cantidad: 3,
+      precio_unitario: 10,
+      sujeta_disponibilidad: false,
+      stock_al_cotizar: 5,
+      producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+    }
+    const texto = 'Rechazada por el comprador el 8/10/2026: Precio fuera del presupuesto'
+    const comun = {
+      id: 'cot-1',
+      numero: 42,
+      comprador_id: 'buyer-1',
+      proveedor_id: 'prov-1',
+      estado: 'rechazada',
+      created_at: '2026-10-08T15:00:00.000Z',
+      rechazada_at: '2026-10-08T15:00:00.000Z',
+      motivo_rechazo: null,
+      rechazada_motivo: 'Precio fuera del presupuesto',
+      items: [itemRechazado],
+    }
+
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({ ...detalleBase, ...comun })
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText(/Rechazada por el proveedor/)).toBeNull()
+    cleanup()
+
+    h.getCotizacionesDelComprador.mockResolvedValue([comun])
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText(/Rechazada por el proveedor/)).toBeNull()
+    cleanup()
+
+    h.state.user = { id: 'provider-user-1' }
+    h.getProveedorDelUsuario.mockResolvedValue({
+      id: 'prov-1',
+      user_id: 'provider-user-1',
+      nombre_empresa: 'Promeria',
+      verificado: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+    })
+    h.getCotizacionesDeProveedor.mockResolvedValue([comun])
+    render(await PedidosPage())
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText(/Rechazada por el proveedor/)).toBeNull()
+  })
+
   it('el usuario sin sesión es redirigido a login', async () => {
     h.state.user = null
 
