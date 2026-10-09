@@ -101,19 +101,21 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
             Marcar como despachada
           </Button>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          className="text-red-500 border-red-200 hover:bg-red-50"
-          disabled={pendiente}
-          onClick={() => {
-            setError(null)
-            limpiarCancelacion()
-            setConfirmacion('cancelar')
-          }}
-        >
-          Cancelar venta
-        </Button>
+        {(estado === 'aceptada' || estado === 'despachada') && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-red-500 border-red-200 hover:bg-red-50"
+            disabled={pendiente}
+            onClick={() => {
+              setError(null)
+              limpiarCancelacion()
+              setConfirmacion('cancelar')
+            }}
+          >
+            Cancelar venta
+          </Button>
+        )}
       </div>
 
       {confirmacion === 'despachar' && (
