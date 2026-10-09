@@ -43,6 +43,8 @@ function producto(overrides: Partial<Producto> = {}): Producto {
       user_id: 'user-1',
       nombre_empresa: 'Promeria',
       verificado: true,
+      verificacion_estado: 'verificado',
+      verificado_at: '2026-01-02T00:00:00.000Z',
       created_at: '',
     },
     categoria: { id: 'cat-1', nombre: 'Plomería', slug: 'plomeria' },
@@ -87,6 +89,15 @@ describe('ProductoPage — ficha pública', () => {
 
     const enlaceCatalogo = screen.getByRole('link', { name: 'Ver catálogo del proveedor' })
     expect(enlaceCatalogo).toHaveAttribute('href', '/catalogo?proveedor=prov-1')
+  })
+
+  it('la ficha del producto muestra la insignia con fecha y enlace explicativo', async () => {
+    mocks.getProductoMock.mockResolvedValue(producto())
+    await renderFicha()
+
+    const insignia = screen.getByRole('link', { name: 'Verificado' })
+    expect(insignia).toHaveAttribute('href', '/como-funciona#verificacion-proveedores')
+    expect(insignia).toHaveAttribute('title', expect.stringContaining('2 de enero de 2026'))
   })
 
   it('muestra el placeholder de categoría cuando el producto no tiene imagen', async () => {

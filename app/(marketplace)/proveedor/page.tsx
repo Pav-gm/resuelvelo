@@ -14,6 +14,8 @@ import {
 } from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import ListaProductosProveedor from '@/components/marketplace/ListaProductosProveedor'
+import SolicitudVerificacion from '@/components/marketplace/SolicitudVerificacion'
+import type { VerificacionEstado } from '@/types'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
@@ -54,6 +56,9 @@ export default async function PanelProveedorPage() {
   // indicador de los pedidos que el comprador ya aceptó.
   const pedidosAceptados = cotizaciones.filter((c) => c.estado === 'aceptada').length
 
+  const verificacionEstado: VerificacionEstado =
+    proveedor.verificacion_estado ?? (proveedor.verificado ? 'verificado' : 'sin_solicitar')
+
   const statsCards = [
     { label: 'Productos activos',   valor: stats.productosActivos,        icono: Package,      color: 'text-blue-600 bg-blue-50' },
     { label: 'Cotizaciones nuevas', valor: stats.cotizacionesPendientes,  icono: ShoppingBag,  color: 'text-orange-600 bg-orange-50' },
@@ -84,6 +89,20 @@ export default async function PanelProveedorPage() {
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* Verificación de la empresa */}
+      <div className="rounded-2xl bg-white border shadow-sm mb-8">
+        <div className="px-6 py-4 border-b">
+          <h2 className="font-semibold text-gray-900">Verifica tu empresa</h2>
+        </div>
+        <SolicitudVerificacion
+          estado={verificacionEstado}
+          rnc={proveedor.rnc ?? null}
+          telefono={proveedor.telefono ?? null}
+          nota={proveedor.verificacion_nota ?? null}
+          verificadoAt={proveedor.verificado_at ?? null}
+        />
       </div>
 
       {/* Stats */}

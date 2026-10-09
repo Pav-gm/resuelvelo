@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import ProductoImagen from '@/components/marketplace/ProductoImagen'
 import AgregarProductoButton from '@/components/marketplace/AgregarProductoButton'
+import InsigniaProveedorVerificado from '@/components/marketplace/InsigniaProveedorVerificado'
 import type { Producto } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -39,7 +40,10 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
       {/* Info */}
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-4">
         <div>
-          <p className="text-xs text-orange-500 font-medium">{producto.proveedor?.nombre_empresa ?? 'Proveedor'}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-xs text-orange-500 font-medium">{producto.proveedor?.nombre_empresa ?? 'Proveedor'}</p>
+            <InsigniaProveedorVerificado fecha={producto.proveedor?.verificado_at} compacta />
+          </div>
           <Link href={hrefFicha}>
             <h3 className="mt-0.5 font-semibold text-gray-900 leading-tight line-clamp-2">{producto.nombre}</h3>
           </Link>
