@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
 import { esFechaISOFuturaEnSantoDomingo } from '@/lib/cotizaciones'
-import type { CotizacionActionResult, OfertaCotizacionInput, PerfilProveedorActionResult, VerificacionActionResult } from '@/types'
+import type { CotizacionActionResult, OfertaCotizacionInput, PerfilProveedorActionResult, ProductoActionResult, VerificacionActionResult } from '@/types'
 import { PROVINCIAS } from '@/lib/provincias'
 
 export async function solicitarVerificacionProveedor(): Promise<VerificacionActionResult> {
@@ -251,6 +251,97 @@ export async function eliminarProducto(productoId: string): Promise<void> {
 
   revalidatePath('/proveedor')
   revalidatePath('/catalogo')
+}
+
+export async function archivarOEliminarProducto(productoId: string): Promise<ProductoActionResult> {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError) return { error: userError.message }
+  if (!user) return { error: 'No autorizado.' }
+
+  const { data: proveedor, error: proveedorError } = await supabase
+    .from('proveedores')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (proveedorError) return { error: proveedorError.message }
+  if (!proveedor) return { error: 'No se encontró el producto o no tienes permiso para modificarlo.' }
+
+  const { data: producto, error: productoError } = await supabase
+    .from('productos')
+    .select('id')
+    .eq('id', productoId)
+    .eq('proveedor_id', proveedor.id)
+    .maybeSingle()
+  if (productoError) return { error: productoError.message }
+  if (!producto) return { error: 'No se encontró el producto o no tienes permiso para modificarlo.' }
+
+  const { data: items, error: itemsError } = await supabase
+    .from('items_cotizacion')
+    .select('id')
+    .eq('producto_id', productoId)
+    .limit(1)
+  if (itemsError) return { error: itemsError.message }
+
+  if ((items?.length ?? 0) > 0) {
+    const { error } = await supabase
+      .from('productos')
+      .update({ archivado_at: new Date().toISOString(), activo: false })
+      .eq('id', productoId)
+      .eq('proveedor_id', proveedor.id)
+    if (error) return { error: error.message }
+    revalidatePath('/proveedor')
+    revalidatePath('/proveedor/productos')
+    revalidatePath('/catalogo')
+    return { success: true, action: 'archived' }
+  }
+
+  const { error } = await supabase
+    .from('productos')
+    .delete()
+    .eq('id', productoId)
+    .eq('proveedor_id', proveedor.id)
+  if (error) return { error: error.message }
+  revalidatePath('/proveedor')
+  revalidatePath('/proveedor/productos')
+  revalidatePath('/catalogo')
+  return { success: true, action: 'deleted' }
+}
+
+export async function restaurarProducto(productoId: string): Promise<ProductoActionResult> {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError) return { error: userError.message }
+  if (!user) return { error: 'No autorizado.' }
+
+  const { data: proveedor, error: proveedorError } = await supabase
+    .from('proveedores')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (proveedorError) return { error: proveedorError.message }
+  if (!proveedor) return { error: 'No se encontró el producto o no tienes permiso para modificarlo.' }
+
+  const { data: producto, error: productoError } = await supabase
+    .from('productos')
+    .select('id')
+    .eq('id', productoId)
+    .eq('proveedor_id', proveedor.id)
+    .maybeSingle()
+  if (productoError) return { error: productoError.message }
+  if (!producto) return { error: 'No se encontró el producto o no tienes permiso para modificarlo.' }
+
+  const { error } = await supabase
+    .from('productos')
+    .update({ archivado_at: null, activo: true })
+    .eq('id', productoId)
+    .eq('proveedor_id', proveedor.id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/proveedor')
+  revalidatePath('/proveedor/productos')
+  revalidatePath('/catalogo')
+  return { success: true, action: 'restored' }
 }
 
 export async function despacharCotizacion(cotizacionId: string): Promise<{ error: string } | null> {

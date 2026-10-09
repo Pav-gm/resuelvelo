@@ -55,18 +55,34 @@ export default async function PanelProveedorPage() {
     getFeedbackDeProveedor(proveedor.id).catch(() => null),
   ])
 
-  // El estado `aceptada` lo produce la decisión del comprador; el panel del
-  // proveedor no ofrece ninguna acción que lo escriba. Aquí solo se cuenta como
-  // indicador de los pedidos que el comprador ya aceptó.
-  const pedidosAceptados = cotizaciones.filter((c) => c.estado === 'aceptada').length
+  // Los productos archivados salen del catálogo y de la lista del panel; siguen
+  // visibles en la pestaña «Archivados» de la ruta de productos.
+  const productosVisibles = productos.filter((p) => !p.archivado_at)
 
   const verificacionEstado: VerificacionEstado =
     proveedor.verificacion_estado ?? (proveedor.verificado ? 'verificado' : 'sin_solicitar')
 
-  const statsCards = [
+  const totalVendidoEsteMes = stats.totalVendidoEsteMes ?? 0
+
+  const statsCards: Array<{
+    label: string
+    valor: number
+    icono: React.ElementType
+    color: string
+    detalle?: string
+  }> = [
     { label: 'Productos activos',   valor: stats.productosActivos,        icono: Package,      color: 'text-blue-600 bg-blue-50' },
     { label: 'Cotizaciones nuevas', valor: stats.cotizacionesPendientes,  icono: ShoppingBag,  color: 'text-orange-600 bg-orange-50' },
-    { label: 'Pedidos este mes',    valor: pedidosAceptados,              icono: TrendingUp,   color: 'text-green-600 bg-green-50' },
+    {
+      label: 'Pedidos este mes',
+      valor: stats.pedidosEsteMes ?? 0,
+      icono: TrendingUp,
+      color: 'text-green-600 bg-green-50',
+      detalle: `Vendido: RD$ ${totalVendidoEsteMes.toLocaleString('es-DO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+    },
     { label: 'Sin stock',           valor: stats.sinStock,                icono: AlertCircle,  color: 'text-red-600 bg-red-50' },
   ]
 
@@ -118,6 +134,7 @@ export default async function PanelProveedorPage() {
             </div>
             <p className="mt-3 text-2xl font-bold text-gray-900">{s.valor}</p>
             <p className="text-sm text-gray-500">{s.label}</p>
+            {s.detalle && <p className="text-xs text-gray-500">{s.detalle}</p>}
           </div>
         ))}
       </div>
@@ -224,7 +241,7 @@ export default async function PanelProveedorPage() {
         <div className="px-6 py-4 border-b">
           <h2 className="font-semibold text-gray-900">Mis productos</h2>
         </div>
-        <ListaProductosProveedor productos={productos} enTarjeta={false} />
+        <ListaProductosProveedor productos={productosVisibles} enTarjeta={false} />
       </div>
     </div>
   )
