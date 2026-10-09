@@ -20,3 +20,13 @@ create policy "feedback: proveedor responde una vez"
       where p.id = feedback.proveedor_id and p.user_id = auth.uid()
     )
   );
+
+create or replace view public.feedback_publico
+with (security_invoker = true, security_barrier = true)
+as
+  select id, proveedor_id, calificacion, comentario, created_at,
+         'Comprador verificado'::text as autor_anonimo,
+         respuesta, respuesta_at
+  from public.feedback;
+revoke all on public.feedback_publico from public, anon, authenticated;
+grant select on public.feedback_publico to anon, authenticated;
