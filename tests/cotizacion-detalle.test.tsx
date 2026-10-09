@@ -380,6 +380,7 @@ describe('Página de detalle de cotización', () => {
     expect(screen.getAllByText('Total ofertado: RD$ 46.00')).toHaveLength(3)
     expect(screen.getAllByText('plazo 5 días')).toHaveLength(3)
     expect(screen.getAllByText('válida hasta 20/10/2026')).toHaveLength(3)
+    expect(screen.queryByText('Catálogo: RD$ 10.00 c/u')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Aceptar oferta' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Rechazar oferta' })).toBeNull()
   })
