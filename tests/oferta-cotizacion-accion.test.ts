@@ -34,6 +34,35 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 describe('acciones de oferta de cotización', () => {
+  it('ofertarCotizacion considera futura una fecha posterior al día actual de Santo Domingo', async () => {
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+
+    const resultado = await ofertarCotizacion('cot-1', {
+      lineas: [{ itemId: 'item-1', precioUnitario: 12, cantidadOfertada: null }],
+      plazoDias: 5,
+      validaHasta: '2026-10-08',
+      condiciones: null,
+    })
+
+    expect(resultado).toBeNull()
+    expect(h.rpc).toHaveBeenCalledOnce()
+    expect(h.rpc).toHaveBeenCalledWith('responder_cotizacion_con_oferta', expect.any(Object))
+  })
+
+  it('ofertarCotizacion rechaza la fecha que todavía es hoy en Santo Domingo', async () => {
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+
+    const resultado = await ofertarCotizacion('cot-1', {
+      lineas: [{ itemId: 'item-1', precioUnitario: 12, cantidadOfertada: null }],
+      plazoDias: 5,
+      validaHasta: '2026-10-07',
+      condiciones: null,
+    })
+
+    expect(resultado).toEqual({ error: 'La fecha de validez debe ser futura.' })
+    expect(h.rpc).not.toHaveBeenCalled()
+  })
+
   it('ofertarCotizacion reenvía las líneas y términos al RPC y revalida comprador y proveedor', async () => {
     const resultado = await ofertarCotizacion('cot-1', {
       lineas: [

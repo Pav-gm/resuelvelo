@@ -106,6 +106,7 @@ export interface Cotizacion {
   respondida_at?: string | null
   total_ofertado?: number | null
   motivo_rechazo?: string | null
+  rechazada_at?: string | null
   items?: ItemCotizacion[]
 }
 
