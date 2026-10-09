@@ -15,6 +15,8 @@ create table public.direcciones_obra (
 );
 
 alter table public.direcciones_obra enable row level security;
+revoke all on public.direcciones_obra from public, anon, authenticated;
+grant select, insert, update, delete on public.direcciones_obra to authenticated;
 
 create policy "direcciones_obra: usuario ve las suyas"
   on public.direcciones_obra for select
