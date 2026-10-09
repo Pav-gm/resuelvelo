@@ -137,14 +137,16 @@ on conflict (id) do nothing;
 -- =============================================================
 -- PROVEEDORES
 -- =============================================================
-insert into public.proveedores (id, user_id, nombre_empresa, descripcion, ciudad, verificado) values
+alter table public.proveedores disable trigger sincronizar_verificacion_proveedor;
+insert into public.proveedores (id, user_id, nombre_empresa, descripcion, ciudad, verificado, verificacion_estado, verificado_at) values
   ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002',
-   'Promeria', 'Especialistas en plomería y sistemas hidráulicos.', 'Santo Domingo', true),
+   'Promeria', 'Especialistas en plomería y sistemas hidráulicos.', 'Santo Domingo', true, 'verificado', '2026-01-02T00:00:00Z'),
   ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000003',
-   'Ferretería López', 'Ferretería con más de 20 años en el mercado.', 'Santiago', true),
+   'Ferretería López', 'Ferretería con más de 20 años en el mercado.', 'Santiago', true, 'verificado', '2026-01-02T00:00:00Z'),
   ('b0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000004',
-   'Materiales del Norte', 'Distribuidor de materiales de construcción a granel.', 'La Vega', true)
+   'Materiales del Norte', 'Distribuidor de materiales de construcción a granel.', 'La Vega', true, 'verificado', '2026-01-02T00:00:00Z')
 on conflict (id) do nothing;
+alter table public.proveedores enable trigger sincronizar_verificacion_proveedor;
 
 -- =============================================================
 -- PRODUCTOS
@@ -251,16 +253,18 @@ insert into public.profiles (id, email, nombre, rol) values
 on conflict (id) do nothing;
 
 -- Proveedores
-insert into public.proveedores (id, user_id, nombre_empresa, descripcion, ciudad, verificado) values
+alter table public.proveedores disable trigger sincronizar_verificacion_proveedor;
+insert into public.proveedores (id, user_id, nombre_empresa, descripcion, ciudad, verificado, verificacion_estado, verificado_at) values
   ('b0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000005',
    'SolarTech RD',
    'Evaluación de equipos eléctricos, instalación de inversores, paneles solares y baterías. Soluciones de energía renovable llave en mano.',
-   'Santo Domingo', true),
+   'Santo Domingo', true, 'verificado', '2026-01-02T00:00:00Z'),
   ('b0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000006',
    'AutoChequeo RD',
    'Evaluación automotriz, chequeo pre-compra, diagnóstico computarizado e inspección de carros y motocicletas.',
-   'Santiago', true)
+   'Santiago', true, 'verificado', '2026-01-02T00:00:00Z')
 on conflict (id) do nothing;
+alter table public.proveedores enable trigger sincronizar_verificacion_proveedor;
 
 -- Productos / servicios — SolarTech RD (categoría: electricidad)
 insert into public.productos (id, proveedor_id, categoria_id, nombre, descripcion, precio, unidad, stock, subcategoria_id) values

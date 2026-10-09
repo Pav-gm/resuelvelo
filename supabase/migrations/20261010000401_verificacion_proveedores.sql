@@ -53,7 +53,7 @@ begin
 end;
 $$;
 
-revoke all on function public.sincronizar_verificacion_proveedor() from public;
+revoke all on function public.sincronizar_verificacion_proveedor() from public, anon, authenticated;
 
 create trigger sincronizar_verificacion_proveedor
   before insert or update on public.proveedores
@@ -102,5 +102,5 @@ begin
 end;
 $$;
 
-revoke all on function public.solicitar_verificacion_proveedor() from public;
+revoke all on function public.solicitar_verificacion_proveedor() from public, anon;
 grant execute on function public.solicitar_verificacion_proveedor() to authenticated;
