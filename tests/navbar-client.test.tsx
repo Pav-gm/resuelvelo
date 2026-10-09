@@ -4,12 +4,14 @@
  */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ReactNode } from 'react'
+import type { MouseEventHandler, ReactNode } from 'react'
 
 const h = vi.hoisted(() => ({
   pathname: '/catalogo',
+  push: vi.fn(),
   obtenerNotificaciones: vi.fn(),
   marcarTodasLasNotificacionesLeidas: vi.fn(),
+  marcarNotificacionLeida: vi.fn(),
 }))
 
 // Acción de sesión mockeada como no-op para no acoplar la prueba a la autenticación.
@@ -24,11 +26,24 @@ vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
 // Ruta actual controlada por la prueba para disparar la actualización del contador.
 vi.mock('next/navigation', () => ({
   usePathname: () => h.pathname,
+  useRouter: () => ({ push: h.push }),
 }))
 
 vi.mock('next/link', () => ({
-  default: ({ href, children }: { href: string; children?: ReactNode }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    href,
+    children,
+    onClick,
+    className,
+  }: {
+    href: string
+    children?: ReactNode
+    onClick?: MouseEventHandler<HTMLAnchorElement>
+    className?: string
+  }) => (
+    <a href={href} onClick={onClick} className={className}>
+      {children}
+    </a>
   ),
 }))
 
@@ -36,6 +51,7 @@ vi.mock('next/link', () => ({
 vi.mock('@/app/(marketplace)/notificaciones/actions', () => ({
   obtenerNotificaciones: h.obtenerNotificaciones,
   marcarTodasLasNotificacionesLeidas: h.marcarTodasLasNotificacionesLeidas,
+  marcarNotificacionLeida: h.marcarNotificacionLeida,
 }))
 
 vi.mock('next/image', () => ({
@@ -82,10 +98,13 @@ beforeEach(() => {
   localStorage.clear()
   useCarritoStore.getState().vaciar()
   h.pathname = '/catalogo'
+  h.push.mockReset()
   h.obtenerNotificaciones.mockReset()
   h.obtenerNotificaciones.mockResolvedValue({ data: [], noLeidas: 0, error: null })
   h.marcarTodasLasNotificacionesLeidas.mockReset()
   h.marcarTodasLasNotificacionesLeidas.mockResolvedValue({ error: null })
+  h.marcarNotificacionLeida.mockReset()
+  h.marcarNotificacionLeida.mockResolvedValue({ error: null })
 })
 
 afterEach(() => {
@@ -163,8 +182,8 @@ describe('NavbarClient — campana de notificaciones', () => {
     }
   })
 
-  it('al abrir la campana carga como máximo diez notificaciones y enlaza al detalle', async () => {
-    // Reloj fijo para que el tiempo relativo sea determinista.
+  it('al abrir la campana muestra la fecha y hora de Santo Domingo', async () => {
+    // Reloj fijo para que la fecha sea determinista.
     relojFijo = vi.spyOn(Date, 'now').mockReturnValue(
       new Date('2026-10-08T14:00:00.000Z').getTime()
     )
@@ -180,7 +199,8 @@ describe('NavbarClient — campana de notificaciones', () => {
     fireEvent.click(boton)
 
     expect(await screen.findByText('Tienes una nueva solicitud.')).toBeInTheDocument()
-    expect(screen.getByText('hace 2 horas')).toBeInTheDocument()
+    expect(screen.queryByText('hace 2 horas')).toBeNull()
+    expect(screen.getByText('8 de octubre de 2026, 08:00 a. m.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Nueva solicitud #COT-000042' })).toHaveAttribute(
       'href',
       '/cotizaciones/c-1'
@@ -188,6 +208,28 @@ describe('NavbarClient — campana de notificaciones', () => {
     expect(h.obtenerNotificaciones).toHaveBeenCalledWith(10)
   })
 
+  it('marca como leída una notificación no leída antes de navegar y baja el contador', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({
+      data: [notificacion({ id: 'n-1', cotizacion_id: 'c-1', leida_at: null })],
+      noLeidas: 1,
+      error: null,
+    })
+
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+
+    const boton = await screen.findByRole('button', { name: 'Notificaciones' })
+    fireEvent.click(boton)
+
+    const enlace = await screen.findByRole('link', { name: 'Nueva solicitud #COT-000042' })
+    fireEvent.click(enlace)
+
+    await waitFor(() => expect(h.marcarNotificacionLeida).toHaveBeenCalledWith('n-1'))
+    await waitFor(() =>
+      expect(screen.getByTestId('notificacion')).toHaveAttribute('data-leida', 'true')
+    )
+    await waitFor(() => expect(boton).toHaveAttribute('data-no-leidas', '0'))
+    await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-1'))
+  })
   it('actualiza el contador al cambiar de ruta y al abrir la campana', async () => {
     h.obtenerNotificaciones
       .mockResolvedValueOnce({ data: [], noLeidas: 2, error: null })
