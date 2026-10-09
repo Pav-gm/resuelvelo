@@ -71,12 +71,19 @@ export default async function PanelProveedorPage() {
             {proveedor.ciudad && <span className="text-xs text-gray-400"> ({proveedor.ciudad})</span>}
           </p>
         </div>
-        <Link href="/proveedor/productos/nuevo">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Nuevo producto
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/proveedor/perfil">
+            <Button variant="outline" size="sm">
+              Editar perfil de empresa
+            </Button>
+          </Link>
+          <Link href="/proveedor/productos/nuevo">
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nuevo producto
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
