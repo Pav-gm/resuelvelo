@@ -822,7 +822,8 @@ begin
   end if;
 
   update public.cotizaciones c
-    set estado = 'rechazada', rechazada_motivo = btrim(p_motivo)
+    set estado = 'rechazada', rechazada_motivo = btrim(p_motivo),
+        rechazada_at = now()
   where c.id = p_cotizacion_id
     and c.comprador_id = auth.uid()
     and c.estado = 'respondida';
