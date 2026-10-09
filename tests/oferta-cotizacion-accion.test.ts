@@ -9,12 +9,14 @@ const h = vi.hoisted(() => {
   }))
   const revalidatePath = vi.fn((_ruta: string) => undefined)
   const redirect = vi.fn((path: string) => { throw new Error(`REDIRECT:${path}`) })
-  return { rpcResult, rpc, createClient, revalidatePath, redirect }
+  const enviarNotificacionCotizacionEmail = vi.fn(async () => undefined)
+  return { rpcResult, rpc, createClient, revalidatePath, redirect, enviarNotificacionCotizacionEmail }
 })
 
 vi.mock('next/cache', () => ({ revalidatePath: h.revalidatePath }))
 vi.mock('next/navigation', () => ({ redirect: h.redirect }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: h.createClient }))
+vi.mock('@/lib/notificaciones-email', () => ({ enviarNotificacionCotizacionEmail: h.enviarNotificacionCotizacionEmail }))
 
 import { ofertarCotizacion, rechazarCotizacionConMotivo } from '@/app/(marketplace)/proveedor/actions'
 
@@ -26,6 +28,7 @@ beforeEach(() => {
   h.rpc.mockClear()
   h.createClient.mockClear()
   h.revalidatePath.mockClear()
+  h.enviarNotificacionCotizacionEmail.mockClear()
 })
 
 afterEach(() => vi.useRealTimers())
@@ -54,6 +57,8 @@ describe('acciones de oferta de cotización', () => {
       p_valida_hasta: '2026-10-20',
       p_condiciones: 'Entrega en almacén.',
     })
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledOnce()
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledWith('cot-1', 'cotizacion_respondida')
     expect(h.revalidatePath.mock.calls.map(([ruta]) => ruta)).toEqual([
       '/cotizaciones/cot-1',
       '/proveedor',
@@ -73,6 +78,7 @@ describe('acciones de oferta de cotización', () => {
     expect(resultado).toEqual({ error: 'Cada precio ofertado debe ser mayor que 0.' })
     expect(h.rpc).not.toHaveBeenCalled()
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
   })
 
   it('ofertarCotizacion rechaza todas las cantidades en cero sin llamar al RPC', async () => {
@@ -156,6 +162,7 @@ describe('acciones de oferta de cotización', () => {
     expect(resultado).toEqual({ error: 'El plazo debe estar entre 0 y 90 días.' })
     expect(h.rpc).not.toHaveBeenCalled()
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
   })
 
   it('ofertarCotizacion rechaza fecha de validez no futura sin llamar al RPC', async () => {
@@ -169,6 +176,7 @@ describe('acciones de oferta de cotización', () => {
     expect(resultado).toEqual({ error: 'La fecha de validez debe ser futura.' })
     expect(h.rpc).not.toHaveBeenCalled()
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
   })
 
   it('rechazarCotizacionConMotivo guarda el motivo y revalida las listas', async () => {
@@ -181,11 +189,22 @@ describe('acciones de oferta de cotización', () => {
       p_cotizacion_id: 'cot-1',
       p_motivo: 'No puedo abastecer este producto.',
     })
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledOnce()
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledWith('cot-1', 'cotizacion_rechazada')
     expect(h.revalidatePath.mock.calls.map(([ruta]) => ruta)).toEqual([
       '/cotizaciones/cot-1',
       '/proveedor',
       '/proveedor/pedidos',
       '/mis-cotizaciones',
     ])
+  })
+
+  it('rechazarCotizacionConMotivo devuelve el error del RPC y no envía correo ni revalida', async () => {
+    h.rpcResult.error = { message: 'La cotización ya no está pendiente o no tienes permiso para rechazarla.' }
+    const resultado = await rechazarCotizacionConMotivo('cot-1', 'Sin stock')
+
+    expect(resultado).toEqual({ error: 'La cotización ya no está pendiente o no tienes permiso para rechazarla.' })
+    expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
   })
 })

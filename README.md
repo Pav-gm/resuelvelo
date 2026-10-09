@@ -85,9 +85,13 @@ cp .env.example .env.local
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-public-key>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+BREVO_API_KEY=<clave-api-transaccional-de-brevo>
+EMAIL_FROM=Resuélvelo <notificaciones@resuelveloapp.com>
 ```
 
 > Si dejás `NEXT_PUBLIC_SUPABASE_URL` con el valor de ejemplo, la app sigue funcionando: el catálogo y los proveedores se sirven desde datos mock en `lib/mock.ts`, útil para explorar la interfaz sin configurar nada. El registro, login y cotizaciones sí requieren credenciales reales de Supabase.
+>
+> `BREVO_API_KEY` es la clave de API transaccional de Brevo. `EMAIL_FROM` es el remitente verificado, en el formato `Nombre <correo>`; el ejemplo es `Resuélvelo <notificaciones@resuelveloapp.com>`. Si no se configura la clave, la aplicación omite el envío de correo.
 
 ### 5. Correr en desarrollo
 
@@ -166,7 +170,7 @@ Cubren: el store del carrito (`tests/carrito.test.ts`), la integridad de los dat
 
 ## Despliegue
 
-Desplegado en Vercel: **[resuelveloapp.com](https://resuelveloapp.com)** (framework Next.js autodetectado, sin configuración adicional). Variables de entorno configuradas en el proyecto de Vercel: las mismas tres de `.env.local`, con `NEXT_PUBLIC_SITE_URL=https://resuelveloapp.com`.
+Desplegado en Vercel: **[resuelveloapp.com](https://resuelveloapp.com)** (framework Next.js autodetectado, sin configuración adicional). Variables de entorno configuradas en el proyecto de Vercel: las de la sección anterior, con `NEXT_PUBLIC_SITE_URL=https://resuelveloapp.com`.
 
 Para desplegar tu propia copia:
 
@@ -180,6 +184,8 @@ Y configurar las variables de entorno desde el dashboard de Vercel (Project Sett
 npx vercel env add NEXT_PUBLIC_SUPABASE_URL production
 npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
 npx vercel env add NEXT_PUBLIC_SITE_URL production
+npx vercel env add BREVO_API_KEY production
+npx vercel env add EMAIL_FROM production
 ```
 
 ## Licencia
