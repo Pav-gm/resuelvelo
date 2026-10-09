@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migracion = readFileSync(join(process.cwd(), 'supabase/migrations/20261010000212_datos_comerciales_comprobante.sql'), 'utf8')
-const rollback = readFileSync(join(process.cwd(), 'supabase/rollbacks/20261010000212_datos_comerciales_comprobante.sql'), 'utf8')
+const migracion = readFileSync(join(process.cwd(), 'supabase/migrations/20261011000100_datos_comerciales_comprobante.sql'), 'utf8')
+const rollback = readFileSync(join(process.cwd(), 'supabase/rollbacks/20261011000100_datos_comerciales_comprobante.sql'), 'utf8')
 const anterior = readFileSync(join(process.cwd(), 'supabase/migrations/20261010000209_decision_oferta_comprador.sql'), 'utf8')
 
 function definicion(sql: string): string {
