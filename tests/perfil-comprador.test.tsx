@@ -107,6 +107,52 @@ describe('PerfilComprador', () => {
     expect(await screen.findByText('Perfil actualizado.')).toBeInTheDocument()
   })
 
+  it('normaliza el teléfono válido antes de guardar el perfil', async () => {
+    render(
+      <PerfilComprador
+        perfil={{ nombre: 'Otro', razon_social: null, rnc: null, telefono: null }}
+        direcciones={[]}
+        errorCargaDirecciones={null}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Ana Pérez' } })
+    fireEvent.change(screen.getByLabelText('RNC'), { target: { value: '123456789' } })
+    fireEvent.change(screen.getByLabelText('Teléfono'), {
+      target: { value: '+1 (829) 555 1234' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    await waitFor(() =>
+      expect(h.guardarPerfil).toHaveBeenCalledWith({
+        nombre: 'Ana Pérez',
+        razon_social: '',
+        rnc: '123456789',
+        telefono: '8295551234',
+      })
+    )
+  })
+
+  it('valida junto al campo y no envía teléfonos inválidos', () => {
+    render(<PerfilComprador perfil={PERFIL} direcciones={[]} errorCargaDirecciones={null} />)
+
+    const telefono = screen.getByLabelText('Teléfono')
+
+    for (const invalido of ['abc', '123']) {
+      fireEvent.change(telefono, { target: { value: invalido } })
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+      const alerta = screen.getByRole('alert')
+      expect(alerta).toHaveTextContent(
+        'El teléfono debe ser un número dominicano válido de 10 dígitos.'
+      )
+      expect(telefono).toHaveAttribute('aria-describedby', alerta.id)
+    }
+
+    expect(h.guardarPerfil).not.toHaveBeenCalled()
+  })
+
   it('permite añadir una dirección de obra y muestra la nueva dirección', async () => {
     render(<PerfilComprador perfil={PERFIL} direcciones={[]} errorCargaDirecciones={null} />)
 

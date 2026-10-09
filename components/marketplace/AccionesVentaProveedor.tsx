@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { despacharCotizacion } from '@/app/(marketplace)/proveedor/actions'
 import { cancelarVenta } from '@/app/(marketplace)/cotizaciones/actions'
@@ -43,6 +44,7 @@ async function aResultado(accion: () => Promise<ResultadoAccion>): Promise<{ err
 }
 
 export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) {
+  const router = useRouter()
   const [, startTransition] = useTransition()
   const [pendiente, setPendiente] = useState(false)
   const [confirmacion, setConfirmacion] = useState<TipoConfirmacion>(null)
@@ -68,6 +70,10 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
           setError(resultado.error)
           // Un error de cancelación conserva el diálogo, la selección y el detalle.
           if (tipo === 'cancelar') return
+        } else if (tipo === 'despachar') {
+          // Tras un despacho exitoso, la bandeja y el detalle muestran el
+          // estado nuevo sin recargar la página a mano.
+          router.refresh()
         }
         setConfirmacion(null)
         limpiarCancelacion()

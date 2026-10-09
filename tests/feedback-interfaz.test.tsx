@@ -1,6 +1,7 @@
 /**
  * Interfaz de reseñas: la acción solo aparece en cotizaciones recibidas,
- * los errores se leen en español y el envío exitoso reemplaza el formulario.
+ * los errores se leen en español y el envío exitoso deja el mensaje
+ * «Respuesta publicada.» visible sin reemplazar el formulario.
  */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -62,6 +63,7 @@ const h = vi.hoisted(() => {
     ofertarCotizacion: vi.fn(),
     rechazarCotizacionConMotivo: vi.fn(),
     responderFeedbackProveedor: vi.fn(),
+    refresh: vi.fn(),
   }
 })
 
@@ -72,6 +74,7 @@ vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NOT_FOUND')
   },
+  useRouter: () => ({ refresh: h.refresh }),
 }))
 
 vi.mock('next/cache', () => ({
@@ -247,6 +250,7 @@ beforeEach(() => {
   h.ofertarCotizacion.mockReset()
   h.rechazarCotizacionConMotivo.mockReset()
   h.responderFeedbackProveedor.mockReset()
+  h.refresh.mockReset()
 })
 
 afterEach(() => {
@@ -592,7 +596,26 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     const exito = await screen.findByRole('status')
     expect(exito).toHaveTextContent(/^Respuesta publicada\.$/)
     expect(exito).toHaveAttribute('aria-live', 'polite')
-    expect(screen.queryByRole('form', { name: 'Responder reseña' })).not.toBeInTheDocument()
+
+    // El mensaje sigue visible tras una espera breve: no se descarta solo.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(screen.getByRole('status')).toHaveTextContent(/^Respuesta publicada\.$/)
+
+    // Editar el área de respuesta oculta el estado y conserva el formulario.
+    const formularioTrasExito = within(seccion).getByRole('form', { name: 'Responder reseña' })
+    fireEvent.change(within(formularioTrasExito).getByLabelText('Respuesta'), {
+      target: { value: 'Gracias por tu comentario.' },
+    })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    // Un nuevo envío vuelve a publicar y muestra el estado.
+    fireEvent.click(
+      within(formularioTrasExito).getByRole('button', { name: 'Publicar respuesta' })
+    )
+    await waitFor(() => {
+      expect(h.responderFeedbackProveedor).toHaveBeenCalledWith('fb-1', 'Gracias por tu comentario.')
+    })
+    expect(await screen.findByRole('status')).toHaveTextContent(/^Respuesta publicada\.$/)
   })
 
   it('la bandeja del proveedor muestra el badge y no la acción de reseña', async () => {
@@ -958,7 +981,29 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
     )
     expect(h.despacharCotizacion).toHaveBeenCalledTimes(1)
     expect(h.despacharCotizacion).toHaveBeenCalledWith(id)
+    expect(h.refresh).not.toHaveBeenCalled()
     expect(within(card).queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('refresca la vista después de despachar correctamente', async () => {
+    const id = '33333333-1111-4111-8111-111111111111'
+    h.despacharCotizacion.mockResolvedValue(null)
+    h.cotizacionesProveedor.push(cotizacion('aceptada', id))
+
+    const ui = await PedidosPage()
+    render(ui)
+
+    const card = tarjeta('33333333')
+    fireEvent.click(within(card).getByRole('button', { name: 'Marcar como despachada' }))
+
+    const dialogo = within(card).getByRole('dialog', { name: 'Confirmar despacho' })
+    expect(dialogo).toHaveTextContent('¿Confirmas que esta venta fue despachada?')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Sí, marcar como despachada' }))
+
+    await waitFor(() => expect(h.despacharCotizacion).toHaveBeenCalledWith(id))
+    expect(h.despacharCotizacion).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(h.refresh).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('deshabilita los controles mientras el despacho está en curso', async () => {
