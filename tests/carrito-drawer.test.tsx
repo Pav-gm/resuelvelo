@@ -128,6 +128,16 @@ describe('CarritoDrawer — controles y stock', () => {
     expect(screen.queryByRole('button', { name: 'Disminuir cantidad' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Quitar producto' })).not.toBeInTheDocument()
   })
+
+  it('muestra Máximo en carrito con la cifra disponible al alcanzar el tope', () => {
+    useCarritoStore
+      .getState()
+      .agregar(producto({ stock: 299, stock_reservado: 213 }), 86)
+    abrirCarrito()
+
+    expect(screen.getByText('Máximo en carrito: 86')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aumentar cantidad' })).toBeDisabled()
+  })
 })
 
 describe('CarritoDrawer — envío de cotización', () => {
@@ -168,6 +178,25 @@ describe('CarritoDrawer — envío de cotización', () => {
     expect(cotizarDesdeCarrito).toHaveBeenCalledTimes(1)
     expect(screen.queryByText(/No hay stock suficiente/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Solicitar cotización' })).toBeEnabled()
+  })
+
+  it('envía una sola vez la mezcla de productos no disponibles y válidos', async () => {
+    cotizarDesdeCarrito.mockResolvedValue(null)
+    useCarritoStore.getState().agregar(producto({ id: '1', nombre: 'Tubo PVC' }), 1)
+    useCarritoStore.getState().agregar(producto({ id: 'prod-real', nombre: 'Cemento' }), 2)
+    abrirCarrito()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Solicitar cotización' }))
+    })
+
+    expect(cotizarDesdeCarrito).toHaveBeenCalledTimes(1)
+
+    const form = cotizarDesdeCarrito.mock.calls[0][1] as FormData
+    const items = JSON.parse(String(form.get('items')))
+    expect(items).toHaveLength(2)
+    expect(items.map((i: { producto: { id: string } }) => i.producto.id)).toEqual(['1', 'prod-real'])
+    expect(items.map((i: { cantidad: number }) => i.cantidad)).toEqual([1, 2])
   })
 
   it('quita los ids no disponibles y conserva las líneas válidas', async () => {

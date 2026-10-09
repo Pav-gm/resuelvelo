@@ -4,6 +4,8 @@ type Props = {
   estado: Cotizacion['estado']
   despachadaAt?: string | null
   canceladaPor?: 'comprador' | 'proveedor' | null
+  canceladaAt?: string | null
+  canceladaMotivo?: string | null
 }
 
 const ETIQUETAS_ACTOR: Record<'comprador' | 'proveedor', string> = {
@@ -21,16 +23,26 @@ function formatearFecha(fecha: string): string {
 
 /**
  * Línea de seguimiento compartida por las vistas del proveedor y del comprador:
- * Aceptada → Despachada → Recibida, con la fecha de despacho cuando existe y
- * el actor de la cancelación cuando el estado es cancelada. En cancelada se
- * muestra «Cancelada por …» y los tres pasos se renderizan siempre; «Recibida»
- * aparece como pendiente (text-gray-400, punto gris) y nunca como completada,
- * conforme a TRACKING-UI.
- * Las etiquetas se muestran numeradas («1 · Aceptada») para diferenciarse de
- * los badges de estado al consultar el DOM en las pruebas.
+ * Pendiente → Respondida → Aceptada → Despachada → Recibida, con la fecha de
+ * despacho cuando existe y, en cancelada, un último paso «Cancelada» completo
+ * con la fecha de la cancelación. En cancelada se muestra el actor y, cuando
+ * existen fecha y motivo, el texto «Cancelada por … el <fecha>: <motivo>»; si
+ * faltan datos históricos se conserva «Cancelada por …». Los pasos se
+ * renderizan siempre; cada etapa queda completa solo si la cotización la
+ * alcanzó (en cancelada, «Despachada» depende de que haya fecha de despacho y
+ * «Recibida» nunca se completa). Las etiquetas se muestran numeradas
+ * («1 · Pendiente») para diferenciarse de los badges de estado.
  */
-export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }: Props) {
+export default function LineaSeguimiento({
+  estado,
+  despachadaAt,
+  canceladaPor,
+  canceladaAt,
+  canceladaMotivo,
+}: Props) {
   const conSeguimiento =
+    estado === 'pendiente' ||
+    estado === 'respondida' ||
     estado === 'aceptada' ||
     estado === 'despachada' ||
     estado === 'recibida' ||
@@ -38,17 +50,25 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
   if (!conSeguimiento) return null
 
   const cancelada = estado === 'cancelada'
+  const respondidaCompleta = estado !== 'pendiente'
+  const aceptadaCompleta =
+    estado === 'aceptada' || estado === 'despachada' || estado === 'recibida' || cancelada
   const despachadaCompleta = cancelada
     ? !!despachadaAt
     : estado === 'despachada' || estado === 'recibida'
+  const recibidaCompleta = estado === 'recibida'
 
-  // Los tres pasos se renderizan siempre; en cancelada «Recibida» queda como
-  // pendiente (completa es false) porque la venta no llegó a recibirse.
-  const pasos = [
-    { etiqueta: 'Aceptada', completa: true },
+  // Los pasos se renderizan siempre; en cancelada «Recibida» queda como
+  // pendiente (completa es false) porque la venta no llegó a recibirse, y se
+  // añade un último paso «Cancelada» marcado como completo.
+  const base = [
+    { etiqueta: 'Pendiente', completa: true },
+    { etiqueta: 'Respondida', completa: respondidaCompleta },
+    { etiqueta: 'Aceptada', completa: aceptadaCompleta },
     { etiqueta: 'Despachada', completa: despachadaCompleta },
-    { etiqueta: 'Recibida', completa: estado === 'recibida' },
+    { etiqueta: 'Recibida', completa: recibidaCompleta },
   ]
+  const pasos = cancelada ? [...base, { etiqueta: 'Cancelada', completa: true }] : base
 
   return (
     <div
@@ -75,8 +95,16 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
               {' · '}
               {paso.etiqueta}
               {paso.etiqueta === 'Despachada' && despachadaAt && (
+                <>
+                  {' '}
+                  <span className="ml-1 font-normal text-gray-500">
+                    {formatearFecha(despachadaAt)}
+                  </span>
+                </>
+              )}
+              {paso.etiqueta === 'Cancelada' && canceladaAt && (
                 <span className="ml-1 font-normal text-gray-500">
-                  {formatearFecha(despachadaAt)}
+                  {formatearFecha(canceladaAt)}
                 </span>
               )}
             </span>
@@ -90,7 +118,9 @@ export default function LineaSeguimiento({ estado, despachadaAt, canceladaPor }:
       </ol>
       {canceladaPor && (
         <p className="mt-2 text-sm font-medium text-red-600" role="status">
-          Cancelada por {ETIQUETAS_ACTOR[canceladaPor]}.
+          {canceladaAt && canceladaMotivo
+            ? `Cancelada por ${ETIQUETAS_ACTOR[canceladaPor]} el ${formatearFecha(canceladaAt)}: ${canceladaMotivo}`
+            : `Cancelada por ${ETIQUETAS_ACTOR[canceladaPor]}.`}
         </p>
       )}
     </div>

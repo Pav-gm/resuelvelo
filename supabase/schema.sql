@@ -19,6 +19,8 @@ create table if not exists public.profiles (
   nombre     text not null,
   rol        text not null check (rol in ('comprador', 'proveedor', 'admin')) default 'comprador',
   telefono   text,
+  razon_social text,
+  rnc        text,
   avatar_url text,
   created_at timestamptz not null default now()
 );
@@ -32,8 +34,42 @@ create table if not exists public.proveedores (
   direccion      text,
   ciudad         text,
   logo_url       text,
+  rnc            text,
+  telefono       text,
+  whatsapp       text,
+  horario        text,
+  sitio_web      text,
   verificado     boolean not null default false,
+  verificacion_estado text not null default 'sin_solicitar'
+    check (verificacion_estado in ('sin_solicitar', 'pendiente', 'verificado', 'rechazado')),
+  verificacion_nota text,
+  verificacion_solicitada_at timestamptz,
+  verificado_at timestamptz,
   created_at     timestamptz not null default now()
+);
+
+-- ─── Cobertura de proveedores ───────────────────────────────
+create table if not exists public.proveedor_zonas (
+  proveedor_id uuid not null references public.proveedores(id) on delete cascade,
+  provincia text not null,
+  primary key (proveedor_id, provincia)
+);
+
+alter table public.proveedor_zonas enable row level security;
+grant select on public.proveedor_zonas to anon, authenticated;
+grant insert, update, delete on public.proveedor_zonas to authenticated;
+
+-- ─── direcciones de obra ────────────────────────────────────
+create table if not exists public.direcciones_obra (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  etiqueta text not null,
+  direccion text not null,
+  provincia text not null,
+  municipio text,
+  referencia text,
+  es_principal boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
 -- ─── categorias ─────────────────────────────────────────────
@@ -97,9 +133,75 @@ create table if not exists public.productos (
   unidad        text not null default 'unidad',
   stock         integer not null default 0 check (stock >= 0),
   imagen_url    text,
+  sku           text,
+  especificaciones text,
+  itbis_incluido boolean not null default true,
   activo        boolean not null default true,
+  archivado_at  timestamptz,
   created_at    timestamptz not null default now()
 );
+
+-- ─── Storage de imágenes de productos (referencia; se aplica por migración) ───
+insert into storage.buckets (id, name, public)
+values ('productos', 'productos', true)
+on conflict do nothing;
+
+create policy "productos storage: lectura pública"
+  on storage.objects for select
+  using (bucket_id = 'productos');
+
+create policy "productos storage: proveedor inserta en su carpeta"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'productos'
+    and exists (
+      select 1 from public.proveedores
+      where id::text = (storage.foldername(name))[1]
+        and user_id = auth.uid()
+    )
+  );
+
+create policy "productos storage: proveedor elimina de su carpeta"
+  on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'productos'
+    and exists (
+      select 1 from public.proveedores
+      where id::text = (storage.foldername(name))[1]
+        and user_id = auth.uid()
+    )
+  );
+
+-- ─── Storage de logos de proveedores (referencia; se aplica por migración) ───
+insert into storage.buckets (id, name, public)
+values ('logos', 'logos', true)
+on conflict do nothing;
+
+create policy "logos storage: lectura pública"
+  on storage.objects for select
+  using (bucket_id = 'logos');
+
+create policy "logos storage: proveedor inserta en su carpeta"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'logos'
+    and exists (
+      select 1 from public.proveedores
+      where id::text = (storage.foldername(name))[1]
+        and user_id = auth.uid()
+    )
+  );
+
+create policy "logos storage: proveedor elimina de su carpeta"
+  on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'logos'
+    and exists (
+      select 1 from public.proveedores
+      where id::text = (storage.foldername(name))[1]
+        and user_id = auth.uid()
+    )
+  );
 
 alter table public.productos add column if not exists subcategoria_id text null;
 
@@ -112,6 +214,15 @@ create table if not exists public.cotizaciones (
   estado          text not null check (estado in ('pendiente','respondida','aceptada','rechazada')) default 'pendiente',
   mensaje         text,
   total_estimado  numeric(12,2),
+  plazo_dias      integer,
+  valida_hasta    date,
+  condiciones     text,
+  respondida_at   timestamptz,
+  total_ofertado  numeric,
+  motivo_rechazo  text,
+  rechazada_at    timestamptz,
+  aceptada_at     timestamptz,
+  rechazada_motivo text,
   created_at      timestamptz not null default now()
 );
 
@@ -121,7 +232,16 @@ create table if not exists public.items_cotizacion (
   cotizacion_id   uuid not null references public.cotizaciones(id) on delete cascade,
   producto_id     uuid not null references public.productos(id),
   cantidad        integer not null check (cantidad > 0),
-  precio_unitario numeric(12,2)
+  precio_unitario numeric(12,2),
+  sujeta_disponibilidad boolean not null default false,
+  stock_al_cotizar integer,
+  cantidad_confirmada integer,
+  constraint items_cotizacion_cantidad_confirmada_check
+    check (cantidad_confirmada is null or cantidad_confirmada between 0 and cantidad),
+  precio_ofertado numeric,
+  cantidad_ofertada integer,
+  constraint items_cotizacion_cantidad_ofertada_check
+    check (cantidad_ofertada is null or cantidad_ofertada between 0 and cantidad)
 );
 
 alter table public.productos drop constraint if exists productos_categoria_subcategoria_fkey;
@@ -199,6 +319,31 @@ grant select on public.subcategorias to anon, authenticated;
 alter table public.productos         enable row level security;
 alter table public.cotizaciones      enable row level security;
 alter table public.items_cotizacion  enable row level security;
+alter table public.direcciones_obra  enable row level security;
+revoke all on public.direcciones_obra from public, anon, authenticated;
+grant select, insert, update, delete on public.direcciones_obra to authenticated;
+
+-- ─── direcciones_obra ───────────────────────────────────────
+drop policy if exists "direcciones_obra: usuario ve las suyas" on public.direcciones_obra;
+create policy "direcciones_obra: usuario ve las suyas"
+  on public.direcciones_obra for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "direcciones_obra: usuario crea las suyas" on public.direcciones_obra;
+create policy "direcciones_obra: usuario crea las suyas"
+  on public.direcciones_obra for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "direcciones_obra: usuario actualiza las suyas" on public.direcciones_obra;
+create policy "direcciones_obra: usuario actualiza las suyas"
+  on public.direcciones_obra for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "direcciones_obra: usuario elimina las suyas" on public.direcciones_obra;
+create policy "direcciones_obra: usuario elimina las suyas"
+  on public.direcciones_obra for delete
+  using (auth.uid() = user_id);
 
 -- ─── profiles ───────────────────────────────────────────────
 -- drop + create para poder re-ejecutar este archivo en un proyecto que ya tiene políticas.
@@ -235,6 +380,137 @@ create policy "proveedores: proveedor actualiza el suyo"
   on public.proveedores for update
   using (auth.uid() = user_id);
 
+drop policy if exists "proveedores: admin actualiza verificación" on public.proveedores;
+create policy "proveedores: admin actualiza verificación"
+  on public.proveedores for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create or replace function public.sincronizar_verificacion_proveedor()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_admin boolean := public.is_admin();
+  v_solicitud_rpc boolean := current_setting('app.solicitar_verificacion_proveedor', true) = 'on';
+begin
+  if tg_op = 'INSERT' then
+    if not v_admin and (
+      new.verificado is distinct from false
+      or new.verificacion_estado is distinct from 'sin_solicitar'
+      or new.verificacion_nota is not null
+      or new.verificacion_solicitada_at is not null
+      or new.verificado_at is not null
+    ) then
+      raise exception 'Solo un administrador puede definir campos de verificación.';
+    end if;
+  elsif not v_admin and not v_solicitud_rpc and (
+    new.verificado is distinct from old.verificado
+    or new.verificacion_estado is distinct from old.verificacion_estado
+    or new.verificacion_nota is distinct from old.verificacion_nota
+    or new.verificacion_solicitada_at is distinct from old.verificacion_solicitada_at
+    or new.verificado_at is distinct from old.verificado_at
+  ) then
+    raise exception 'Solo un administrador puede modificar los campos de verificación.';
+  end if;
+
+  new.verificado := (new.verificacion_estado = 'verificado');
+  if new.verificacion_estado = 'verificado' then
+    if tg_op = 'INSERT' then
+      new.verificado_at := now();
+    elsif old.verificacion_estado is distinct from 'verificado' or new.verificado_at is null then
+      new.verificado_at := now();
+    end if;
+  else
+    new.verificado_at := null;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.sincronizar_verificacion_proveedor() from public, anon, authenticated;
+
+drop trigger if exists sincronizar_verificacion_proveedor on public.proveedores;
+create trigger sincronizar_verificacion_proveedor
+  before insert or update on public.proveedores
+  for each row execute function public.sincronizar_verificacion_proveedor();
+
+create or replace function public.solicitar_verificacion_proveedor()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_proveedor public.proveedores%rowtype;
+begin
+  if v_usuario is null then
+    raise exception 'Debes iniciar sesión para solicitar la verificación.';
+  end if;
+  select * into v_proveedor from public.proveedores where user_id = v_usuario for update;
+  if not found then
+    raise exception 'No se encontró un proveedor asociado a tu cuenta.';
+  end if;
+  if nullif(btrim(v_proveedor.rnc), '') is null or nullif(btrim(v_proveedor.telefono), '') is null then
+    raise exception 'Completa el RNC y el teléfono en tu perfil antes de solicitar la verificación.';
+  end if;
+  if v_proveedor.verificacion_estado not in ('sin_solicitar', 'rechazado') then
+    raise exception 'Solo puedes solicitar la verificación si está sin solicitar o fue rechazada.';
+  end if;
+  perform set_config('app.solicitar_verificacion_proveedor', 'on', true);
+  update public.proveedores
+  set verificacion_estado = 'pendiente', verificacion_solicitada_at = now(), verificacion_nota = null
+  where id = v_proveedor.id;
+end;
+$$;
+
+revoke all on function public.solicitar_verificacion_proveedor() from public, anon;
+grant execute on function public.solicitar_verificacion_proveedor() to authenticated;
+
+drop policy if exists "proveedor_zonas: lectura pública" on public.proveedor_zonas;
+create policy "proveedor_zonas: lectura pública"
+  on public.proveedor_zonas for select
+  using (true);
+
+drop policy if exists "proveedor_zonas: proveedor inserta las suyas" on public.proveedor_zonas;
+create policy "proveedor_zonas: proveedor inserta las suyas"
+  on public.proveedor_zonas for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.proveedores
+      where id = proveedor_id and user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "proveedor_zonas: proveedor actualiza las suyas" on public.proveedor_zonas;
+create policy "proveedor_zonas: proveedor actualiza las suyas"
+  on public.proveedor_zonas for update to authenticated
+  using (
+    exists (
+      select 1 from public.proveedores
+      where id = proveedor_id and user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.proveedores
+      where id = proveedor_id and user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "proveedor_zonas: proveedor elimina las suyas" on public.proveedor_zonas;
+create policy "proveedor_zonas: proveedor elimina las suyas"
+  on public.proveedor_zonas for delete to authenticated
+  using (
+    exists (
+      select 1 from public.proveedores
+      where id = proveedor_id and user_id = auth.uid()
+    )
+  );
+
 -- ─── subcategorias ──────────────────────────────────────────
 drop policy if exists "subcategorias: lectura pública" on public.subcategorias;
 create policy "subcategorias: lectura pública"
@@ -260,6 +536,19 @@ create policy "productos: lectura pública de activos"
   using (activo = true or auth.uid() = (
     select user_id from public.proveedores where id = proveedor_id
   ));
+
+drop policy if exists "productos: compradores leen productos de sus cotizaciones" on public.productos;
+create policy "productos: compradores leen productos de sus cotizaciones"
+  on public.productos for select
+  using (
+    exists (
+      select 1
+      from public.items_cotizacion i
+      join public.cotizaciones c on c.id = i.cotizacion_id
+      where i.producto_id = productos.id
+        and c.comprador_id = auth.uid()
+    )
+  );
 
 drop policy if exists "productos: proveedor inserta los suyos" on public.productos;
 create policy "productos: proveedor inserta los suyos"
@@ -327,6 +616,17 @@ create policy "cotizaciones: comprador crea"
   with check (auth.uid() = comprador_id);
 
 drop policy if exists "cotizaciones: proveedor actualiza estado" on public.cotizaciones;
+drop policy if exists "cotizaciones: proveedor actualiza oferta pendiente" on public.cotizaciones;
+create policy "cotizaciones: proveedor actualiza oferta pendiente"
+  on cotizaciones for update to authenticated
+  using (
+    estado = 'pendiente'
+    and exists (select 1 from public.proveedores p where p.id = proveedor_id and p.user_id = auth.uid())
+  )
+  with check (
+    estado = 'pendiente'
+    and exists (select 1 from public.proveedores p where p.id = proveedor_id and p.user_id = auth.uid())
+  );
 
 drop policy if exists "cotizaciones: admin lee todas" on public.cotizaciones;
 create policy "cotizaciones: admin lee todas"
@@ -374,6 +674,29 @@ create policy "items: admin lee todos"
     public.is_admin()
   );
 
+drop policy if exists "items: proveedor actualiza oferta pendiente" on public.items_cotizacion;
+create policy "items: proveedor actualiza oferta pendiente"
+  on public.items_cotizacion for update to authenticated
+  using (
+    exists (
+      select 1 from public.cotizaciones c
+      join public.proveedores p on p.id = c.proveedor_id
+      where c.id = cotizacion_id and c.estado = 'pendiente' and p.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.cotizaciones c
+      join public.proveedores p on p.id = c.proveedor_id
+      where c.id = cotizacion_id and c.estado = 'pendiente' and p.user_id = auth.uid()
+    )
+  );
+
+revoke update on public.cotizaciones from authenticated;
+grant update (plazo_dias, valida_hasta, condiciones, respondida_at, total_ofertado) on public.cotizaciones to authenticated;
+revoke update on public.items_cotizacion from authenticated;
+grant update (precio_ofertado, cantidad_ofertada) on public.items_cotizacion to authenticated;
+
 
 -- =============================================================
 -- SEGUIMIENTO DE VENTA — reserva y descuento de stock
@@ -386,6 +709,8 @@ alter table public.productos
 alter table public.cotizaciones
   add column if not exists despachada_at timestamptz,
   add column if not exists cancelada_por text,
+  add column if not exists cancelada_motivo text,
+  add column if not exists cancelada_at timestamptz,
   add column if not exists recibida_por  text;
 
 alter table public.productos drop constraint if exists productos_reserva_no_supera_stock;
@@ -413,6 +738,8 @@ create table if not exists public.feedback (
   calificacion   smallint not null check (calificacion between 1 and 5),
   comentario     text check (comentario is null or char_length(comentario) <= 1000),
   created_at     timestamptz not null default now(),
+  respuesta      text,
+  respuesta_at   timestamptz,
   constraint feedback_cotizacion_id_key unique (cotizacion_id)
 );
 
@@ -430,18 +757,38 @@ create policy "feedback: lectura publica"
   on public.feedback for select to anon, authenticated
   using (true);
 
+drop policy if exists "feedback: proveedor responde una vez" on public.feedback;
+create policy "feedback: proveedor responde una vez"
+  on public.feedback for update to authenticated
+  using (
+    respuesta is null
+    and exists (
+      select 1 from public.proveedores p
+      where p.id = feedback.proveedor_id and p.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.proveedores p
+      where p.id = feedback.proveedor_id and p.user_id = auth.uid()
+    )
+  );
+
 -- La API pública recibe solo contenido de reseña y una etiqueta anónima. La vista usa los permisos de quien consulta
 -- (security_invoker): no se salta RLS ni los permisos por columna.
 create or replace view public.feedback_publico
 with (security_invoker = true, security_barrier = true)
 as
   select id, proveedor_id, calificacion, comentario, created_at,
-         'Comprador verificado'::text as autor_anonimo
+         'Comprador verificado'::text as autor_anonimo,
+         respuesta, respuesta_at
   from public.feedback;
 
 revoke all on public.feedback from anon, authenticated;
-grant select (id, proveedor_id, calificacion, comentario, created_at) on public.feedback to anon;
-grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id) on public.feedback to authenticated;
+grant select (id, proveedor_id, calificacion, comentario, created_at, respuesta, respuesta_at) on public.feedback to anon;
+grant select (id, proveedor_id, calificacion, comentario, created_at, cotizacion_id, respuesta, respuesta_at) on public.feedback to authenticated;
+revoke update on public.feedback from authenticated;
+grant update (respuesta, respuesta_at) on public.feedback to authenticated;
 revoke all on public.feedback_publico from public, anon, authenticated;
 grant select on public.feedback_publico to anon, authenticated;
 
@@ -499,6 +846,24 @@ revoke execute on function public.crear_feedback(uuid, integer, text) from publi
 grant execute on function public.crear_feedback(uuid, integer, text) to authenticated;
 
 -- Solo las funciones de abajo pueden tocar stock_reservado.
+create or replace function public.informar_stock_reservado_insuficiente()
+returns trigger
+language plpgsql
+as $$
+begin
+  if current_setting('app.reserva_interna', true) = '1' then
+    return NEW;
+  end if;
+
+  if NEW.stock < NEW.stock_reservado then
+    raise exception 'Hay % unidades reservadas en cotizaciones aceptadas; el stock no puede ser menor que %.',
+      NEW.stock_reservado, NEW.stock_reservado;
+  end if;
+
+  return NEW;
+end;
+$$;
+
 create or replace function public.proteger_stock_reservado()
 returns trigger
 language plpgsql
@@ -525,6 +890,10 @@ create trigger productos_proteger_reserva
   before update on public.productos
   for each row execute function public.proteger_stock_reservado();
 
+create trigger productos_00_stock_reservado_error_detallado
+  before update on public.productos
+  for each row execute function public.informar_stock_reservado_insuficiente();
+
 create or replace function public.rechazar_cotizacion(p_cotizacion_id uuid)
 returns void
 language plpgsql
@@ -550,7 +919,36 @@ begin
 end;
 $$;
 
+
+
+
+
 create or replace function public.aceptar_cotizacion(p_cotizacion_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  raise exception 'Solo el comprador puede aceptar una oferta respondida.';
+end;
+$$;
+
+create or replace function public.aceptar_cotizacion_con_cantidades(
+  p_cotizacion_id uuid,
+  p_cantidades jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  raise exception 'Solo el comprador puede aceptar una oferta respondida.';
+end;
+$$;
+
+create or replace function public.aceptar_oferta_cotizacion(p_cotizacion_id uuid)
 returns void
 language plpgsql
 security definer
@@ -558,6 +956,7 @@ set search_path = public
 as $$
 declare
   v_estado text;
+  v_valida_hasta date;
   v_item record;
   v_stock integer;
   v_reservado integer;
@@ -567,62 +966,164 @@ begin
     raise exception 'No autorizado.';
   end if;
 
-  select c.estado
-    into v_estado
+  select c.estado, c.valida_hasta
+    into v_estado, v_valida_hasta
   from public.cotizaciones c
-  join public.proveedores p on p.id = c.proveedor_id
   where c.id = p_cotizacion_id
-    and p.user_id = auth.uid()
-  for update of c;
+    and c.comprador_id = auth.uid()
+  for update;
 
   if not found then
-    raise exception 'No autorizado.';
+    raise exception 'No tienes permiso para decidir esta cotización.';
   end if;
-
-  if v_estado is distinct from 'pendiente' then
-    raise exception 'Solo puedes aceptar una cotización pendiente.';
+  if v_estado is distinct from 'respondida' then
+    raise exception 'La cotización ya no está respondida.';
   end if;
-
-  if not exists (
-    select 1 from public.items_cotizacion where cotizacion_id = p_cotizacion_id
+  if v_valida_hasta is null or v_valida_hasta < current_date then
+    raise exception 'La oferta está vencida.';
+  end if;
+  if not exists (select 1 from public.items_cotizacion where cotizacion_id = p_cotizacion_id) then
+    raise exception 'La oferta no tiene líneas.';
+  end if;
+  if (select coalesce(sum(coalesce(i.cantidad_ofertada, i.cantidad)), 0)
+      from public.items_cotizacion i where i.cotizacion_id = p_cotizacion_id) < 1 then
+    raise exception 'La oferta debe incluir al menos una unidad.';
+  end if;
+  if exists (
+    select 1 from public.items_cotizacion i
+    where i.cotizacion_id = p_cotizacion_id
+      and (i.precio_ofertado is null or i.precio_ofertado <= 0)
   ) then
-    raise exception 'La cotización no tiene productos.';
+    raise exception 'La oferta contiene una línea sin precio ofertado.';
   end if;
-
-  perform set_config('app.reserva_interna', '1', true);
 
   for v_item in
-    select i.producto_id, sum(i.cantidad) as cantidad
+    select distinct i.producto_id
+    from public.items_cotizacion i
+    where i.cotizacion_id = p_cotizacion_id
+    order by i.producto_id
+  loop
+    perform 1 from public.productos p where p.id = v_item.producto_id for update;
+  end loop;
+
+  for v_item in
+    select i.producto_id, sum(coalesce(i.cantidad_ofertada, i.cantidad)) as cantidad
     from public.items_cotizacion i
     where i.cotizacion_id = p_cotizacion_id
     group by i.producto_id
     order by i.producto_id
   loop
-    select stock, stock_reservado, nombre
+    select p.stock, p.stock_reservado, p.nombre
       into v_stock, v_reservado, v_nombre
-    from public.productos
-    where id = v_item.producto_id
-    for update;
-
+    from public.productos p
+    where p.id = v_item.producto_id;
     if v_stock is null then
       raise exception 'Un producto de la cotización ya no existe.';
     end if;
-
-    if v_stock - v_reservado < v_item.cantidad then
-      raise exception 'No hay stock disponible de % (disponible: %, pedido: %).',
-        v_nombre, (v_stock - v_reservado), v_item.cantidad;
+    if v_stock - coalesce(v_reservado, 0) < v_item.cantidad then
+      raise exception 'No hay stock disponible de % (disponible: %, confirmado: %).',
+        v_nombre, v_stock - coalesce(v_reservado, 0), v_item.cantidad;
     end if;
+  end loop;
 
+  perform set_config('app.reserva_interna', '1', true);
+  update public.items_cotizacion i
+    set cantidad_confirmada = coalesce(i.cantidad_ofertada, i.cantidad),
+        precio_unitario = i.precio_ofertado
+  where i.cotizacion_id = p_cotizacion_id;
+
+  for v_item in
+    select i.producto_id, sum(i.cantidad_confirmada) as cantidad
+    from public.items_cotizacion i
+    where i.cotizacion_id = p_cotizacion_id
+    group by i.producto_id
+    order by i.producto_id
+  loop
     update public.productos
-      set stock_reservado = stock_reservado + v_item.cantidad
-      where id = v_item.producto_id;
+      set stock_reservado = coalesce(stock_reservado, 0) + v_item.cantidad
+    where id = v_item.producto_id;
   end loop;
 
   update public.cotizaciones
-    set estado = 'aceptada'
-    where id = p_cotizacion_id;
+    set estado = 'aceptada', aceptada_at = now()
+  where id = p_cotizacion_id;
 end;
 $$;
+
+create or replace function public.rechazar_oferta_cotizacion(
+  p_cotizacion_id uuid,
+  p_motivo text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'No autorizado.';
+  end if;
+  if p_motivo is null or btrim(p_motivo) = '' or char_length(btrim(p_motivo)) > 500 then
+    raise exception 'El motivo debe tener entre 1 y 500 caracteres.';
+  end if;
+
+  update public.cotizaciones c
+    set estado = 'rechazada', rechazada_motivo = btrim(p_motivo),
+        rechazada_at = now()
+  where c.id = p_cotizacion_id
+    and c.comprador_id = auth.uid()
+    and c.estado = 'respondida';
+
+  if not found then
+    raise exception 'La cotización ya no está respondida o no tienes permiso para rechazarla.';
+  end if;
+end;
+$$;
+
+create or replace function public.solicitar_nueva_oferta(
+  p_cotizacion_id uuid,
+  p_nota text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_valida_hasta date;
+begin
+  if auth.uid() is null then
+    raise exception 'No autorizado.';
+  end if;
+  if p_nota is null or btrim(p_nota) = '' or char_length(btrim(p_nota)) > 500 then
+    raise exception 'La nota debe tener entre 1 y 500 caracteres.';
+  end if;
+
+  select c.valida_hasta into v_valida_hasta
+  from public.cotizaciones c
+  where c.id = p_cotizacion_id
+    and c.comprador_id = auth.uid()
+    and c.estado = 'respondida'
+  for update;
+
+  if not found then
+    raise exception 'La cotización ya no está respondida o no tienes permiso para solicitar otra oferta.';
+  end if;
+  if v_valida_hasta is null or v_valida_hasta >= current_date then
+    raise exception 'Solo puedes solicitar otra oferta cuando la oferta está vencida.';
+  end if;
+
+  update public.cotizaciones
+    set estado = 'pendiente', mensaje = btrim(p_nota), plazo_dias = null,
+        valida_hasta = null, condiciones = null, respondida_at = null,
+        total_ofertado = null
+  where id = p_cotizacion_id;
+  update public.items_cotizacion
+    set precio_ofertado = null, cantidad_ofertada = null
+  where cotizacion_id = p_cotizacion_id;
+end;
+$$;
+
 
 create or replace function public.despachar_cotizacion(p_cotizacion_id uuid)
 returns void
@@ -650,7 +1151,7 @@ begin
 end;
 $$;
 
-create or replace function public.cancelar_venta(p_cotizacion_id uuid)
+create or replace function public.cancelar_venta(p_cotizacion_id uuid, p_cancelada_motivo text)
 returns void
 language plpgsql
 security definer
@@ -661,6 +1162,10 @@ declare
   v_actor text;
   v_item record;
 begin
+  if p_cancelada_motivo is null or btrim(p_cancelada_motivo) = '' then
+    raise exception 'Indica un motivo válido para cancelar.';
+  end if;
+
   if auth.uid() is null then
     raise exception 'No autorizado.';
   end if;
@@ -692,7 +1197,7 @@ begin
   perform set_config('app.reserva_interna', '1', true);
 
   for v_item in
-    select i.producto_id, sum(i.cantidad) as cantidad
+    select i.producto_id, sum(coalesce(i.cantidad_confirmada, i.cantidad)) as cantidad
     from public.items_cotizacion i
     where i.cotizacion_id = p_cotizacion_id
     group by i.producto_id
@@ -705,8 +1210,22 @@ begin
 
   update public.cotizaciones
     set estado = 'cancelada',
-        cancelada_por = v_actor
+        cancelada_por = v_actor,
+        cancelada_motivo = btrim(p_cancelada_motivo),
+        cancelada_at = now()
     where id = p_cotizacion_id;
+end;
+$$;
+
+-- La firma antigua se conserva para compatibilidad, pero ya no cancela sin motivo.
+create or replace function public.cancelar_venta(p_cotizacion_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  raise exception 'Indica un motivo válido para cancelar.';
 end;
 $$;
 
@@ -759,7 +1278,7 @@ begin
   perform set_config('app.reserva_interna', '1', true);
 
   for v_item in
-    select i.producto_id, sum(i.cantidad) as cantidad
+    select i.producto_id, sum(coalesce(i.cantidad_confirmada, i.cantidad)) as cantidad
     from public.items_cotizacion i
     where i.cotizacion_id = p_cotizacion_id
     group by i.producto_id
@@ -797,17 +1316,416 @@ $$;
 -- Las funciones SECURITY DEFINER quedan expuestas en /rest/v1/rpc.
 -- =============================================================
 
+-- Detalle compartido: solo el comprador o el usuario del proveedor destinatario.
+create or replace function public.responder_cotizacion_con_oferta(
+  p_cotizacion_id uuid,
+  p_lineas jsonb,
+  p_plazo_dias integer,
+  p_valida_hasta date,
+  p_condiciones text
+)
+returns numeric
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_estado text;
+  v_total numeric;
+  v_items integer;
+  v_lineas integer;
+  v_linea record;
+  v_suma_cantidad integer := 0;
+begin
+  if auth.uid() is null then
+    raise exception 'Debes iniciar sesión para responder la cotización.';
+  end if;
+
+  select c.estado
+    into v_estado
+  from public.cotizaciones c
+  join public.proveedores p on p.id = c.proveedor_id
+  where c.id = p_cotizacion_id
+    and p.user_id = auth.uid()
+  for update of c;
+
+  if not found then
+    raise exception 'No tienes permiso para responder esta cotización.';
+  end if;
+  if v_estado is distinct from 'pendiente' then
+    raise exception 'La cotización ya no está pendiente.';
+  end if;
+  if p_plazo_dias is null or p_plazo_dias not between 0 and 90 then
+    raise exception 'El plazo debe estar entre 0 y 90 días.';
+  end if;
+  if p_valida_hasta is null or p_valida_hasta <= current_date then
+    raise exception 'La fecha de validez debe ser futura.';
+  end if;
+  if jsonb_typeof(p_lineas) is distinct from 'array' then
+    raise exception 'La oferta debe incluir todas las líneas de la cotización.';
+  end if;
+  if jsonb_array_length(p_lineas) = 0 then
+    raise exception 'La oferta debe incluir todas las líneas de la cotización.';
+  end if;
+
+  select count(*) into v_items
+  from public.items_cotizacion i
+  where i.cotizacion_id = p_cotizacion_id;
+  select count(*) into v_lineas
+  from jsonb_to_recordset(p_lineas) as x(item_id uuid, precio_ofertado numeric, cantidad_ofertada integer);
+  if v_items = 0 or v_lineas <> v_items then
+    raise exception 'La oferta debe incluir cada línea de la cotización una sola vez.';
+  end if;
+
+  for v_linea in
+    select x.item_id, x.precio_ofertado, x.cantidad_ofertada
+    from jsonb_to_recordset(p_lineas) as x(item_id uuid, precio_ofertado numeric, cantidad_ofertada integer)
+  loop
+    if v_linea.item_id is null
+      or v_linea.precio_ofertado is null
+      or v_linea.precio_ofertado <= 0
+      or v_linea.precio_ofertado::text in ('NaN', 'Infinity', '-Infinity') then
+      raise exception 'Cada precio ofertado debe ser mayor que 0.';
+    end if;
+    if (select count(*) from jsonb_to_recordset(p_lineas) as x(item_id uuid, precio_ofertado numeric, cantidad_ofertada integer) where x.item_id = v_linea.item_id) <> 1 then
+      raise exception 'La oferta debe incluir cada línea de la cotización una sola vez.';
+    end if;
+    if not exists (
+      select 1 from public.items_cotizacion i
+      where i.id = v_linea.item_id and i.cotizacion_id = p_cotizacion_id
+    ) then
+      raise exception 'La oferta debe incluir cada línea de la cotización una sola vez.';
+    end if;
+    if v_linea.cantidad_ofertada is not null and not exists (
+      select 1 from public.items_cotizacion i
+      where i.id = v_linea.item_id
+        and i.cotizacion_id = p_cotizacion_id
+        and v_linea.cantidad_ofertada between 0 and i.cantidad
+        and (v_linea.cantidad_ofertada = i.cantidad or i.sujeta_disponibilidad)
+    ) then
+      raise exception 'Solo puedes reducir la cantidad en líneas sujetas a disponibilidad.';
+    end if;
+    select v_suma_cantidad + coalesce(v_linea.cantidad_ofertada, i.cantidad)
+      into v_suma_cantidad
+    from public.items_cotizacion i
+    where i.id = v_linea.item_id;
+  end loop;
+
+  if v_suma_cantidad = 0 then
+    raise exception 'La oferta debe incluir al menos una unidad.';
+  end if;
+
+  update public.items_cotizacion i
+    set precio_ofertado = x.precio_ofertado,
+        cantidad_ofertada = x.cantidad_ofertada
+  from jsonb_to_recordset(p_lineas) as x(item_id uuid, precio_ofertado numeric, cantidad_ofertada integer)
+  where i.id = x.item_id and i.cotizacion_id = p_cotizacion_id;
+
+  select sum(i.precio_ofertado * coalesce(i.cantidad_ofertada, i.cantidad))
+    into v_total
+  from public.items_cotizacion i
+  where i.cotizacion_id = p_cotizacion_id;
+
+  update public.cotizaciones
+    set plazo_dias = p_plazo_dias,
+        valida_hasta = p_valida_hasta,
+        condiciones = p_condiciones,
+        estado = 'respondida',
+        respondida_at = now(),
+        total_ofertado = v_total
+  where id = p_cotizacion_id;
+
+  return v_total;
+end;
+$$;
+
+create or replace function public.rechazar_cotizacion_con_motivo(
+  p_cotizacion_id uuid,
+  p_motivo text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Debes iniciar sesión para responder la cotización.';
+  end if;
+  if p_motivo is null or btrim(p_motivo) = '' or char_length(p_motivo) > 500 then
+    raise exception 'El motivo del rechazo debe tener entre 1 y 500 caracteres.';
+  end if;
+
+  update public.cotizaciones c
+    set estado = 'rechazada',
+        motivo_rechazo = btrim(p_motivo),
+        rechazada_at = now()
+  from public.proveedores p
+  where c.id = p_cotizacion_id
+    and p.id = c.proveedor_id
+    and p.user_id = auth.uid()
+    and c.estado = 'pendiente';
+
+  if not found then
+    raise exception 'La cotización ya no está pendiente o no tienes permiso para rechazarla.';
+  end if;
+end;
+$$;
+
+revoke execute on function public.responder_cotizacion_con_oferta(uuid, jsonb, integer, date, text) from public, anon;
+grant execute on function public.responder_cotizacion_con_oferta(uuid, jsonb, integer, date, text) to authenticated;
+revoke execute on function public.rechazar_cotizacion_con_motivo(uuid, text) from public, anon;
+grant execute on function public.rechazar_cotizacion_con_motivo(uuid, text) to authenticated;
+
+create or replace function public.get_cotizacion_detalle(p_cotizacion_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_detalle jsonb;
+begin
+  if auth.uid() is null or not exists (
+    select 1
+    from public.cotizaciones c
+    left join public.proveedores p on p.id = c.proveedor_id
+    where c.id = p_cotizacion_id
+      and (c.comprador_id = auth.uid() or p.user_id = auth.uid())
+  ) then
+    raise exception 'COTIZACION_NO_AUTORIZADA';
+  end if;
+
+  select jsonb_build_object(
+    'id', c.id,
+    'numero', c.numero,
+    'comprador_id', c.comprador_id,
+    'proveedor_id', c.proveedor_id,
+    'estado', c.estado,
+    'mensaje', c.mensaje,
+    'total_estimado', c.total_estimado,
+    'created_at', c.created_at,
+    'despachada_at', c.despachada_at,
+    'cancelada_por', c.cancelada_por,
+    'cancelada_at', c.cancelada_at,
+    'cancelada_motivo', c.cancelada_motivo,
+    'plazo_dias', c.plazo_dias,
+    'valida_hasta', c.valida_hasta,
+    'condiciones', c.condiciones,
+    'respondida_at', c.respondida_at,
+    'total_ofertado', c.total_ofertado,
+    'motivo_rechazo', c.motivo_rechazo,
+    'rechazada_at', c.rechazada_at,
+    'aceptada_at', c.aceptada_at,
+    'rechazada_motivo', c.rechazada_motivo,
+    'proveedor', jsonb_build_object(
+      'id', p.id,
+      'nombre_empresa', p.nombre_empresa,
+      'ciudad', p.ciudad,
+      'verificado', p.verificado
+    ),
+    'comprador', jsonb_build_object(
+      'id', comprador.id,
+      'nombre', comprador.nombre,
+      'email', comprador.email,
+      'telefono', comprador.telefono
+    ),
+    'items', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', i.id,
+          'cotizacion_id', i.cotizacion_id,
+          'producto_id', i.producto_id,
+          'cantidad', i.cantidad,
+          'cantidad_confirmada', i.cantidad_confirmada,
+          'precio_unitario', i.precio_unitario,
+          'precio_ofertado', i.precio_ofertado,
+          'cantidad_ofertada', i.cantidad_ofertada,
+          'sujeta_disponibilidad', i.sujeta_disponibilidad,
+          'stock_al_cotizar', i.stock_al_cotizar,
+          'producto', case
+            when producto.id is null then null
+            else jsonb_build_object('id', producto.id, 'nombre', producto.nombre, 'activo', producto.activo, 'precio', producto.precio)
+          end
+        ) order by i.id
+      )
+      from public.items_cotizacion i
+      left join public.productos producto on producto.id = i.producto_id
+      where i.cotizacion_id = c.id
+    ), '[]'::jsonb)
+  )
+  into v_detalle
+  from public.cotizaciones c
+  join public.proveedores p on p.id = c.proveedor_id
+  join public.profiles comprador on comprador.id = c.comprador_id
+  where c.id = p_cotizacion_id;
+
+  return v_detalle;
+end;
+$$;
+
+revoke execute on function public.get_cotizacion_detalle(uuid) from public, anon;
+grant execute on function public.get_cotizacion_detalle(uuid) to authenticated;
+
 -- Funciones de venta: solo usuarios con sesión (además validan auth.uid()).
-revoke execute on function public.aceptar_cotizacion(uuid)    from public, anon;
+revoke execute on function public.aceptar_cotizacion_con_cantidades(uuid, jsonb) from public, anon, authenticated;
+revoke execute on function public.aceptar_cotizacion(uuid)    from public, anon, authenticated;
 revoke execute on function public.cancelar_venta(uuid)        from public, anon;
+revoke execute on function public.cancelar_venta(uuid, text)   from public, anon;
 revoke execute on function public.confirmar_recepcion(uuid)   from public, anon;
 revoke execute on function public.despachar_cotizacion(uuid)  from public, anon;
 revoke execute on function public.rechazar_cotizacion(uuid)   from public, anon;
-grant execute on function public.aceptar_cotizacion(uuid)     to authenticated;
+
+
 grant execute on function public.cancelar_venta(uuid)         to authenticated;
+grant execute on function public.cancelar_venta(uuid, text)   to authenticated;
 grant execute on function public.confirmar_recepcion(uuid)    to authenticated;
 grant execute on function public.despachar_cotizacion(uuid)  to authenticated;
 grant execute on function public.rechazar_cotizacion(uuid)   to authenticated;
+
+-- =============================================================
+-- NOTIFICACIONES IN-APP
+-- La migración 20261010000205_notificaciones_in_app.sql es la fuente aplicable.
+-- =============================================================
+
+create table if not exists public.notificaciones (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  tipo text not null,
+  cotizacion_id uuid null references public.cotizaciones(id),
+  titulo text not null,
+  cuerpo text not null,
+  leida_at timestamptz null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_notificaciones_usuario_lectura_fecha
+  on public.notificaciones (user_id, leida_at, created_at desc);
+
+alter table public.notificaciones enable row level security;
+
+drop policy if exists "notificaciones: usuario lee las suyas" on public.notificaciones;
+create policy "notificaciones: usuario lee las suyas"
+  on public.notificaciones for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "notificaciones: usuario marca las suyas" on public.notificaciones;
+create policy "notificaciones: usuario marca las suyas"
+  on public.notificaciones for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+revoke all on public.notificaciones from public, anon, authenticated;
+grant select, update on public.notificaciones to authenticated;
+
+create or replace function public.crear_notificacion_cotizacion()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_proveedor_user_id uuid;
+  v_destinatario uuid;
+  v_tipo text;
+  v_titulo text;
+  v_cuerpo text;
+  v_identificador text;
+begin
+  if tg_op = 'UPDATE' and old.estado is not distinct from new.estado then
+    return new;
+  end if;
+
+  select p.user_id into v_proveedor_user_id
+  from public.proveedores p
+  where p.id = new.proveedor_id;
+
+  if v_proveedor_user_id is null then
+    return new;
+  end if;
+
+  v_identificador := '#COT-' || lpad(
+    new.numero::text,
+    greatest(6, length(new.numero::text)),
+    '0'
+  );
+
+  if tg_op = 'INSERT' then
+    if new.estado <> 'pendiente' then
+      return new;
+    end if;
+    v_destinatario := v_proveedor_user_id;
+    v_tipo := 'nueva_solicitud';
+    v_titulo := 'Nueva solicitud ' || v_identificador;
+    v_cuerpo := 'Tienes una nueva solicitud de cotización.';
+  else
+    case new.estado
+      when 'respondida' then
+        v_destinatario := new.comprador_id;
+        v_tipo := 'cotizacion_respondida';
+        v_titulo := 'Cotización respondida ' || v_identificador;
+        v_cuerpo := 'El proveedor respondió tu solicitud.';
+      when 'aceptada' then
+        v_destinatario := case
+          when auth.uid() = new.comprador_id then v_proveedor_user_id
+          else new.comprador_id
+        end;
+        v_tipo := 'cotizacion_aceptada';
+        v_titulo := 'Cotización aceptada ' || v_identificador;
+        v_cuerpo := 'La cotización fue aceptada.';
+      when 'rechazada' then
+        v_destinatario := case
+          when auth.uid() = new.comprador_id then v_proveedor_user_id
+          else new.comprador_id
+        end;
+        v_tipo := 'cotizacion_rechazada';
+        v_titulo := 'Cotización rechazada ' || v_identificador;
+        v_cuerpo := 'La cotización fue rechazada.';
+      when 'despachada' then
+        v_destinatario := new.comprador_id;
+        v_tipo := 'cotizacion_despachada';
+        v_titulo := 'Cotización despachada ' || v_identificador;
+        v_cuerpo := 'Tu pedido fue despachado.';
+      when 'recibida' then
+        v_destinatario := v_proveedor_user_id;
+        v_tipo := 'cotizacion_recibida';
+        v_titulo := 'Cotización recibida ' || v_identificador;
+        v_cuerpo := 'El comprador confirmó la recepción del pedido.';
+      when 'cancelada' then
+        v_destinatario := case new.cancelada_por
+          when 'comprador' then v_proveedor_user_id
+          when 'proveedor' then new.comprador_id
+          else null
+        end;
+        v_tipo := 'cotizacion_cancelada';
+        v_titulo := 'Cotización cancelada ' || v_identificador;
+        v_cuerpo := 'La cotización fue cancelada. Motivo: ' ||
+          coalesce(nullif(btrim(new.cancelada_motivo), ''), 'No especificado');
+      else
+        return new;
+    end case;
+  end if;
+
+  if v_destinatario is not null then
+    insert into public.notificaciones (user_id, tipo, cotizacion_id, titulo, cuerpo)
+    values (v_destinatario, v_tipo, new.id, v_titulo, v_cuerpo);
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.crear_notificacion_cotizacion() from public, anon, authenticated;
+
+drop trigger if exists cotizaciones_notificar_insert on public.cotizaciones;
+create trigger cotizaciones_notificar_insert
+  after insert on public.cotizaciones
+  for each row execute function public.crear_notificacion_cotizacion();
+
+drop trigger if exists cotizaciones_notificar_cambio_estado on public.cotizaciones;
+create trigger cotizaciones_notificar_cambio_estado
+  after update of estado on public.cotizaciones
+  for each row execute function public.crear_notificacion_cotizacion();
 
 -- Función de trigger: Postgres no exige EXECUTE para dispararlo.
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
@@ -816,3 +1734,113 @@ revoke execute on function public.handle_new_user() from public, anon, authentic
 -- también en consultas sin sesión (por ejemplo, el catálogo público).
 
 alter function public.proteger_stock_reservado() set search_path = public;
+create or replace function public.datos_email_notificacion_cotizacion(
+  p_cotizacion_id uuid,
+  p_tipo text
+)
+returns table(
+  destinatario_email text,
+  contraparte_nombre text,
+  numero bigint,
+  total_estimado numeric
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_usuario uuid := auth.uid();
+  v_cotizacion public.cotizaciones%rowtype;
+  v_proveedor_usuario uuid;
+  v_destinatario uuid;
+begin
+  if v_usuario is null then
+    raise exception 'Se requiere una sesión autenticada.';
+  end if;
+
+  if p_tipo not in (
+    'nueva_solicitud', 'cotizacion_respondida', 'cotizacion_aceptada',
+    'cotizacion_rechazada', 'cotizacion_despachada', 'cotizacion_recibida',
+    'cotizacion_cancelada'
+  ) then
+    raise exception 'Tipo de notificación no válido.';
+  end if;
+
+  select c.* into v_cotizacion
+  from public.cotizaciones c
+  where c.id = p_cotizacion_id;
+
+  if not found then
+    raise exception 'La cotización no existe.';
+  end if;
+
+  select p.user_id into v_proveedor_usuario
+  from public.proveedores p
+  where p.id = v_cotizacion.proveedor_id;
+
+  if v_usuario <> v_cotizacion.comprador_id and v_usuario <> v_proveedor_usuario then
+    raise exception 'No tienes acceso a esta cotización.';
+  end if;
+
+  if (p_tipo = 'nueva_solicitud' and v_cotizacion.estado = 'pendiente' and v_usuario = v_cotizacion.comprador_id)
+    or (p_tipo = 'cotizacion_respondida' and v_cotizacion.estado = 'respondida' and v_usuario = v_proveedor_usuario)
+    or (p_tipo = 'cotizacion_aceptada' and v_cotizacion.estado = 'aceptada')
+    or (p_tipo = 'cotizacion_rechazada' and v_cotizacion.estado = 'rechazada')
+    or (p_tipo = 'cotizacion_despachada' and v_cotizacion.estado = 'despachada' and v_usuario = v_proveedor_usuario)
+    or (p_tipo = 'cotizacion_recibida' and v_cotizacion.estado = 'recibida' and v_usuario = v_cotizacion.comprador_id)
+    or (p_tipo = 'cotizacion_cancelada' and v_cotizacion.estado = 'cancelada'
+      and v_cotizacion.cancelada_por in ('comprador', 'proveedor')) then
+    null;
+  else
+    raise exception 'El estado de la cotización no corresponde a la notificación.';
+  end if;
+
+  if p_tipo in ('nueva_solicitud', 'cotizacion_recibida') then
+    v_destinatario := v_proveedor_usuario;
+  elsif p_tipo = 'cotizacion_respondida' or p_tipo = 'cotizacion_despachada' then
+    v_destinatario := v_cotizacion.comprador_id;
+  elsif p_tipo in ('cotizacion_aceptada', 'cotizacion_rechazada') then
+    v_destinatario := case when v_usuario = v_proveedor_usuario
+      then v_cotizacion.comprador_id else v_proveedor_usuario end;
+  else
+    v_destinatario := case when v_cotizacion.cancelada_por = 'comprador'
+      then v_proveedor_usuario else v_cotizacion.comprador_id end;
+  end if;
+
+  select pr.email into destinatario_email
+  from public.profiles pr
+  where pr.id = v_destinatario;
+
+  if v_destinatario = v_proveedor_usuario then
+    select pr.nombre into contraparte_nombre
+    from public.profiles pr
+    where pr.id = v_cotizacion.comprador_id;
+  else
+    select p.nombre_empresa into contraparte_nombre
+    from public.proveedores p
+    where p.id = v_cotizacion.proveedor_id;
+  end if;
+
+  if destinatario_email is null or btrim(destinatario_email) = ''
+    or contraparte_nombre is null or btrim(contraparte_nombre) = '' then
+    raise exception 'Faltan datos obligatorios del destinatario del correo.';
+  end if;
+
+  numero := v_cotizacion.numero;
+  total_estimado := v_cotizacion.total_estimado;
+  return next;
+end;
+$$;
+
+comment on function public.datos_email_notificacion_cotizacion(uuid, text) is
+  'Devuelve de forma autenticada los datos mínimos para notificar por correo a la contraparte de una cotización.';
+
+revoke execute on function public.aceptar_oferta_cotizacion(uuid) from public, anon;
+grant execute on function public.aceptar_oferta_cotizacion(uuid) to authenticated;
+revoke execute on function public.rechazar_oferta_cotizacion(uuid, text) from public, anon;
+grant execute on function public.rechazar_oferta_cotizacion(uuid, text) to authenticated;
+revoke execute on function public.solicitar_nueva_oferta(uuid, text) from public, anon;
+grant execute on function public.solicitar_nueva_oferta(uuid, text) to authenticated;
+
+revoke all on function public.datos_email_notificacion_cotizacion(uuid, text) from public, anon, authenticated;
+grant execute on function public.datos_email_notificacion_cotizacion(uuid, text) to authenticated;

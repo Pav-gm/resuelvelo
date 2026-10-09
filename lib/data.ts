@@ -1,9 +1,11 @@
 import type {
   Categoria,
   Cotizacion,
+  CotizacionDetalle,
   Feedback,
   FeedbackPublico,
   Producto,
+  PerfilProveedor,
   Proveedor,
   ResumenFeedbackProveedor,
   Subcategoria,
@@ -112,7 +114,9 @@ function filtrarProductos(productos: Producto[], filtros?: FiltrosProductos): Pr
   const { min, max } = normalizePrecioRange(filtros?.precioMin, filtros?.precioMax)
   if (min !== undefined) resultado = resultado.filter((p) => p.precio >= min)
   if (max !== undefined) resultado = resultado.filter((p) => p.precio <= max)
-  if (filtros?.conStock === true) resultado = resultado.filter((p) => p.stock > 0)
+  if (filtros?.conStock === true) {
+    resultado = resultado.filter((p) => Math.max(0, p.stock - (p.stock_reservado ?? 0)) > 0)
+  }
   return ordenarProductos(resultado, filtros?.orden ?? 'precio_asc')
 }
 
@@ -142,24 +146,35 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
 export async function getProductosDeProveedor(proveedorId: string): Promise<Producto[]> {
   if (!SUPABASE_DISPONIBLE) {
     return PRODUCTOS_MOCK.filter((p) => p.proveedor_id === proveedorId)
+      .map((p) => ({ ...p, tieneCotizaciones: false }))
   }
 
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('productos')
-    .select('*, categoria:categorias(*)')
+    .select('*, categoria:categorias(*), items_cotizacion(count)')
     .eq('proveedor_id', proveedorId)
     .order('created_at', { ascending: false })
 
   if (error) propagarErrorLectura('getProductosDeProveedor', error)
   if (data === null) errorSinDatos('getProductosDeProveedor')
-  return data as unknown as Producto[]
+  return (data as unknown as Array<Producto & { items_cotizacion?: Array<{ count: number }> }>).map(
+    ({ items_cotizacion, ...producto }) => ({
+      ...producto,
+      tieneCotizaciones: (items_cotizacion?.[0]?.count ?? 0) > 0,
+    })
+  )
 }
 
 // ─── Listado público de proveedores ─────────────────────────
 
 export interface ProveedorConConteo extends Proveedor {
   productos_count: number
+  zonas_cobertura: string[]
+}
+
+function ordenarZonas(zonas: Array<{ provincia: string }> | null | undefined): string[] {
+  return (zonas ?? []).map((zona) => zona.provincia).sort((a, b) => compareNames(a, b))
 }
 
 export async function getProveedores(): Promise<ProveedorConConteo[]> {
@@ -170,31 +185,94 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
     }
     return [...map.values()].map((prov) => ({
       ...prov,
+      zonas_cobertura: [...(prov.zonas_cobertura ?? [])].sort(compareNames),
       productos_count: PRODUCTOS_MOCK.filter(
         (p) => p.proveedor?.id === prov.id && p.activo
       ).length,
+      promedio_feedback: 0,
+      conteo_feedback: 0,
     }))
   }
 
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('proveedores')
-    .select('*, productos(count)')
+    .select('*, productos(count), proveedor_zonas(provincia)')
     .eq('productos.activo', true)
     .order('nombre_empresa')
 
   if (error) propagarErrorLectura('getProveedores', error)
   if (data === null) errorSinDatos('getProveedores')
 
+  const { data: feedbackData, error: feedbackError } = await supabase
+    .from('feedback_publico')
+    .select('proveedor_id, calificacion')
+  if (feedbackError) propagarErrorLectura('getProveedores', feedbackError)
+  if (feedbackData === null) errorSinDatos('getProveedores')
+  const agregadosFeedback = new Map<string, { total: number; conteo: number }>()
+  for (const feedback of (feedbackData ?? []) as Array<{ proveedor_id: string; calificacion: number }>) {
+    const agregado = agregadosFeedback.get(feedback.proveedor_id) ?? { total: 0, conteo: 0 }
+    agregado.total += feedback.calificacion
+    agregado.conteo += 1
+    agregadosFeedback.set(feedback.proveedor_id, agregado)
+  }
+
   return data.map((prov) => {
-    const { productos, ...rest } = prov as Proveedor & {
+    const { productos, proveedor_zonas, ...rest } = prov as Proveedor & {
       productos?: { count: number }[]
+      proveedor_zonas?: Array<{ provincia: string }>
     }
     return {
       ...(rest as Proveedor),
+      zonas_cobertura: ordenarZonas(proveedor_zonas),
       productos_count: productos?.[0]?.count ?? 0,
+      promedio_feedback: (() => {
+        const agregado = agregadosFeedback.get(prov.id)
+        return agregado ? Math.round((agregado.total / agregado.conteo) * 100) / 100 : 0
+      })(),
+      conteo_feedback: agregadosFeedback.get(prov.id)?.conteo ?? 0,
     }
   })
+}
+
+export async function getPerfilProveedorDelUsuario(): Promise<PerfilProveedor | null> {
+  if (!SUPABASE_DISPONIBLE) return null
+
+  const supabase = await getServerClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError) propagarErrorLectura('getPerfilProveedorDelUsuario', userError)
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from('proveedores')
+    .select('*, proveedor_zonas(provincia)')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (error) propagarErrorLectura('getPerfilProveedorDelUsuario', error)
+  if (!data) return null
+
+  const { proveedor_zonas, ...proveedor } = data as Proveedor & {
+    rnc?: string | null
+    telefono?: string | null
+    whatsapp?: string | null
+    horario?: string | null
+    sitio_web?: string | null
+    proveedor_zonas?: Array<{ provincia: string }>
+  }
+  return {
+    ...proveedor,
+    verificacion_estado: proveedor.verificacion_estado ?? (proveedor.verificado ? 'verificado' : 'sin_solicitar'),
+    verificacion_nota: proveedor.verificacion_nota ?? null,
+    verificacion_solicitada_at: proveedor.verificacion_solicitada_at ?? null,
+    verificado_at: proveedor.verificado_at ?? null,
+    rnc: proveedor.rnc ?? null,
+    telefono: proveedor.telefono ?? null,
+    whatsapp: proveedor.whatsapp ?? null,
+    horario: proveedor.horario ?? null,
+    sitio_web: proveedor.sitio_web ?? null,
+    zonas_cobertura: ordenarZonas(proveedor_zonas),
+  }
 }
 
 // ─── Proveedor del usuario autenticado ───────────────────────
@@ -224,15 +302,58 @@ export interface StatsProveedor {
   productosActivos: number
   cotizacionesPendientes: number
   sinStock: number
+  pedidosEsteMes?: number
+  totalVendidoEsteMes?: number
+}
+
+function inicioMesEnZona(year: number, month: number, timeZone: string): Date {
+  const utcMidnight = Date.UTC(year, month - 1, 1)
+  const candidate = new Date(utcMidnight)
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(candidate)
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+  const localAsUtc = Date.UTC(
+    Number(values.year), Number(values.month) - 1, Number(values.day),
+    Number(values.hour), Number(values.minute), Number(values.second)
+  )
+  return new Date(utcMidnight - (localAsUtc - utcMidnight))
 }
 
 export async function getStatsProveedor(proveedorId: string): Promise<StatsProveedor> {
-  const fallback = { productosActivos: 0, cotizacionesPendientes: 0, sinStock: 0 }
+  const fallback = {
+    productosActivos: 0,
+    cotizacionesPendientes: 0,
+    sinStock: 0,
+    pedidosEsteMes: 0,
+    totalVendidoEsteMes: 0,
+  }
   if (!SUPABASE_DISPONIBLE) return fallback
 
   const supabase = await getServerClient()
 
-  const [productosRes, cotizacionesRes] = await Promise.all([
+  const now = new Date()
+  const rdParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santo_Domingo', year: 'numeric', month: '2-digit',
+  }).formatToParts(now)
+  const rd = Object.fromEntries(rdParts.map(({ type, value }) => [type, value]))
+  const year = Number(rd.year)
+  const month = Number(rd.month)
+  const inicioMes = inicioMesEnZona(year, month, 'America/Santo_Domingo').toISOString()
+  const siguienteMes = inicioMesEnZona(
+    month === 12 ? year + 1 : year,
+    month === 12 ? 1 : month + 1,
+    'America/Santo_Domingo'
+  ).toISOString()
+
+  const [productosRes, cotizacionesRes, pedidosRes] = await Promise.all([
     supabase
       .from('productos')
       .select('activo, stock')
@@ -242,16 +363,31 @@ export async function getStatsProveedor(proveedorId: string): Promise<StatsProve
       .select('estado')
       .eq('proveedor_id', proveedorId)
       .eq('estado', 'pendiente'),
+    supabase
+      .from('cotizaciones')
+      .select('items:items_cotizacion(precio_unitario,cantidad,cantidad_confirmada)')
+      .eq('proveedor_id', proveedorId)
+      .in('estado', ['aceptada', 'despachada', 'recibida'])
+      .gte('aceptada_at', inicioMes)
+      .lt('aceptada_at', siguienteMes),
   ])
 
   if (productosRes.error) propagarErrorLectura('getStatsProveedor', productosRes.error)
   if (cotizacionesRes.error) propagarErrorLectura('getStatsProveedor', cotizacionesRes.error)
-  if (productosRes.data === null || cotizacionesRes.data === null) errorSinDatos('getStatsProveedor')
+  if (pedidosRes.error) propagarErrorLectura('getStatsProveedor', pedidosRes.error)
+  if (productosRes.data === null || cotizacionesRes.data === null || pedidosRes.data === null) errorSinDatos('getStatsProveedor')
   const productos = productosRes.data
+  const totalVendidoEsteMes = pedidosRes.data.reduce((total, cotizacion) =>
+    total + (cotizacion.items ?? []).reduce((subtotal, item) =>
+      subtotal + (item.precio_unitario ?? 0) * (item.cantidad_confirmada ?? item.cantidad), 0
+    ), 0
+  )
   return {
     productosActivos: productos.filter((p) => p.activo).length,
     cotizacionesPendientes: cotizacionesRes.data.length,
     sinStock: productos.filter((p) => p.stock === 0).length,
+    pedidosEsteMes: pedidosRes.data.length,
+    totalVendidoEsteMes,
   }
 }
 
@@ -267,7 +403,7 @@ export async function getCotizacionesDeProveedor(proveedorId: string): Promise<C
       *,
       items:items_cotizacion(
         *,
-        producto:productos(nombre)
+        producto:productos(nombre, precio, stock, stock_reservado)
       )
     `)
     .eq('proveedor_id', proveedorId)
@@ -303,6 +439,68 @@ export async function getCotizacionesDelComprador(compradorId: string): Promise<
   return data as unknown as Cotizacion[]
 }
 
+// ─── Detalle compartido de una cotización ────────────────────
+
+export async function getCotizacionDetalle(cotizacionId: string): Promise<CotizacionDetalle | null> {
+  if (!SUPABASE_DISPONIBLE) return null
+
+  const supabase = await getServerClient()
+  const { data, error } = await supabase.rpc('get_cotizacion_detalle', {
+    p_cotizacion_id: cotizacionId,
+  })
+
+  if (error) {
+    if (error.code === '22P02' || error.message.includes('COTIZACION_NO_AUTORIZADA')) return null
+    propagarErrorLectura('getCotizacionDetalle', error)
+  }
+  if (data === null) return null
+  const detalle = data as unknown as CotizacionDetalle
+  if (detalle.estado !== 'pendiente' || !detalle.items.some((item) => item.producto != null)) {
+    return detalle
+  }
+
+  const productoIds = Array.from(new Set(
+    detalle.items
+      .filter((item) => item.producto != null)
+      .map((item) => item.producto_id)
+  ))
+  let productos: { id: string; stock: number; stock_reservado: number | null }[] | null
+  let errorProductos: unknown
+  try {
+    const resultado = await supabase
+      .from('productos')
+      .select('id, stock, stock_reservado')
+      .in('id', productoIds)
+    productos = resultado.data
+    errorProductos = resultado.error
+  } catch {
+    return detalle
+  }
+
+  if (errorProductos || productos === null) return detalle
+
+  const productoPorId = new Map(productos.map((producto) => [producto.id, producto]))
+  const detalleConInventario = {
+    ...detalle,
+    items: detalle.items.map((item) => {
+      if (item.producto == null) return item
+      const productoActual = productoPorId.get(item.producto_id)
+      if (!productoActual) return item
+      return {
+        ...item,
+        producto: {
+          ...item.producto,
+          stock: productoActual.stock,
+          stock_reservado: productoActual.stock_reservado,
+        },
+      }
+    }),
+  }
+  // El RPC tipa `producto` sin inventario y el tipo Producto no contempla que
+  // stock_reservado sea null, aunque ese es el valor que devuelve la base.
+  return detalleConInventario as unknown as CotizacionDetalle
+}
+
 // ─── Feedback público y feedback de una cotización ─────────
 
 export async function getFeedbackDeProveedor(
@@ -316,7 +514,7 @@ export async function getFeedbackDeProveedor(
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('feedback_publico')
-    .select('id, proveedor_id, calificacion, comentario, created_at, autor_anonimo')
+    .select('id, proveedor_id, calificacion, comentario, created_at, autor_anonimo, respuesta, respuesta_at')
     .eq('proveedor_id', proveedorId)
     .order('created_at', { ascending: false })
 
@@ -362,7 +560,7 @@ export async function getProducto(id: string): Promise<Producto | null> {
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('productos')
-    .select('*, proveedor:proveedores(*), categoria:categorias(*)')
+    .select('*, proveedor:proveedores(*), categoria:categorias(*), subcategoria:subcategorias(*)')
     .eq('id', id)
     .maybeSingle()
 

@@ -1,8 +1,10 @@
 # Resuélvelo
 
+[![CI](https://github.com/Pav-gm/resuelvelo/actions/workflows/ci.yml/badge.svg)](https://github.com/Pav-gm/resuelvelo/actions/workflows/ci.yml)
+
 Marketplace B2B que conecta compradores profesionales (contratistas, constructoras y PYMEs) con proveedores de materiales, insumos y servicios en República Dominicana. Los compradores exploran un catálogo multi-proveedor, arman un carrito y solicitan cotizaciones; los proveedores publican su catálogo y responden esas solicitudes desde un panel propio.
 
-**Demo en vivo:** [resuelveloapp.vercel.app](https://resuelveloapp.vercel.app) (MVP de Seminario I; el panel `/admin`, la protección centralizada de rutas y los filtros de precio/stock del catálogo están en el repositorio local y requieren un deploy nuevo para verse en esa URL) · **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
+**Demo en vivo:** [resuelveloapp.com](https://resuelveloapp.com) (MVP de Seminario I; el panel `/admin`, la protección centralizada de rutas y los filtros de precio/stock del catálogo están en el repositorio local y requieren un deploy nuevo para verse en esa URL) · **Video demo:** [ver en Google Drive](https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing)
 
 ![Home de Resuélvelo](docs/screenshots/01-home.png)
 
@@ -83,9 +85,13 @@ cp .env.example .env.local
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-public-key>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+BREVO_API_KEY=<clave-api-transaccional-de-brevo>
+EMAIL_FROM=Resuélvelo <notificaciones@resuelveloapp.com>
 ```
 
 > Si dejás `NEXT_PUBLIC_SUPABASE_URL` con el valor de ejemplo, la app sigue funcionando: el catálogo y los proveedores se sirven desde datos mock en `lib/mock.ts`, útil para explorar la interfaz sin configurar nada. El registro, login y cotizaciones sí requieren credenciales reales de Supabase.
+>
+> `BREVO_API_KEY` es la clave de API transaccional de Brevo. `EMAIL_FROM` es el remitente verificado, en el formato `Nombre <correo>`; el ejemplo es `Resuélvelo <notificaciones@resuelveloapp.com>`. Si no se configura la clave, la aplicación omite el envío de correo.
 
 ### 5. Correr en desarrollo
 
@@ -126,6 +132,8 @@ npm run verify    # todos los controles, en serie y con historial
 
 Para una pasada sin compilación: `npm run verify -- --quick`. Para seleccionar controles: `npm run verify -- --only docs,test`. Para consultar resultados anteriores: `npm run verify -- --history`.
 
+Qué ejecuta el job `CI` y cómo funciona el build sin secretos está en la [guía de verificación](docs/engineering/VERIFICATION.md).
+
 Los asistentes comparten [AGENTS.md](AGENTS.md), el [índice de documentación](docs/index/MASTER_INDEX.md) y la [guía de verificación](docs/engineering/VERIFICATION.md). El ejecutor guarda sus resultados en `docs/history/verification.jsonl`.
 
 ## Estructura del proyecto
@@ -162,7 +170,7 @@ Cubren: el store del carrito (`tests/carrito.test.ts`), la integridad de los dat
 
 ## Despliegue
 
-Desplegado en Vercel: **[resuelveloapp.vercel.app](https://resuelveloapp.vercel.app)** (framework Next.js autodetectado, sin configuración adicional). Variables de entorno configuradas en el proyecto de Vercel: las mismas tres de `.env.local`, con `NEXT_PUBLIC_SITE_URL=https://resuelveloapp.vercel.app`.
+Desplegado en Vercel: **[resuelveloapp.com](https://resuelveloapp.com)** (framework Next.js autodetectado, sin configuración adicional). Variables de entorno configuradas en el proyecto de Vercel: las de la sección anterior, con `NEXT_PUBLIC_SITE_URL=https://resuelveloapp.com`.
 
 Para desplegar tu propia copia:
 
@@ -176,6 +184,8 @@ Y configurar las variables de entorno desde el dashboard de Vercel (Project Sett
 npx vercel env add NEXT_PUBLIC_SUPABASE_URL production
 npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
 npx vercel env add NEXT_PUBLIC_SITE_URL production
+npx vercel env add BREVO_API_KEY production
+npx vercel env add EMAIL_FROM production
 ```
 
 ## Licencia

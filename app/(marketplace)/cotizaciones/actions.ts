@@ -3,7 +3,9 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { ItemCarrito } from '@/types'
+import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
+import type { TipoNotificacionEmail } from '@/lib/notificaciones-email'
+import type { CotizacionActionResult, ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
 
 // ─── Crear cotización(es) desde el carrito ───────────────────
 // Agrupa los items por proveedor y crea una cotización por cada uno.
@@ -75,12 +77,12 @@ export async function cotizarDesdeCarrito(
   // que puede provenir de datos mock (IDs no-UUID) o estar desactualizado.
   const todosLosProductoIds = items.map((i) => i.producto.id)
   const idsUuid = todosLosProductoIds.filter((id) => UUID_PRODUCTO.test(id))
-  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; activo: boolean }[]
+  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; stock_reservado: number | null; activo: boolean }[]
   try {
     if (idsUuid.length) {
       const { data, error } = await supabase
         .from('productos')
-        .select('id, proveedor_id, precio, stock, activo')
+        .select('id, proveedor_id, precio, stock, stock_reservado, activo')
         .in('id', idsUuid)
 
       if (error) return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
@@ -98,7 +100,7 @@ export async function cotizarDesdeCarrito(
     const productoDb = productoPorId.get(item.producto.id)
     return !productoDb || !productoDb.activo
   })
-  if (noDisponibles.length) {
+  if (noDisponibles.length && noDisponibles.length === items.length) {
     const nombres = noDisponibles.map((item) => {
       const nombre = (item.producto as { nombre?: unknown }).nombre
       return typeof nombre === 'string' && nombre.trim() ? nombre : 'uno de los productos'
@@ -109,17 +111,10 @@ export async function cotizarDesdeCarrito(
     }
   }
 
-  for (const item of items) {
-    const productoDb = productoPorId.get(item.producto.id)!
-    if (item.cantidad > productoDb.stock) {
-      return {
-        error: `No hay stock suficiente para ${item.producto.nombre ?? 'uno de los productos'} (disponible: ${productoDb.stock}, solicitado: ${item.cantidad}).`,
-      }
-    }
-  }
+  const itemsValidos = items.filter((item) => !noDisponibles.includes(item))
 
   const grupos: Record<string, ItemCarrito[]> = {}
-  for (const item of items) {
+  for (const item of itemsValidos) {
     const proveedorId = productoPorId.get(item.producto.id)!.proveedor_id
     if (!grupos[proveedorId]) grupos[proveedorId] = []
     grupos[proveedorId].push(item)
@@ -149,16 +144,23 @@ export async function cotizarDesdeCarrito(
 
     if (errCot || !cotizacion) continue
 
-    const itemsInsert = itemsGrupo.map((i) => ({
-      cotizacion_id: cotizacion.id,
-      producto_id: i.producto.id,
-      cantidad: i.cantidad,
-      precio_unitario: productoPorId.get(i.producto.id)!.precio,
-    }))
+    const itemsInsert = itemsGrupo.map((i) => {
+      const producto = productoPorId.get(i.producto.id)!
+      const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+      return {
+        cotizacion_id: cotizacion.id,
+        producto_id: i.producto.id,
+        cantidad: i.cantidad,
+        precio_unitario: producto.precio,
+        sujeta_disponibilidad: i.cantidad > disponible,
+        stock_al_cotizar: disponible,
+      }
+    })
 
     const { error: errItems } = await supabase.from('items_cotizacion').insert(itemsInsert)
     if (errItems) continue
 
+    await enviarNotificacionCotizacionEmail(cotizacion.id, 'nueva_solicitud')
     creadas++
   }
 
@@ -169,17 +171,18 @@ export async function cotizarDesdeCarrito(
   }
 
   revalidatePath('/mis-cotizaciones')
-  redirect('/mis-cotizaciones?enviada=1')
+  redirect(`/mis-cotizaciones?enviada=1${noDisponibles.length ? '&parcial=1' : ''}`)
 }
 
 // ─── Responder cotización (proveedor) ────────────────────────
 
-type EstadoCotizacion = 'aceptada' | 'rechazada'
+type EstadoCotizacion = 'rechazada'
 
 export async function responderCotizacion(
   cotizacionId: string,
   estado: EstadoCotizacion
 ): Promise<void> {
+  void estado
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -192,14 +195,77 @@ export async function responderCotizacion(
 
   if (!prov) return
 
-  const { error } = estado === 'aceptada'
-    ? await supabase.rpc('aceptar_cotizacion', { p_cotizacion_id: cotizacionId })
-    : await supabase.rpc('rechazar_cotizacion', { p_cotizacion_id: cotizacionId })
+  const { error } = await supabase.rpc('rechazar_cotizacion', { p_cotizacion_id: cotizacionId })
 
   if (error) return
 
+  const tipo: TipoNotificacionEmail = 'cotizacion_rechazada'
+  await enviarNotificacionCotizacionEmail(cotizacionId, tipo)
+
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
+}
+
+const RUTAS_DECISION_COTIZACION = (cotizacionId: string) => [
+  `/cotizaciones/${cotizacionId}`,
+  '/mis-cotizaciones',
+  '/proveedor',
+  '/proveedor/pedidos',
+]
+
+function revalidarDecisionCotizacion(cotizacionId: string): void {
+  for (const ruta of RUTAS_DECISION_COTIZACION(cotizacionId)) revalidatePath(ruta)
+}
+
+export async function aceptarOfertaCotizacion(cotizacionId: string): Promise<CotizacionActionResult> {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('aceptar_oferta_cotizacion', { p_cotizacion_id: cotizacionId })
+  if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_aceptada')
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
+}
+
+export async function rechazarOfertaCotizacion(
+  cotizacionId: string,
+  motivo: string
+): Promise<CotizacionActionResult> {
+  const motivoRecortado = typeof motivo === 'string' ? motivo.trim() : ''
+  if (motivoRecortado.length < 1 || motivoRecortado.length > 500) {
+    return { error: 'El motivo debe tener entre 1 y 500 caracteres.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('rechazar_oferta_cotizacion', {
+    p_cotizacion_id: cotizacionId,
+    p_motivo: motivoRecortado,
+  })
+  if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_rechazada')
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
+}
+
+export async function solicitarNuevaOferta(
+  cotizacionId: string,
+  nota: string
+): Promise<CotizacionActionResult> {
+  const notaRecortada = typeof nota === 'string' ? nota.trim() : ''
+  if (notaRecortada.length < 1 || notaRecortada.length > 500) {
+    return { error: 'El motivo debe tener entre 1 y 500 caracteres.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('solicitar_nueva_oferta', {
+    p_cotizacion_id: cotizacionId,
+    p_nota: notaRecortada,
+  })
+  if (error) return { error: error.message }
+
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
 }
 
 export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
@@ -207,21 +273,56 @@ export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
+  const { error } = await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
+  if (error) throw new Error(error.message)
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_recibida')
+
   revalidatePath('/mis-cotizaciones')
   revalidatePath('/proveedor/pedidos')
 }
 
-export async function cancelarVenta(cotizacionId: string): Promise<{ error: string } | null> {
+const OPCIONES_MOTIVO_CANCELACION: readonly OpcionMotivoCancelacion[] = [
+  'Ya no lo necesito',
+  'Encontré mejor precio',
+  'Error en el pedido',
+  'Sin stock',
+  'Otro',
+]
+
+export async function cancelarVenta(
+  cotizacionId: string,
+  motivo?: MotivoCancelacionInput
+): Promise<{ error: string } | null> {
+  const mensajeMotivoInvalido = 'Indica un motivo válido para cancelar.'
+  if (!motivo || !OPCIONES_MOTIVO_CANCELACION.includes(motivo.opcion)) {
+    return { error: mensajeMotivoInvalido }
+  }
+
+  let textoMotivo: string = motivo.opcion
+  if (motivo.opcion === 'Otro') {
+    if (
+      typeof motivo.detalle !== 'string' ||
+      !motivo.detalle.trim() ||
+      motivo.detalle.length > 500
+    ) {
+      return { error: mensajeMotivoInvalido }
+    }
+    textoMotivo = `Otro: ${motivo.detalle.trim()}`
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { error } = await supabase.rpc('cancelar_venta', {
     p_cotizacion_id: cotizacionId,
+    p_cancelada_motivo: textoMotivo,
   })
 
   if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_cancelada')
 
   revalidatePath('/proveedor/pedidos')
   revalidatePath('/mis-cotizaciones')

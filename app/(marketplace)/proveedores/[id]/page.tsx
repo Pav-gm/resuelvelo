@@ -1,12 +1,42 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Building2, MapPin, BadgeCheck, Package } from 'lucide-react'
+import type { Metadata } from 'next'
+import { Building2, MapPin, Package, Clock, MessageCircle, Phone, Globe } from 'lucide-react'
 import ErrorCarga from '@/components/marketplace/ErrorCarga'
+import InsigniaProveedorVerificado from '@/components/marketplace/InsigniaProveedorVerificado'
 import { getProveedores, getFeedbackDeProveedor } from '@/lib/data'
 import type { FeedbackPublico } from '@/types'
 
-export const metadata = {
-  title: 'Proveedor — Resuélvelo',
+const TITULO_GENERICO = 'Proveedor — Resuélvelo'
+
+// Normaliza el número de WhatsApp a dígitos; antepone `1` si son 10 dígitos
+// (formato local dominicano) para construir un enlace wa.me válido.
+function numeroWhatsApp(valor?: string | null): string | null {
+  if (!valor) return null
+  const digitos = valor.replace(/\D/g, '')
+  if (!digitos) return null
+  return digitos.length === 10 ? `1${digitos}` : digitos
+}
+
+// Normaliza el teléfono conservando un `+` inicial y quitando espacios.
+function numeroTelefono(valor?: string | null): string | null {
+  if (!valor) return null
+  const limpio = valor.replace(/\s/g, '')
+  return limpio || null
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const proveedores = await getProveedores().catch(() => null)
+  const proveedor = proveedores?.find((p) => p.id === id)
+  if (!proveedor?.nombre_empresa) {
+    return { title: TITULO_GENERICO }
+  }
+  return { title: `${proveedor.nombre_empresa} — Resuélvelo` }
 }
 
 function Estrellas({ calificacion }: { calificacion: number }) {
@@ -34,19 +64,30 @@ export default async function ProveedorPage({
   const feedback = await getFeedbackDeProveedor(proveedor.id).catch(() => null)
   if (!feedback) return <ErrorCarga />
 
+  const whatsapp = numeroWhatsApp(proveedor.whatsapp)
+  const telefono = numeroTelefono(proveedor.telefono)
+  const zonas = proveedor.zonas_cobertura ?? []
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="rounded-2xl bg-white border shadow-sm p-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-            <Building2 className="h-6 w-6" />
-          </div>
+          {proveedor.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={proveedor.logo_url}
+              alt={`Logo de ${proveedor.nombre_empresa}`}
+              className="h-12 w-12 shrink-0 rounded-xl border object-cover"
+            />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+              <Building2 className="h-6 w-6" aria-label={`Logo de ${proveedor.nombre_empresa}`} />
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <h1 className="text-xl font-bold text-gray-900">{proveedor.nombre_empresa}</h1>
-              {proveedor.verificado && (
-                <BadgeCheck className="h-5 w-5 shrink-0 text-blue-500" aria-label="Verificado" />
-              )}
+              <InsigniaProveedorVerificado fecha={proveedor.verificado_at} compacta />
             </div>
             {proveedor.ciudad && (
               <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-400">
@@ -56,6 +97,56 @@ export default async function ProveedorPage({
             )}
             {proveedor.descripcion && (
               <p className="mt-3 text-sm text-gray-500">{proveedor.descripcion}</p>
+            )}
+
+            {zonas.length > 0 && (
+              <p className="mt-2 text-xs text-gray-500">
+                <span className="font-medium text-gray-600">Cobertura:</span> {zonas.join(', ')}
+              </p>
+            )}
+
+            {proveedor.horario && (
+              <p className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                <Clock className="h-3 w-3 text-gray-400" />
+                {proveedor.horario}
+              </p>
+            )}
+
+            {proveedor.sitio_web && (
+              <a
+                href={proveedor.sitio_web}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-orange-500 hover:underline"
+              >
+                <Globe className="h-4 w-4" />
+                {proveedor.sitio_web}
+              </a>
+            )}
+
+            {(whatsapp || telefono) && (
+              <div className="mt-3 flex flex-wrap gap-3">
+                {whatsapp && (
+                  <a
+                    href={`https://wa.me/${whatsapp}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-100"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    WhatsApp
+                  </a>
+                )}
+                {telefono && (
+                  <a
+                    href={`tel:${telefono}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Llamar
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -112,6 +203,12 @@ export default async function ProveedorPage({
                 </div>
                 {reseña.comentario && (
                   <p className="mt-2 text-sm text-gray-700">{reseña.comentario}</p>
+                )}
+                {reseña.respuesta && reseña.respuesta.trim() && (
+                  <div className="mt-3 rounded-lg border bg-gray-50 px-4 py-3">
+                    <p className="text-xs font-medium text-gray-600">Respuesta del proveedor</p>
+                    <p className="mt-1 text-sm text-gray-700">{reseña.respuesta}</p>
+                  </div>
                 )}
               </li>
             ))}

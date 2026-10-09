@@ -41,6 +41,14 @@ El ejecutor usa `docs/history/verify.lock` para impedir dos ejecuciones simultá
 
 Los controles fallidos imprimen un extracto breve; consulta el log indicado para el detalle. Ningún control de este inventario aplica SQL remoto, crea commits, hace push o despliega. Next.js puede necesitar red para descargar fuentes durante el build; una restricción de red se registra como fallo, no como un pase.
 
+## GitHub Actions
+
+El workflow `CI` corre en todos los pull requests y en los pushes a `dev` y `main`. El job `CI` usa Node 20 con caché de npm y ejecuta, en este orden, `npm ci`, `npm run docs:check`, `npm run test`, `npm run lint`, `npm run typecheck` y `npm run build`.
+
+Los secretos `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` son opcionales para este build. Cuando faltan, el workflow utiliza `https://<project-ref>.supabase.co` y `mock-anon-key`. La URL de ejemplo activa el fallback mock de `lib/data.ts`, y las pruebas existentes cubren ese fallback.
+
+El check todavía no es obligatorio. La decisión sobre protección de ramas queda pendiente de Pavel. Esta ejecución no altera el inventario ni el comportamiento de `npm run verify`.
+
 ## Mantener la documentación ligera
 
 `npm run docs:check` valida los enlaces de las entradas, las guías operativas y el índice; exige que todos los documentos Markdown bajo `docs/` estén indexados (excepto el índice mismo y logs). Sus presupuestos locales son 120 líneas/8 KB para `AGENTS.md`, 512 bytes para `CLAUDE.md` y 1.5 KB por adaptador de Cursor. Son límites de mantenimiento del proyecto, no una estimación de tokens ni un límite del producto.

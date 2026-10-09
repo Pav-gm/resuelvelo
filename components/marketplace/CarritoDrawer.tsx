@@ -39,8 +39,10 @@ export default function CarritoDrawer() {
         }
         setError(result.error)
       }
-      // En éxito, la Server Action redirige; vaciar el carrito aquí
-      // no es necesario porque el redirect navega fuera del componente.
+      // Un envío mixto lo resuelve el servidor en esta misma invocación: cotiza
+      // las líneas válidas y redirige. El drawer no reintenta ni genera una
+      // segunda solicitud; solo el caso sin líneas válidas devuelve error con
+      // `noDisponibles`, que aquí se quitan y se avisa.
     })
   }
 
@@ -83,7 +85,11 @@ export default function CarritoDrawer() {
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-                  {items.map(({ producto, cantidad }) => (
+                  {items.map(({ producto, cantidad }) => {
+                    // Stock disponible: total menos las unidades reservadas.
+                    const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+                    const alMaximo = cantidad >= disponible
+                    return (
                     <div key={producto.id} className="flex gap-3 items-start">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 line-clamp-2">{producto.nombre}</p>
@@ -91,6 +97,9 @@ export default function CarritoDrawer() {
                         <p className="mt-0.5 text-sm font-semibold text-orange-500">
                           ${producto.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {producto.unidad}
                         </p>
+                        {alMaximo && (
+                          <p className="mt-0.5 text-xs text-gray-500">Máximo en carrito: {disponible}</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
@@ -104,7 +113,7 @@ export default function CarritoDrawer() {
                         <button
                           onClick={() => actualizarCantidad(producto.id, cantidad + 1)}
                           className="rounded-md border p-1 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                          disabled={producto.stock <= 0 || cantidad >= producto.stock}
+                          disabled={disponible <= 0 || alMaximo}
                           aria-label="Aumentar cantidad"
                         >
                           <Plus className="h-3 w-3" />
@@ -118,7 +127,8 @@ export default function CarritoDrawer() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 <div className="border-t px-5 py-4 space-y-3">

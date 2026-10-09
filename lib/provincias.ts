@@ -1,0 +1,38 @@
+export const PROVINCIAS = [
+  'Azua',
+  'Baoruco',
+  'Barahona',
+  'Dajabón',
+  'Distrito Nacional',
+  'Duarte',
+  'El Seibo',
+  'Elías Piña',
+  'Espaillat',
+  'Hato Mayor',
+  'Hermanas Mirabal',
+  'Independencia',
+  'La Altagracia',
+  'La Romana',
+  'La Vega',
+  'María Trinidad Sánchez',
+  'Monseñor Nouel',
+  'Monte Cristi',
+  'Monte Plata',
+  'Pedernales',
+  'Peravia',
+  'Puerto Plata',
+  'Samaná',
+  'Sánchez Ramírez',
+  'San Cristóbal',
+  'San José de Ocoa',
+  'San Juan',
+  'San Pedro de Macorís',
+  'Santiago',
+  'Santiago Rodríguez',
+  'Santo Domingo',
+  'Valverde',
+] as const
+
+export const PROVINCIAS_RD = PROVINCIAS
+
+export type Provincia = (typeof PROVINCIAS)[number]
