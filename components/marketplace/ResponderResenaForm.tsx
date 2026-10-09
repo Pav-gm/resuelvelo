@@ -14,23 +14,21 @@ function mensajeDeError(code: string): string {
   return ERRORES[code] ?? ERRORES.FEEDBACK_RESPUESTA_ERROR
 }
 
-export default function ResponderResenaForm({ feedbackId }: { feedbackId: string }) {
+export default function ResponderResenaForm({
+  feedbackId,
+  respuesta,
+}: {
+  feedbackId: string
+  respuesta?: string | null
+}) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [publicada, setPublicada] = useState(false)
 
-  // Tras el éxito el formulario se reemplaza por el mensaje. El mensaje
-  // permanece visible (no se descarta con un temporizador) para que el
-  // proveedor pueda leerlo.
-  if (publicada) {
-    return (
-      <p className="text-sm font-medium text-teal-700" role="status" aria-live="polite">
-        Respuesta publicada.
-      </p>
-    )
-  }
-
+  // El formulario sigue disponible tras el éxito; el mensaje «Respuesta
+  // publicada.» permanece visible (sin temporizador) hasta que el proveedor
+  // edite el texto o vuelva a enviar.
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (enviando) return
@@ -42,6 +40,8 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
     }
 
     setError(null)
+    // Un nuevo envío borra el estado anterior antes de llamar a la acción.
+    setPublicada(false)
     setEnviando(true)
 
     const resultado = await responderFeedbackProveedor(feedbackId, textoLimpio)
@@ -57,36 +57,58 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="Responder reseña" className="flex flex-col">
-      <label
-        htmlFor={`respuesta-${feedbackId}`}
-        className="text-xs font-medium text-gray-600"
-      >
-        Respuesta
-      </label>
-      <textarea
-        id={`respuesta-${feedbackId}`}
-        value={texto}
-        onChange={(e) => setTexto(e.target.value)}
-        maxLength={1000}
-        rows={3}
-        disabled={enviando}
-        className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60"
-      />
+    <>
+      {respuesta != null ? (
+        // La reseña ya tiene respuesta: el bloque sustituye al formulario, pero
+        // el estado «Respuesta publicada.» se conserva porque el componente
+        // sigue montado en la misma posición del árbol tras la revalidación.
+        <div className="rounded-lg border bg-gray-50 px-4 py-3">
+          <p className="text-xs font-medium text-gray-600">Tu respuesta</p>
+          <p className="mt-1 text-sm text-gray-700">{respuesta}</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} aria-label="Responder reseña" className="flex flex-col">
+          <label
+            htmlFor={`respuesta-${feedbackId}`}
+            className="text-xs font-medium text-gray-600"
+          >
+            Respuesta
+          </label>
+          <textarea
+            id={`respuesta-${feedbackId}`}
+            value={texto}
+            onChange={(e) => {
+              setTexto(e.target.value)
+              // Al editar, se oculta el estado y se permite un nuevo envío.
+              setPublicada(false)
+            }}
+            maxLength={1000}
+            rows={3}
+            disabled={enviando}
+            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60"
+          />
 
-      {error && (
-        <p className="mt-2 text-sm text-red-600" role="alert">
-          {error}
-        </p>
+          {error && (
+            <p className="mt-2 text-sm text-red-600" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={enviando || !texto.trim()}
+            className="mt-2 w-fit rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {enviando ? 'Publicando…' : 'Publicar respuesta'}
+          </button>
+        </form>
       )}
 
-      <button
-        type="submit"
-        disabled={enviando || !texto.trim()}
-        className="mt-2 w-fit rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {enviando ? 'Publicando…' : 'Publicar respuesta'}
-      </button>
-    </form>
+      {publicada && (
+        <p className="mt-2 text-sm font-medium text-teal-700" role="status" aria-live="polite">
+          Respuesta publicada.
+        </p>
+      )}
+    </>
   )
 }
