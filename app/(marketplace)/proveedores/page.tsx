@@ -22,7 +22,7 @@ function numeroTelefono(valor?: string | null): string | null {
 
 export const metadata = {
   title: 'Proveedores — Resuélvelo',
-  description: 'Conoce a los proveedores verificados de materiales e insumos.',
+  description: 'Conoce a los proveedores de materiales e insumos y cuáles tienen la insignia «Verificado» de Resuélvelo.',
 }
 
 export default async function ProveedoresPage() {
