@@ -65,3 +65,23 @@ export async function marcarTodasLasNotificacionesLeidas(): Promise<{ error: str
     error: error ? 'No se pudieron marcar las notificaciones como leídas.' : null,
   }
 }
+
+export async function marcarNotificacionLeida(id: string): Promise<{ error: string | null }> {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: ERROR_SESION }
+  }
+
+  const { error } = await supabase
+    .from('notificaciones')
+    .update({ leida_at: new Date().toISOString() })
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .is('leida_at', null)
+
+  return {
+    error: error ? 'No se pudo marcar la notificación como leída.' : null,
+  }
+}
