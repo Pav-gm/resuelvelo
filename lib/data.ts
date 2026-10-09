@@ -5,6 +5,7 @@ import type {
   Feedback,
   FeedbackPublico,
   Producto,
+  PerfilProveedor,
   Proveedor,
   ResumenFeedbackProveedor,
   Subcategoria,
@@ -163,6 +164,11 @@ export async function getProductosDeProveedor(proveedorId: string): Promise<Prod
 
 export interface ProveedorConConteo extends Proveedor {
   productos_count: number
+  zonas_cobertura: string[]
+}
+
+function ordenarZonas(zonas: Array<{ provincia: string }> | null | undefined): string[] {
+  return (zonas ?? []).map((zona) => zona.provincia).sort((a, b) => compareNames(a, b))
 }
 
 export async function getProveedores(): Promise<ProveedorConConteo[]> {
@@ -173,6 +179,7 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
     }
     return [...map.values()].map((prov) => ({
       ...prov,
+      zonas_cobertura: [...(prov.zonas_cobertura ?? [])].sort(compareNames),
       productos_count: PRODUCTOS_MOCK.filter(
         (p) => p.proveedor?.id === prov.id && p.activo
       ).length,
@@ -182,7 +189,7 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('proveedores')
-    .select('*, productos(count)')
+    .select('*, productos(count), proveedor_zonas(provincia)')
     .eq('productos.activo', true)
     .order('nombre_empresa')
 
@@ -190,14 +197,52 @@ export async function getProveedores(): Promise<ProveedorConConteo[]> {
   if (data === null) errorSinDatos('getProveedores')
 
   return data.map((prov) => {
-    const { productos, ...rest } = prov as Proveedor & {
+    const { productos, proveedor_zonas, ...rest } = prov as Proveedor & {
       productos?: { count: number }[]
+      proveedor_zonas?: Array<{ provincia: string }>
     }
     return {
       ...(rest as Proveedor),
+      zonas_cobertura: ordenarZonas(proveedor_zonas),
       productos_count: productos?.[0]?.count ?? 0,
     }
   })
+}
+
+export async function getPerfilProveedorDelUsuario(): Promise<PerfilProveedor | null> {
+  if (!SUPABASE_DISPONIBLE) return null
+
+  const supabase = await getServerClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError) propagarErrorLectura('getPerfilProveedorDelUsuario', userError)
+  if (!user) return null
+
+  const { data, error } = await supabase
+    .from('proveedores')
+    .select('*, proveedor_zonas(provincia)')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (error) propagarErrorLectura('getPerfilProveedorDelUsuario', error)
+  if (!data) return null
+
+  const { proveedor_zonas, ...proveedor } = data as Proveedor & {
+    rnc?: string | null
+    telefono?: string | null
+    whatsapp?: string | null
+    horario?: string | null
+    sitio_web?: string | null
+    proveedor_zonas?: Array<{ provincia: string }>
+  }
+  return {
+    ...proveedor,
+    rnc: proveedor.rnc ?? null,
+    telefono: proveedor.telefono ?? null,
+    whatsapp: proveedor.whatsapp ?? null,
+    horario: proveedor.horario ?? null,
+    sitio_web: proveedor.sitio_web ?? null,
+    zonas_cobertura: ordenarZonas(proveedor_zonas),
+  }
 }
 
 // ─── Proveedor del usuario autenticado ───────────────────────

@@ -71,6 +71,7 @@ const PROVEEDORES: ProveedorConConteo[] = [
     verificado: true,
     created_at: '',
     productos_count: 4,
+    zonas_cobertura: [],
   },
   {
     id: 'p2',
@@ -79,6 +80,7 @@ const PROVEEDORES: ProveedorConConteo[] = [
     verificado: true,
     created_at: '',
     productos_count: 3,
+    zonas_cobertura: [],
   },
 ]
 
