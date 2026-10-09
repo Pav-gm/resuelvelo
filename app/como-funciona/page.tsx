@@ -66,6 +66,26 @@ export default function ComoFuncionaPage() {
         </div>
       </section>
 
+      <section id="verificacion-proveedores" className="mb-12 scroll-mt-20">
+        <h2 className="mb-6 text-xl font-semibold text-gray-900">
+          Cómo verificamos a los proveedores
+        </h2>
+        <div className="space-y-3 rounded-2xl bg-white border shadow-sm p-6 text-sm text-gray-600">
+          <p>
+            Cuando una empresa solicita la verificación, nuestro equipo revisa su RNC y sus datos de
+            contacto para confirmar que corresponden a una empresa real.
+          </p>
+          <p>
+            La insignia «Verificado» aparece en su perfil público y en sus productos solo después de
+            que la revisión sea aprobada, e indica la fecha en que se realizó.
+          </p>
+          <p>
+            La revisión comprueba los datos de identificación y contacto; no garantiza la calidad de
+            los productos ni el cumplimiento de las transacciones.
+          </p>
+        </div>
+      </section>
+
       <div className="rounded-2xl bg-orange-500 p-8 text-center text-white">
         <h2 className="text-xl font-semibold">¿Listo para empezar?</h2>
         <p className="mt-1 text-orange-50">Es gratis, siempre.</p>

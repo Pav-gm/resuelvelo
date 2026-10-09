@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { Building2, MapPin, BadgeCheck, Package, Clock, MessageCircle, Phone, Globe } from 'lucide-react'
+import { Building2, MapPin, Package, Clock, MessageCircle, Phone, Globe } from 'lucide-react'
 import ErrorCarga from '@/components/marketplace/ErrorCarga'
+import InsigniaProveedorVerificado from '@/components/marketplace/InsigniaProveedorVerificado'
 import { getProveedores, getFeedbackDeProveedor } from '@/lib/data'
 import type { FeedbackPublico } from '@/types'
 
@@ -86,9 +87,7 @@ export default async function ProveedorPage({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <h1 className="text-xl font-bold text-gray-900">{proveedor.nombre_empresa}</h1>
-              {proveedor.verificado && (
-                <BadgeCheck className="h-5 w-5 shrink-0 text-blue-500" aria-label="Verificado" />
-              )}
+              <InsigniaProveedorVerificado fecha={proveedor.verificado_at} compacta />
             </div>
             {proveedor.ciudad && (
               <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-400">

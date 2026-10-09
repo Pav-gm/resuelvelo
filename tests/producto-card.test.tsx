@@ -103,6 +103,48 @@ describe('ProductoCard — enlace a la ficha', () => {
   })
 })
 
+describe('ProductoCard — insignia de proveedor verificado', () => {
+  it('la tarjeta muestra insignia con fecha y enlace solo si el proveedor está verificado', () => {
+    render(
+      <ProductoCard
+        producto={producto({
+          proveedor: {
+            id: 'prov-1',
+            user_id: 'user-1',
+            nombre_empresa: 'Promeria',
+            verificado: true,
+            verificacion_estado: 'verificado',
+            verificado_at: '2026-01-02T00:00:00.000Z',
+            created_at: '',
+          },
+        })}
+      />
+    )
+
+    const insignia = screen.getByRole('link', { name: 'Verificado' })
+    expect(insignia).toHaveAttribute('href', '/como-funciona#verificacion-proveedores')
+    expect(insignia).toHaveAttribute('title', expect.stringContaining('2 de enero de 2026'))
+
+    cleanup()
+
+    render(
+      <ProductoCard
+        producto={producto({
+          proveedor: {
+            id: 'prov-1',
+            user_id: 'user-1',
+            nombre_empresa: 'Promeria',
+            verificado: true,
+            created_at: '',
+          },
+        })}
+      />
+    )
+
+    expect(screen.queryByRole('link', { name: 'Verificado' })).toBeNull()
+  })
+})
+
 describe('ProductoCard — estados de stock', () => {
   it('muestra Agregar habilitado cuando hay stock y el carrito no llegó al tope', () => {
     render(<ProductoCard producto={producto({ stock: 5 })} />)

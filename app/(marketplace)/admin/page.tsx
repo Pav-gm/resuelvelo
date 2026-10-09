@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCategorias, getSubcategorias } from '@/lib/data'
 import AdminProductoSubcategoria from '@/components/marketplace/AdminProductoSubcategoria'
+import AdminVerificacionAcciones from '@/components/marketplace/AdminVerificacionAcciones'
 import ToggleActivoButton from './ToggleActivoButton'
 
 const estadoBadge: Record<string, string> = {
@@ -45,11 +46,16 @@ export default async function AdminPage() {
 
   if (profile?.rol !== 'admin') redirect('/catalogo')
 
-  const [proveedoresRes, productosRes, cotizacionesRes, categorias, subcategorias] = await Promise.all([
+  const [proveedoresRes, solicitudesRes, productosRes, cotizacionesRes, categorias, subcategorias] = await Promise.all([
     supabase
       .from('proveedores')
       .select('id, nombre_empresa, ciudad, verificado')
       .order('nombre_empresa', { ascending: true }),
+    supabase
+      .from('proveedores')
+      .select('id, nombre_empresa, rnc, telefono, ciudad, direccion, verificacion_solicitada_at, verificacion_nota')
+      .eq('verificacion_estado', 'pendiente')
+      .order('verificacion_solicitada_at', { ascending: true }),
     supabase
       .from('productos')
       .select('id, nombre, precio, stock, activo, categoria_id, subcategoria_id, proveedor:proveedores(nombre_empresa)')
@@ -74,6 +80,7 @@ export default async function AdminPage() {
   ])
 
   const proveedores = proveedoresRes.data ?? []
+  const solicitudes = solicitudesRes.data ?? []
   const productos = productosRes.data ?? []
   const cotizaciones = cotizacionesRes.data ?? []
   const categoriaPorId = new Map(categorias.map((cat) => [cat.id, cat.nombre]))
@@ -85,6 +92,55 @@ export default async function AdminPage() {
         <p className="mt-1 text-gray-500">
           Revisa proveedores, productos y cotizaciones de la plataforma.
         </p>
+      </div>
+
+      <div className="rounded-2xl bg-white border shadow-sm mb-8" data-testid="verificaciones-pendientes">
+        <div className="px-6 py-4 border-b">
+          <h2 className="font-semibold text-gray-900">Verificaciones pendientes</h2>
+        </div>
+        <div className="divide-y">
+          {solicitudes.map((p) => (
+            <div key={p.id} data-testid="verificacion-row" className="px-6 py-4 flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900">{p.nombre_empresa}</p>
+                <dl className="mt-1 grid gap-x-6 gap-y-0.5 text-xs text-gray-500 sm:grid-cols-2">
+                  <div>
+                    <dt className="inline text-gray-400">RNC: </dt>
+                    <dd className="inline">{p.rnc || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="inline text-gray-400">Teléfono: </dt>
+                    <dd className="inline">{p.telefono || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="inline text-gray-400">Ciudad: </dt>
+                    <dd className="inline">{p.ciudad || '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="inline text-gray-400">Dirección: </dt>
+                    <dd className="inline">{p.direccion || '—'}</dd>
+                  </div>
+                </dl>
+                {p.verificacion_solicitada_at && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Solicitada el{' '}
+                    {new Date(p.verificacion_solicitada_at).toLocaleDateString('es-DO', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                )}
+              </div>
+              <AdminVerificacionAcciones proveedorId={p.id} />
+            </div>
+          ))}
+          {solicitudes.length === 0 && (
+            <p className="px-6 py-8 text-center text-sm text-gray-400">
+              No hay verificaciones pendientes.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="rounded-2xl bg-white border shadow-sm mb-8">
