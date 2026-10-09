@@ -193,3 +193,5 @@ $$;
 
 revoke execute on function public.aceptar_cotizacion_con_cantidades(uuid, jsonb) from public, anon;
 grant execute on function public.aceptar_cotizacion_con_cantidades(uuid, jsonb) to authenticated;
+revoke execute on function public.aceptar_cotizacion(uuid) from public, anon;
+grant execute on function public.aceptar_cotizacion(uuid) to authenticated;
