@@ -138,6 +138,8 @@ describe('tarjetas públicas de proveedores', () => {
         }),
         productos_count: 2,
         zonas_cobertura: ['Santiago', 'La Vega'],
+        promedio_feedback: 4.5,
+        conteo_feedback: 2,
       },
     ])
 
@@ -149,6 +151,8 @@ describe('tarjetas públicas de proveedores', () => {
     expect(screen.getByText('Cobertura:')).toBeInTheDocument()
     expect(screen.getByText(/Santiago, La Vega/)).toBeInTheDocument()
     expect(screen.getByText('Lun a vie')).toBeInTheDocument()
+    expect(screen.getByText('4.50')).toBeInTheDocument()
+    expect(screen.getByText('(2 reseñas)')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Logo de Promeria' })).toHaveAttribute('src', LOGO_URL)
     expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute(
       'href',
@@ -166,6 +170,8 @@ describe('tarjetas públicas de proveedores', () => {
         ...proveedorBase({ id: 'prov-2', nombre_empresa: 'Ferretería A' }),
         productos_count: 0,
         zonas_cobertura: [],
+        promedio_feedback: 0,
+        conteo_feedback: 0,
       },
     ])
 
@@ -177,6 +183,8 @@ describe('tarjetas públicas de proveedores', () => {
     expect(screen.queryByRole('link', { name: 'Llamar' })).toBeNull()
     expect(screen.queryByText(/Cobertura:/)).toBeNull()
     expect(screen.queryByText('Lun a vie')).toBeNull()
+    expect(screen.queryByText('(0 reseñas)')).toBeNull()
+    expect(screen.queryByText('0.00')).toBeNull()
   })
 })
 

@@ -23,6 +23,7 @@ const h = vi.hoisted(() => ({
   getCotizacionesDeProveedor: vi.fn(),
   getProductosDeProveedor: vi.fn(),
   getCotizacionesDelComprador: vi.fn(),
+  getFeedbackDeProveedor: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -61,6 +62,7 @@ vi.mock('@/lib/data', () => ({
   getCotizacionesDeProveedor: h.getCotizacionesDeProveedor,
   getProductosDeProveedor: h.getProductosDeProveedor,
   getCotizacionesDelComprador: h.getCotizacionesDelComprador,
+  getFeedbackDeProveedor: h.getFeedbackDeProveedor,
 }))
 
 const detalleBase = {
@@ -86,6 +88,7 @@ beforeEach(() => {
   h.getCotizacionesDeProveedor.mockResolvedValue([])
   h.getProductosDeProveedor.mockResolvedValue([])
   h.getCotizacionesDelComprador.mockResolvedValue([])
+  h.getFeedbackDeProveedor.mockResolvedValue(null)
 })
 
 afterEach(() => {

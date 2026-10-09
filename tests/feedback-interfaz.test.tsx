@@ -46,6 +46,8 @@ const h = vi.hoisted(() => {
         comentario?: string | null
         created_at: string
         autor_anonimo: string
+        respuesta?: string | null
+        respuesta_at?: string | null
         comprador_id?: string
         email?: string
       }[],
@@ -59,6 +61,7 @@ const h = vi.hoisted(() => {
     aceptarCotizacionConCantidades: vi.fn(),
     ofertarCotizacion: vi.fn(),
     rechazarCotizacionConMotivo: vi.fn(),
+    responderFeedbackProveedor: vi.fn(),
   }
 })
 
@@ -117,6 +120,7 @@ vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   eliminarProducto: vi.fn(),
   crearProducto: vi.fn(),
   actualizarProducto: vi.fn(),
+  responderFeedbackProveedor: h.responderFeedbackProveedor,
 }))
 
 import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
@@ -242,6 +246,7 @@ beforeEach(() => {
   h.aceptarCotizacionConCantidades.mockReset()
   h.ofertarCotizacion.mockReset()
   h.rechazarCotizacionConMotivo.mockReset()
+  h.responderFeedbackProveedor.mockReset()
 })
 
 afterEach(() => {
@@ -486,7 +491,7 @@ describe('Mis cotizaciones — acción solo en elegibles', () => {
 })
 
 describe('Perfil público y bandejas — badges sin acción de reseña', () => {
-  it('muestra promedio, conteo y autor anonimizado', async () => {
+  it('muestra la respuesta del proveedor en el perfil público', async () => {
     h.resumen = {
       promedio: 4.5,
       conteo: 2,
@@ -498,6 +503,8 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
           comentario: 'Entrega a tiempo',
           created_at: '2026-03-01T12:00:00.000Z',
           autor_anonimo: 'Comprador verificado',
+          respuesta: 'Gracias por tu confianza.',
+          respuesta_at: '2026-03-02T12:00:00.000Z',
           comprador_id: 'usuario-secreto-99',
           email: 'secreto@correo.com',
         },
@@ -508,6 +515,7 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
           comentario: null,
           created_at: '2026-02-01T12:00:00.000Z',
           autor_anonimo: 'Comprador verificado',
+          respuesta: null,
         },
       ],
     }
@@ -521,6 +529,8 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     expect(seccion).toHaveTextContent('Comprador verificado')
     expect(seccion).toHaveTextContent('Entrega a tiempo')
     expect(seccion).toHaveTextContent('5 de 5 estrellas')
+    expect(within(seccion).getAllByText('Respuesta del proveedor')).toHaveLength(1)
+    expect(within(seccion).getAllByText('Gracias por tu confianza.')).toHaveLength(1)
     expect(seccion).not.toHaveTextContent('usuario-secreto-99')
     expect(seccion).not.toHaveTextContent('secreto@correo.com')
     expect(screen.queryByRole('button', { name: 'Enviar reseña' })).not.toBeInTheDocument()
@@ -537,6 +547,50 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
 
     expect(screen.getByText('Este proveedor aún no tiene reseñas.')).toBeInTheDocument()
     expect(screen.queryByText(/reseñas\)/)).not.toBeInTheDocument()
+  })
+
+  it('el panel muestra reseñas y permite publicar una respuesta', async () => {
+    h.resumen = {
+      promedio: 4.5,
+      conteo: 1,
+      reseñas: [
+        {
+          id: 'fb-1',
+          proveedor_id: 'prov-1',
+          calificacion: 5,
+          comentario: 'Entrega a tiempo',
+          created_at: '2026-03-01T12:00:00.000Z',
+          autor_anonimo: 'Comprador verificado',
+          respuesta: null,
+        },
+      ],
+    }
+    h.responderFeedbackProveedor.mockResolvedValue({ success: true })
+
+    const ui = await PanelProveedorPage()
+    render(ui)
+
+    const seccion = screen.getByRole('region', { name: 'Reseñas' })
+    expect(seccion).toHaveTextContent('4.50')
+    expect(seccion).toHaveTextContent('(1 reseña)')
+    expect(seccion).toHaveTextContent('Entrega a tiempo')
+
+    const formulario = within(seccion).getByRole('form', { name: 'Responder reseña' })
+    expect(within(formulario).getByLabelText('Respuesta')).toHaveProperty('maxLength', 1000)
+
+    fireEvent.change(within(formulario).getByLabelText('Respuesta'), {
+      target: { value: 'Gracias por compartir tu experiencia.' },
+    })
+    fireEvent.click(within(formulario).getByRole('button', { name: 'Publicar respuesta' }))
+
+    await waitFor(() => {
+      expect(h.responderFeedbackProveedor).toHaveBeenCalledWith(
+        'fb-1',
+        'Gracias por compartir tu experiencia.'
+      )
+    })
+    expect(await screen.findByText('Respuesta publicada.')).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Responder reseña' })).not.toBeInTheDocument()
   })
 
   it('la bandeja del proveedor muestra el badge y no la acción de reseña', async () => {

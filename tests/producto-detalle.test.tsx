@@ -2,18 +2,20 @@
  * Tests de la ficha pública de producto (página de servidor).
  */
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ProductoPage from '@/app/(marketplace)/productos/[id]/page'
 import type { Producto } from '@/types'
 
 const mocks = vi.hoisted(() => ({
   getProductoMock: vi.fn(),
+  getFeedbackDeProveedorMock: vi.fn(),
   notFoundMock: vi.fn(),
   redirectMock: vi.fn(),
 }))
 
 vi.mock('@/lib/data', () => ({
   getProducto: mocks.getProductoMock,
+  getFeedbackDeProveedor: mocks.getFeedbackDeProveedorMock,
 }))
 
 vi.mock('next/navigation', () => ({
@@ -61,9 +63,14 @@ async function renderFicha() {
   render(ui)
 }
 
+beforeEach(() => {
+  mocks.getFeedbackDeProveedorMock.mockResolvedValue({ reseñas: [], promedio: 0, conteo: 0 })
+})
+
 afterEach(() => {
   cleanup()
   mocks.getProductoMock.mockReset()
+  mocks.getFeedbackDeProveedorMock.mockReset()
   mocks.notFoundMock.mockReset()
   mocks.redirectMock.mockReset()
 })
@@ -117,5 +124,44 @@ describe('ProductoPage — ficha pública', () => {
 
     expect(screen.getByText('Stock disponible')).toBeInTheDocument()
     expect(screen.getByText('8')).toBeInTheDocument()
+  })
+
+  it('muestra la calificación del proveedor junto al nombre en la ficha', async () => {
+    mocks.getProductoMock.mockResolvedValue(producto())
+    mocks.getFeedbackDeProveedorMock.mockResolvedValue({
+      reseñas: [],
+      promedio: 4.5,
+      conteo: 2,
+    })
+    await renderFicha()
+
+    expect(screen.getByText('Tubo PVC')).toBeInTheDocument()
+    expect(screen.getByText('Promeria')).toBeInTheDocument()
+    expect(screen.getByText('4.50')).toBeInTheDocument()
+    expect(screen.getByText('(2 reseñas)')).toBeInTheDocument()
+  })
+
+  it('mantiene la ficha si el proveedor no tiene reseñas o falla la lectura', async () => {
+    mocks.getProductoMock.mockResolvedValue(producto())
+    mocks.getFeedbackDeProveedorMock.mockResolvedValue({
+      reseñas: [],
+      promedio: 0,
+      conteo: 0,
+    })
+    await renderFicha()
+
+    expect(screen.getByText('Tubo PVC')).toBeInTheDocument()
+    expect(screen.queryByText('4.50')).toBeNull()
+    expect(screen.queryByText(/reseñas\)/)).toBeNull()
+
+    cleanup()
+
+    mocks.getProductoMock.mockResolvedValue(producto())
+    mocks.getFeedbackDeProveedorMock.mockRejectedValue(new Error('timeout'))
+    await renderFicha()
+
+    expect(screen.getByText('Tubo PVC')).toBeInTheDocument()
+    expect(screen.queryByText('4.50')).toBeNull()
+    expect(screen.queryByText(/reseñas\)/)).toBeNull()
   })
 })

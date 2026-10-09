@@ -81,6 +81,22 @@ export default async function ProveedoresPage() {
                       {prov.ciudad}
                     </p>
                   )}
+                  {(prov.conteo_feedback ?? 0) > 0 && (
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                      <span className="font-semibold text-gray-900">
+                        {(prov.promedio_feedback ?? 0).toFixed(2)}
+                      </span>
+                      <span className="text-yellow-400" aria-hidden="true">
+                        {'★'.repeat(Math.round(prov.promedio_feedback ?? 0))}
+                        <span className="text-gray-300">
+                          {'★'.repeat(5 - Math.round(prov.promedio_feedback ?? 0))}
+                        </span>
+                      </span>
+                      <span>
+                        ({prov.conteo_feedback} reseña{prov.conteo_feedback !== 1 ? 's' : ''})
+                      </span>
+                    </p>
+                  )}
                 </div>
               </div>
 

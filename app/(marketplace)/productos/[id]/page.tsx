@@ -5,7 +5,7 @@ import { BadgeCheck } from 'lucide-react'
 import ProductoImagen from '@/components/marketplace/ProductoImagen'
 import { creditoFoto } from '@/lib/creditos-fotos'
 import AgregarProductoButton from '@/components/marketplace/AgregarProductoButton'
-import { getProducto } from '@/lib/data'
+import { getProducto, getFeedbackDeProveedor } from '@/lib/data'
 
 interface ProductoPageProps {
   params: Promise<{ id: string }>
@@ -43,6 +43,10 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
   if (!producto) notFound()
 
   const proveedor = producto.proveedor
+  // Un error o la ausencia de reseñas nunca debe impedir mostrar la ficha.
+  const resumenResenas = proveedor
+    ? await getFeedbackDeProveedor(proveedor.id).catch(() => null)
+    : null
   const itbisIncluido = producto.itbis_incluido !== false
   // Existencias disponibles: stock total menos las unidades reservadas.
   const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
@@ -90,6 +94,22 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
                 <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
                   <BadgeCheck className="h-3.5 w-3.5" />
                   Verificado
+                </span>
+              )}
+              {resumenResenas && resumenResenas.conteo > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                  <span className="font-semibold text-gray-700">
+                    {resumenResenas.promedio.toFixed(2)}
+                  </span>
+                  <span className="text-yellow-400" aria-hidden="true">
+                    {'★'.repeat(Math.round(resumenResenas.promedio))}
+                    <span className="text-gray-300">
+                      {'★'.repeat(5 - Math.round(resumenResenas.promedio))}
+                    </span>
+                  </span>
+                  <span>
+                    ({resumenResenas.conteo} reseña{resumenResenas.conteo !== 1 ? 's' : ''})
+                  </span>
                 </span>
               )}
             </Link>
