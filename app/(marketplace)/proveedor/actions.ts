@@ -253,6 +253,8 @@ export async function ofertarCotizacion(
   })
   if (error) return { error: error.message }
 
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_respondida')
+
   revalidatePath(`/cotizaciones/${cotizacionId}`)
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
@@ -278,6 +280,8 @@ export async function rechazarCotizacionConMotivo(
     p_motivo: motivoLimpio,
   })
   if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_rechazada')
 
   revalidatePath(`/cotizaciones/${cotizacionId}`)
   revalidatePath('/proveedor')
