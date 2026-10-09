@@ -146,18 +146,24 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
 export async function getProductosDeProveedor(proveedorId: string): Promise<Producto[]> {
   if (!SUPABASE_DISPONIBLE) {
     return PRODUCTOS_MOCK.filter((p) => p.proveedor_id === proveedorId)
+      .map((p) => ({ ...p, tieneCotizaciones: false }))
   }
 
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('productos')
-    .select('*, categoria:categorias(*)')
+    .select('*, categoria:categorias(*), items_cotizacion(count)')
     .eq('proveedor_id', proveedorId)
     .order('created_at', { ascending: false })
 
   if (error) propagarErrorLectura('getProductosDeProveedor', error)
   if (data === null) errorSinDatos('getProductosDeProveedor')
-  return data as unknown as Producto[]
+  return (data as unknown as Array<Producto & { items_cotizacion?: Array<{ count: number }> }>).map(
+    ({ items_cotizacion, ...producto }) => ({
+      ...producto,
+      tieneCotizaciones: (items_cotizacion?.[0]?.count ?? 0) > 0,
+    })
+  )
 }
 
 // ─── Listado público de proveedores ─────────────────────────
@@ -296,15 +302,58 @@ export interface StatsProveedor {
   productosActivos: number
   cotizacionesPendientes: number
   sinStock: number
+  pedidosEsteMes?: number
+  totalVendidoEsteMes?: number
+}
+
+function inicioMesEnZona(year: number, month: number, timeZone: string): Date {
+  const utcMidnight = Date.UTC(year, month - 1, 1)
+  const candidate = new Date(utcMidnight)
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(candidate)
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+  const localAsUtc = Date.UTC(
+    Number(values.year), Number(values.month) - 1, Number(values.day),
+    Number(values.hour), Number(values.minute), Number(values.second)
+  )
+  return new Date(utcMidnight - (localAsUtc - utcMidnight))
 }
 
 export async function getStatsProveedor(proveedorId: string): Promise<StatsProveedor> {
-  const fallback = { productosActivos: 0, cotizacionesPendientes: 0, sinStock: 0 }
+  const fallback = {
+    productosActivos: 0,
+    cotizacionesPendientes: 0,
+    sinStock: 0,
+    pedidosEsteMes: 0,
+    totalVendidoEsteMes: 0,
+  }
   if (!SUPABASE_DISPONIBLE) return fallback
 
   const supabase = await getServerClient()
 
-  const [productosRes, cotizacionesRes] = await Promise.all([
+  const now = new Date()
+  const rdParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santo_Domingo', year: 'numeric', month: '2-digit',
+  }).formatToParts(now)
+  const rd = Object.fromEntries(rdParts.map(({ type, value }) => [type, value]))
+  const year = Number(rd.year)
+  const month = Number(rd.month)
+  const inicioMes = inicioMesEnZona(year, month, 'America/Santo_Domingo').toISOString()
+  const siguienteMes = inicioMesEnZona(
+    month === 12 ? year + 1 : year,
+    month === 12 ? 1 : month + 1,
+    'America/Santo_Domingo'
+  ).toISOString()
+
+  const [productosRes, cotizacionesRes, pedidosRes] = await Promise.all([
     supabase
       .from('productos')
       .select('activo, stock')
@@ -314,16 +363,31 @@ export async function getStatsProveedor(proveedorId: string): Promise<StatsProve
       .select('estado')
       .eq('proveedor_id', proveedorId)
       .eq('estado', 'pendiente'),
+    supabase
+      .from('cotizaciones')
+      .select('items:items_cotizacion(precio_unitario,cantidad,cantidad_confirmada)')
+      .eq('proveedor_id', proveedorId)
+      .in('estado', ['aceptada', 'despachada', 'recibida'])
+      .gte('aceptada_at', inicioMes)
+      .lt('aceptada_at', siguienteMes),
   ])
 
   if (productosRes.error) propagarErrorLectura('getStatsProveedor', productosRes.error)
   if (cotizacionesRes.error) propagarErrorLectura('getStatsProveedor', cotizacionesRes.error)
-  if (productosRes.data === null || cotizacionesRes.data === null) errorSinDatos('getStatsProveedor')
+  if (pedidosRes.error) propagarErrorLectura('getStatsProveedor', pedidosRes.error)
+  if (productosRes.data === null || cotizacionesRes.data === null || pedidosRes.data === null) errorSinDatos('getStatsProveedor')
   const productos = productosRes.data
+  const totalVendidoEsteMes = pedidosRes.data.reduce((total, cotizacion) =>
+    total + (cotizacion.items ?? []).reduce((subtotal, item) =>
+      subtotal + (item.precio_unitario ?? 0) * (item.cantidad_confirmada ?? item.cantidad), 0
+    ), 0
+  )
   return {
     productosActivos: productos.filter((p) => p.activo).length,
     cotizacionesPendientes: cotizacionesRes.data.length,
     sinStock: productos.filter((p) => p.stock === 0).length,
+    pedidosEsteMes: pedidosRes.data.length,
+    totalVendidoEsteMes,
   }
 }
 

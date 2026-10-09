@@ -137,6 +137,7 @@ create table if not exists public.productos (
   especificaciones text,
   itbis_incluido boolean not null default true,
   activo        boolean not null default true,
+  archivado_at  timestamptz,
   created_at    timestamptz not null default now()
 );
 
