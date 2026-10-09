@@ -97,11 +97,17 @@ export interface Producto {
   especificaciones?: string | null
   itbis_incluido?: boolean
   activo: boolean
+  archivado_at?: string | null
+  tieneCotizaciones?: boolean
   created_at: string
   proveedor?: Proveedor
   categoria?: Categoria
   subcategoria?: Subcategoria | null
 }
+
+export type ProductoActionResult =
+  | { success: true; action: 'archived' | 'deleted' | 'restored' }
+  | { error: string }
 
 export interface ItemCarrito {
   producto: Producto
