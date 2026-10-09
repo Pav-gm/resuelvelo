@@ -3,22 +3,41 @@
  * de la cotización, estado vacío y error de lectura devuelto por el servidor.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { MouseEventHandler, ReactNode } from 'react'
 import type { Notificacion } from '@/types'
 
 const h = vi.hoisted(() => ({
+  push: vi.fn(),
   obtenerNotificaciones: vi.fn(),
+  marcarNotificacionLeida: vi.fn(),
 }))
 
 vi.mock('next/link', () => ({
-  default: ({ href, children }: { href: string; children?: ReactNode }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    href,
+    children,
+    onClick,
+    className,
+  }: {
+    href: string
+    children?: ReactNode
+    onClick?: MouseEventHandler<HTMLAnchorElement>
+    className?: string
+  }) => (
+    <a href={href} onClick={onClick} className={className}>
+      {children}
+    </a>
   ),
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: h.push }),
 }))
 
 vi.mock('@/app/(marketplace)/notificaciones/actions', () => ({
   obtenerNotificaciones: h.obtenerNotificaciones,
+  marcarNotificacionLeida: h.marcarNotificacionLeida,
 }))
 
 import NotificacionesPage from '@/app/(marketplace)/notificaciones/page'
@@ -39,6 +58,7 @@ function notificacion(overrides: Partial<Notificacion> = {}): Notificacion {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  h.marcarNotificacionLeida.mockResolvedValue({ error: null })
 })
 
 afterEach(() => {
@@ -49,7 +69,7 @@ describe('Página de notificaciones', () => {
   it('muestra la lista completa y enlaza cada aviso con su cotización', async () => {
     h.obtenerNotificaciones.mockResolvedValue({
       data: [
-        notificacion({ id: 'n-1', cotizacion_id: 'c-1' }),
+        notificacion({ id: 'n-1', cotizacion_id: 'c-1', created_at: '2026-10-08T18:53:00.000Z' }),
         notificacion({
           id: 'n-2',
           tipo: 'cotizacion_cancelada',
@@ -79,6 +99,7 @@ describe('Página de notificaciones', () => {
     // La fila sin cotización asociada se muestra sin enlace al detalle.
     expect(screen.getByText('Cotización cancelada #COT-000043')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Cotización cancelada #COT-000043' })).toBeNull()
+    expect(screen.getByText('8 de octubre de 2026, 02:53 p. m.')).toBeInTheDocument()
     expect(h.obtenerNotificaciones).toHaveBeenCalledWith()
   })
 
@@ -101,5 +122,20 @@ describe('Página de notificaciones', () => {
 
     expect(screen.getByText('No se pudieron cargar las notificaciones.')).toBeInTheDocument()
     expect(screen.queryByTestId('notificacion')).toBeNull()
+  })
+
+  it('marca como leída una notificación no leída antes de navegar a su cotización', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({
+      data: [notificacion({ id: 'n-1', cotizacion_id: 'c-1', leida_at: null })],
+      noLeidas: 1,
+      error: null,
+    })
+
+    render(await NotificacionesPage())
+
+    fireEvent.click(screen.getByRole('link', { name: 'Nueva solicitud #COT-000042' }))
+
+    await waitFor(() => expect(h.marcarNotificacionLeida).toHaveBeenCalledWith('n-1'))
+    await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-1'))
   })
 })
