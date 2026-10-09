@@ -35,6 +35,27 @@ function fechaValidez(fecha: string): string {
   return `${dia}/${mes}/${anio}`
 }
 
+/** Fecha de un instante como día calendario en Santo Domingo (d/m/aaaa). */
+function fechaEnSantoDomingo(instante: string): string {
+  return new Date(instante).toLocaleDateString('es-DO', {
+    timeZone: 'America/Santo_Domingo',
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  })
+}
+
+/** Texto del rechazo: autor, fecha local en Santo Domingo y motivo. */
+function textoRechazo(cot: {
+  rechazada_at?: string | null
+  created_at: string
+  motivo_rechazo?: string | null
+}): string {
+  const fecha = fechaEnSantoDomingo(cot.rechazada_at ?? cot.created_at)
+  const motivo = cot.motivo_rechazo?.trim() || 'Motivo no especificado.'
+  return `Rechazada por el proveedor el ${fecha}: ${motivo}`
+}
+
 export default async function MisCotizacionesPage({
   searchParams,
 }: {
@@ -197,13 +218,27 @@ export default async function MisCotizacionesPage({
                         })}
                       </div>
                     )
-                  : !tieneOferta && cot.total_estimado != null && (
-                      <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
-                        Total estimado: ${Number(cot.total_estimado).toLocaleString('es-DO', {
-                          minimumFractionDigits: 2,
-                        })}
-                      </div>
-                    )}
+                  : tieneOferta
+                    ? (
+                        <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
+                          {`Total ofertado: ${dineroOferta(Number(cot.total_ofertado))}`}
+                        </div>
+                      )
+                    : cot.total_estimado != null && (
+                        <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
+                          Total estimado: ${Number(cot.total_estimado).toLocaleString('es-DO', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </div>
+                      )}
+
+                {cot.estado === 'rechazada' && (
+                  <div className="border-t bg-red-50 px-6 py-3">
+                    <p className="break-words [overflow-wrap:anywhere] text-sm text-red-700">
+                      {textoRechazo(cot)}
+                    </p>
+                  </div>
+                )}
 
                 <LineaSeguimiento
                   estado={cot.estado}

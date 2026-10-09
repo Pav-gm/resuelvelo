@@ -39,6 +39,27 @@ function fechaValidez(fecha: string): string {
   return `${dia}/${mes}/${anio}`
 }
 
+/** Fecha de un instante como día calendario en Santo Domingo (d/m/aaaa). */
+function fechaRechazoEnSantoDomingo(instante: string): string {
+  return new Date(instante).toLocaleDateString('es-DO', {
+    timeZone: 'America/Santo_Domingo',
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  })
+}
+
+/** Texto del rechazo: autor, fecha local en Santo Domingo y motivo. */
+function textoRechazo(cot: {
+  rechazada_at?: string | null
+  created_at: string
+  motivo_rechazo?: string | null
+}): string {
+  const fecha = fechaRechazoEnSantoDomingo(cot.rechazada_at ?? cot.created_at)
+  const motivo = cot.motivo_rechazo?.trim() || 'Motivo no especificado.'
+  return `Rechazada por el proveedor el ${fecha}: ${motivo}`
+}
+
 /**
  * Detalle compartido de una cotización, accesible al comprador dueño y al
  * proveedor destinatario. La autorización real vive en la RPC de lectura
@@ -125,6 +146,14 @@ export default async function CotizacionDetallePage({
         </div>
       )}
 
+      {detalle.estado === 'rechazada' && (
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+          <p className="break-words [overflow-wrap:anywhere] text-sm text-red-700">
+            {textoRechazo(detalle)}
+          </p>
+        </div>
+      )}
+
       <div className="mt-4 overflow-hidden rounded-2xl border bg-white shadow-sm">
         <div className="divide-y">
           {items.map((item) => {
@@ -144,7 +173,7 @@ export default async function CotizacionDetallePage({
               <div
                 key={item.id}
                 data-testid="detalle-item-row"
-                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm sm:px-6"
+                className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2 sm:px-6"
               >
                 <div
                   data-testid="detalle-item-nombre"
@@ -207,11 +236,17 @@ export default async function CotizacionDetallePage({
                 Total confirmado: {dinero(totalConfirmado)}
               </div>
             )
-          : detalle.total_estimado != null && (
-              <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-                Total estimado: {dinero(Number(detalle.total_estimado))}
-              </div>
-            )}
+          : tieneOferta
+            ? (
+                <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+                  Total ofertado: {dineroOferta(Number(detalle.total_ofertado))}
+                </div>
+              )
+            : detalle.total_estimado != null && (
+                <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+                  Total estimado: {dinero(Number(detalle.total_estimado))}
+                </div>
+              )}
       </div>
 
       {tieneOferta && (
