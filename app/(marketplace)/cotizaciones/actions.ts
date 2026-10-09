@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
+import type { TipoNotificacionEmail } from '@/lib/notificaciones-email'
 import type { ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
 
 // ─── Crear cotización(es) desde el carrito ───────────────────
@@ -158,6 +160,7 @@ export async function cotizarDesdeCarrito(
     const { error: errItems } = await supabase.from('items_cotizacion').insert(itemsInsert)
     if (errItems) continue
 
+    await enviarNotificacionCotizacionEmail(cotizacion.id, 'nueva_solicitud')
     creadas++
   }
 
@@ -197,6 +200,9 @@ export async function responderCotizacion(
 
   if (error) return
 
+  const tipo: TipoNotificacionEmail = estado === 'aceptada' ? 'cotizacion_aceptada' : 'cotizacion_rechazada'
+  await enviarNotificacionCotizacionEmail(cotizacionId, tipo)
+
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
 }
@@ -208,6 +214,8 @@ export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
 
   const { error } = await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
   if (error) throw new Error(error.message)
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_recibida')
 
   revalidatePath('/mis-cotizaciones')
   revalidatePath('/proveedor/pedidos')
@@ -252,6 +260,8 @@ export async function cancelarVenta(
   })
 
   if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_cancelada')
 
   revalidatePath('/proveedor/pedidos')
   revalidatePath('/mis-cotizaciones')
