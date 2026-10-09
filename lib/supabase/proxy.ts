@@ -14,7 +14,8 @@ function rutaProtegida(pathname: string) {
     coincidePrefijo(pathname, '/admin') ||
     coincidePrefijo(pathname, '/proveedor') ||
     coincidePrefijo(pathname, '/cotizaciones') ||
-    coincidePrefijo(pathname, '/mis-cotizaciones')
+    coincidePrefijo(pathname, '/mis-cotizaciones') ||
+    coincidePrefijo(pathname, '/perfil')
   )
 }
 
@@ -103,6 +104,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (coincidePrefijo(pathname, '/proveedor') && rol !== 'proveedor') {
+    return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
+  }
+
+  if (coincidePrefijo(pathname, '/perfil') && rol !== 'comprador') {
     return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
   }
 

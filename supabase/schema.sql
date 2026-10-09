@@ -19,6 +19,8 @@ create table if not exists public.profiles (
   nombre     text not null,
   rol        text not null check (rol in ('comprador', 'proveedor', 'admin')) default 'comprador',
   telefono   text,
+  razon_social text,
+  rnc        text,
   avatar_url text,
   created_at timestamptz not null default now()
 );
@@ -34,6 +36,19 @@ create table if not exists public.proveedores (
   logo_url       text,
   verificado     boolean not null default false,
   created_at     timestamptz not null default now()
+);
+
+-- ─── direcciones de obra ────────────────────────────────────
+create table if not exists public.direcciones_obra (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  etiqueta text not null,
+  direccion text not null,
+  provincia text not null,
+  municipio text,
+  referencia text,
+  es_principal boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
 -- ─── categorias ─────────────────────────────────────────────
@@ -249,6 +264,29 @@ grant select on public.subcategorias to anon, authenticated;
 alter table public.productos         enable row level security;
 alter table public.cotizaciones      enable row level security;
 alter table public.items_cotizacion  enable row level security;
+alter table public.direcciones_obra  enable row level security;
+
+-- ─── direcciones_obra ───────────────────────────────────────
+drop policy if exists "direcciones_obra: usuario ve las suyas" on public.direcciones_obra;
+create policy "direcciones_obra: usuario ve las suyas"
+  on public.direcciones_obra for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "direcciones_obra: usuario crea las suyas" on public.direcciones_obra;
+create policy "direcciones_obra: usuario crea las suyas"
+  on public.direcciones_obra for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "direcciones_obra: usuario actualiza las suyas" on public.direcciones_obra;
+create policy "direcciones_obra: usuario actualiza las suyas"
+  on public.direcciones_obra for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "direcciones_obra: usuario elimina las suyas" on public.direcciones_obra;
+create policy "direcciones_obra: usuario elimina las suyas"
+  on public.direcciones_obra for delete
+  using (auth.uid() = user_id);
 
 -- ─── profiles ───────────────────────────────────────────────
 -- drop + create para poder re-ejecutar este archivo en un proyecto que ya tiene políticas.
