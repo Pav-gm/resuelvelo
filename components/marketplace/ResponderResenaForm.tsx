@@ -14,46 +14,20 @@ function mensajeDeError(code: string): string {
   return ERRORES[code] ?? ERRORES.FEEDBACK_RESPUESTA_ERROR
 }
 
-export default function ResponderResenaForm({
-  feedbackId,
-  respuesta,
-}: {
-  feedbackId: string
-  respuesta?: string | null
-}) {
+export default function ResponderResenaForm({ feedbackId }: { feedbackId: string }) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [publicada, setPublicada] = useState(false)
 
-  const tieneRespuestaGuardada = Boolean(respuesta?.trim())
-
-  // Tras el éxito el formulario se reemplaza por el mensaje y, si la reseña ya
-  // trae respuesta, también por el bloque «Tu respuesta». El mensaje permanece
-  // visible (no se descarta con un temporizador) incluso si el panel se refresca.
+  // Tras el éxito el formulario se reemplaza por el mensaje. El mensaje
+  // permanece visible (no se descarta con un temporizador) para que el
+  // proveedor pueda leerlo.
   if (publicada) {
     return (
-      <>
-        <p className="text-sm font-medium text-teal-700" role="status" aria-live="polite">
-          Respuesta publicada.
-        </p>
-        {tieneRespuestaGuardada && (
-          <div className="mt-2 rounded-lg border bg-gray-50 px-4 py-3">
-            <p className="text-xs font-medium text-gray-600">Tu respuesta</p>
-            <p className="mt-1 text-sm text-gray-700">{respuesta}</p>
-          </div>
-        )}
-      </>
-    )
-  }
-
-  // Una reseña ya respondida muestra solo su respuesta, sin formulario.
-  if (tieneRespuestaGuardada) {
-    return (
-      <div className="rounded-lg border bg-gray-50 px-4 py-3">
-        <p className="text-xs font-medium text-gray-600">Tu respuesta</p>
-        <p className="mt-1 text-sm text-gray-700">{respuesta}</p>
-      </div>
+      <p className="text-sm font-medium text-teal-700" role="status" aria-live="polite">
+        Respuesta publicada.
+      </p>
     )
   }
 

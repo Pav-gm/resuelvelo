@@ -210,7 +210,7 @@ export default async function PanelProveedorPage() {
                     <p className="mt-2 text-sm text-gray-700">{resena.comentario}</p>
                   )}
                   <div className="mt-3">
-                    <ResponderResenaForm feedbackId={resena.id} respuesta={resena.respuesta} />
+                    <ResponderResenaForm feedbackId={resena.id} />
                   </div>
                 </div>
               ))

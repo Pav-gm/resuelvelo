@@ -112,10 +112,11 @@ export default async function CotizacionDetallePage({
 
   const items = detalle.items ?? []
   const confirmado = ESTADOS_CONFIRMADOS.includes(detalle.estado)
-  // «respondida» limita las acciones de decisión y la expiración de la oferta.
   const respondida = detalle.estado === 'respondida'
   const tieneOferta = ESTADOS_CON_OFERTA.includes(detalle.estado) && detalle.total_ofertado != null
-  const vencida = tieneOferta && ofertaVencida(detalle.valida_hasta)
+  // «respondida» limita las acciones de decisión y la expiración de la oferta;
+  // una oferta ya confirmada no debe marcarse como vencida.
+  const vencida = respondida && ofertaVencida(detalle.valida_hasta)
   const totalConfirmado = items.reduce((sum, i) => {
     const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
     return sum + (i.precio_unitario ?? 0) * unidades
