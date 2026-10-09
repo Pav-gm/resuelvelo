@@ -6,7 +6,13 @@ import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getProductosDeProveedor } from '@/lib/data'
 import ListaProductosProveedor from '@/components/marketplace/ListaProductosProveedor'
 
-export default async function ProductosProveedorPage() {
+interface ProductosProveedorPageProps {
+  searchParams?: Promise<{ tab?: string | string[] }>
+}
+
+export default async function ProductosProveedorPage({
+  searchParams,
+}: ProductosProveedorPageProps = {}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -14,7 +20,18 @@ export default async function ProductosProveedorPage() {
   const proveedor = await getProveedorDelUsuario()
   if (!proveedor) redirect('/register?rol=proveedor')
 
-  const productos = await getProductosDeProveedor(proveedor.id)
+  const params = (await searchParams) ?? {}
+  const tab = Array.isArray(params.tab) ? params.tab[0] : params.tab
+  const enArchivados = tab === 'archivados'
+
+  const todos = await getProductosDeProveedor(proveedor.id)
+  const productos = todos.filter((p) =>
+    enArchivados ? Boolean(p.archivado_at) : !p.archivado_at
+  )
+
+  const baseTab = '-mb-px border-b-2 px-4 py-2 text-sm font-medium'
+  const tabActiva = `${baseTab} border-orange-500 text-orange-600`
+  const tabInactiva = `${baseTab} border-transparent text-gray-500 hover:text-gray-700`
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -27,6 +44,22 @@ export default async function ProductosProveedorPage() {
           </Button>
         </Link>
       </div>
+      <nav aria-label="Pestañas de productos" className="mb-4 flex gap-1 border-b">
+        <Link
+          href="/proveedor/productos?tab=productos"
+          aria-current={enArchivados ? undefined : 'page'}
+          className={enArchivados ? tabInactiva : tabActiva}
+        >
+          Productos
+        </Link>
+        <Link
+          href="/proveedor/productos?tab=archivados"
+          aria-current={enArchivados ? 'page' : undefined}
+          className={enArchivados ? tabActiva : tabInactiva}
+        >
+          Archivados
+        </Link>
+      </nav>
       <ListaProductosProveedor productos={productos} />
     </div>
   )

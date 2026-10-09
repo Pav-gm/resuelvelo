@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   toggleProducto: vi.fn(),
   eliminarProducto: vi.fn(),
+  archivarOEliminarProducto: vi.fn(),
+  restaurarProducto: vi.fn(),
   despacharCotizacion: vi.fn(),
   aceptarCotizacionConCantidades: vi.fn(),
   ofertarCotizacion: vi.fn(),
@@ -41,6 +43,8 @@ vi.mock('@/lib/data', () => ({
 vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   toggleProducto: mocks.toggleProducto,
   eliminarProducto: mocks.eliminarProducto,
+  archivarOEliminarProducto: mocks.archivarOEliminarProducto,
+  restaurarProducto: mocks.restaurarProducto,
   despacharCotizacion: mocks.despacharCotizacion,
   aceptarCotizacionConCantidades: mocks.aceptarCotizacionConCantidades,
   ofertarCotizacion: mocks.ofertarCotizacion,
@@ -90,6 +94,8 @@ const PRODUCTO = {
   stock: 8,
   stock_reservado: 2,
   activo: true,
+  archivado_at: null,
+  tieneCotizaciones: false,
   created_at: '2026-03-01T12:00:00.000Z',
 }
 
@@ -167,6 +173,25 @@ describe('Panel del proveedor — adaptación a móvil', () => {
       expect(fila).toContainElement(boton)
       expect(boton.className).toContain('min-h-11')
     }
+  })
+
+  it('el panel omite los productos archivados de su lista', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([
+      { ...PRODUCTO, id: 'prod-1', archivado_at: null },
+      {
+        ...PRODUCTO,
+        id: 'prod-2',
+        nombre: 'Producto archivado de prueba',
+        archivado_at: '2026-10-08T12:00:00.000Z',
+      },
+    ])
+
+    render(await PanelProveedorPage())
+
+    const filas = screen.getAllByTestId('product-row')
+    expect(filas).toHaveLength(1)
+    expect(within(filas[0]).getByText('Tubería PVC reforzada de dos pulgadas')).toBeInTheDocument()
+    expect(screen.queryByText('Producto archivado de prueba')).toBeNull()
   })
 
   it('el panel muestra el stock total y las unidades reservadas', async () => {

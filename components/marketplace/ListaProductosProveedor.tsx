@@ -49,7 +49,14 @@ export default function ListaProductosProveedor({ productos, enTarjeta = true }:
             <Link href={`/proveedor/productos/${p.id}/editar`}>
               <Button variant="outline" size="sm" className="min-h-11 sm:min-h-0 sm:h-7">Editar</Button>
             </Link>
-            <EliminarProductoButton id={p.id} nombre={p.nombre} />
+            {/* En la pestaña de archivados `archivado_at` tiene valor y la acción
+                pasa a ser «Restaurar»; en las filas activas es siempre `false`. */}
+            <EliminarProductoButton
+              id={p.id}
+              nombre={p.nombre}
+              tieneCotizaciones={p.tieneCotizaciones ?? false}
+              archivado={Boolean(p.archivado_at)}
+            />
           </div>
         </div>
       ))}
