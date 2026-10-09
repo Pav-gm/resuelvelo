@@ -24,7 +24,8 @@ import type { Notificacion } from '@/types'
  */
 function CampanaNotificaciones() {
   const pathname = usePathname()
-  const [abierto, setAbierto] = useState(false)
+  const [abiertoEn, setAbiertoEn] = useState<string | null>(null)
+  const abierto = abiertoEn === pathname
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [noLeidas, setNoLeidas] = useState(0)
   const [cargando, setCargando] = useState(false)
@@ -57,7 +58,7 @@ function CampanaNotificaciones() {
   }, [pathname])
 
   async function abrir() {
-    setAbierto(true)
+    setAbiertoEn(pathname)
     await cargar()
   }
 
@@ -105,7 +106,7 @@ function CampanaNotificaciones() {
             <h2 className="text-sm font-semibold text-gray-900">Notificaciones</h2>
             <button
               type="button"
-              onClick={() => setAbierto(false)}
+              onClick={() => setAbiertoEn(null)}
               aria-label="Cerrar"
               className="text-gray-400 hover:text-gray-600"
             >
@@ -169,7 +170,7 @@ function CampanaNotificaciones() {
             <Link
               href="/notificaciones"
               className="text-sm font-medium text-orange-500 hover:underline"
-              onClick={() => setAbierto(false)}
+              onClick={() => setAbiertoEn(null)}
             >
               Ver todas
             </Link>
