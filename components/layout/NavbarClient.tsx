@@ -201,7 +201,9 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
       ? '/admin'
       : usuario?.rol === 'proveedor'
         ? '/proveedor'
-        : '/mis-cotizaciones'
+        : usuario?.rol === 'comprador'
+          ? '/perfil'
+          : '/mis-cotizaciones'
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
@@ -223,6 +225,11 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           <Link href="/como-funciona" className="text-gray-600 hover:text-orange-500 transition-colors">
             ¿Cómo funciona?
           </Link>
+          {usuario?.rol === 'comprador' && (
+            <Link href="/mis-cotizaciones" className="text-gray-600 hover:text-orange-500 transition-colors">
+              Mis cotizaciones
+            </Link>
+          )}
           {usuario?.rol === 'admin' && (
             <Link href="/admin" className="text-gray-600 hover:text-orange-500 transition-colors">
               Administración
@@ -289,6 +296,11 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
           <Link href="/como-funciona" className="py-2 text-gray-700 hover:text-orange-500" onClick={() => setMenuAbierto(false)}>
             ¿Cómo funciona?
           </Link>
+          {usuario?.rol === 'comprador' && (
+            <Link href="/mis-cotizaciones" className="py-2 text-gray-700 hover:text-orange-500" onClick={() => setMenuAbierto(false)}>
+              Mis cotizaciones
+            </Link>
+          )}
           {usuario?.rol === 'admin' && (
             <Link href="/admin" className="py-2 text-gray-700 hover:text-orange-500" onClick={() => setMenuAbierto(false)}>
               Administración

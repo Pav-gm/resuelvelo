@@ -167,6 +167,26 @@ describe('NavbarClient — carrito en móvil', () => {
   })
 })
 
+describe('NavbarClient — acceso del comprador', () => {
+  it('el acceso del comprador lleva a perfil y conserva Mis cotizaciones en el menú', () => {
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menú' }))
+
+    const enlacesAna = screen.getAllByRole('link', { name: 'Ana' })
+    expect(enlacesAna.length).toBeGreaterThan(0)
+    for (const enlace of enlacesAna) {
+      expect(enlace).toHaveAttribute('href', '/perfil')
+    }
+
+    const enlacesCotizaciones = screen.getAllByRole('link', { name: 'Mis cotizaciones' })
+    expect(enlacesCotizaciones.length).toBeGreaterThan(0)
+    for (const enlace of enlacesCotizaciones) {
+      expect(enlace).toHaveAttribute('href', '/mis-cotizaciones')
+    }
+  })
+})
+
 describe('NavbarClient — campana de notificaciones', () => {
   it('muestra la campana con el contador para un usuario con sesión también en móvil', async () => {
     h.obtenerNotificaciones.mockResolvedValue({ data: [], noLeidas: 3, error: null })
