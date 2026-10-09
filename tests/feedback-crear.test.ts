@@ -402,7 +402,7 @@ describe('recepción — el cliente no asigna el estado', () => {
     expect(h.state.rpcCalls).toHaveLength(0)
   })
 
-  it('despacharCotizacion envía el correo después del RPC exitoso', async () => {
+  it('despacharCotizacion envía correo después del RPC exitoso', async () => {
     const resultado = await despacharCotizacion(COTIZACION_OTRA)
 
     expect(resultado).toBeNull()
