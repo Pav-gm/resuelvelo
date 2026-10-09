@@ -27,17 +27,15 @@ export type DatosComprobante = {
 }
 
 const LEYENDA = 'Documento informativo. No es un comprobante fiscal (sin NCF) y no sustituye la factura del proveedor.'
-const formatoNumero = new Intl.NumberFormat('es-DO', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
-
 function fecha(valor: string | null): string {
   if (!valor) return '—'
-  const date = new Date(`${valor.slice(0, 10)}T12:00:00.000Z`)
+  const date = valor.length > 10
+    ? new Date(valor)
+    : new Date(`${valor.slice(0, 10)}T12:00:00.000Z`)
   if (Number.isNaN(date.getTime())) return '—'
   return new Intl.DateTimeFormat('es-DO', {
-    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    timeZone: valor.length > 10 ? 'America/Santo_Domingo' : 'UTC',
   }).format(date)
 }
 
@@ -46,8 +44,12 @@ function opcional(valor: string | null | undefined): string {
 }
 
 function importe(valor: number): string {
-  return `RD$ ${formatoNumero.format(valor).replace('.', ',')}`
+  const [entero, dec] = Math.abs(valor).toFixed(2).split('.')
+  const agrupado = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `RD$ ${valor < 0 ? '-' : ''}${agrupado},${dec}`
 }
+
+const r2 = (valor: number) => Math.round((valor + Number.EPSILON) * 100) / 100
 
 export function lineasComprobante(datos: DatosComprobante): string[] {
   const lineas: string[] = [
@@ -77,9 +79,9 @@ export function lineasComprobante(datos: DatosComprobante): string[] {
     const cantidad = item.cantidad_confirmada ?? item.cantidad
     const precio = item.precio_unitario ?? item.precio_ofertado ?? 0
     const bruto = cantidad * precio
-    const base = item.itbis_incluido ? bruto / 1.18 : bruto
-    const impuesto = item.itbis_incluido ? bruto - base : base * 0.18
-    const importeTotal = item.itbis_incluido ? bruto : bruto + impuesto
+    const base = item.itbis_incluido ? r2(bruto / 1.18) : r2(bruto)
+    const impuesto = item.itbis_incluido ? r2(bruto - base) : r2(base * 0.18)
+    const importeTotal = base + impuesto
     subtotalGeneral += base
     itbisTotal += impuesto
     total += importeTotal
@@ -87,7 +89,7 @@ export function lineasComprobante(datos: DatosComprobante): string[] {
       item.producto?.nombre ?? 'Producto no disponible',
       `Cantidad: ${cantidad}`,
       `Precio ofertado: ${importe(precio)}`,
-      `Subtotal línea: ${importe(importeTotal)}`,
+      `Subtotal línea: ${importe(bruto)}`,
     )
   }
 

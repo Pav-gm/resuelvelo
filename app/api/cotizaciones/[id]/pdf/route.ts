@@ -57,18 +57,23 @@ export async function GET(
       itbis_incluido: item.producto?.itbis_incluido ?? item.itbis_incluido ?? null,
     })),
   })
-  for (const linea of lineas) {
+  for (const linea of lineas.flatMap((texto) => texto.split(/\r\n|\r|\n/))) {
     if (y < 48) {
       pagina = documento.addPage([612, 792])
       y = 744
     }
     const esTitulo = linea.startsWith('Cotización aceptada #')
     const esSeccion = ['Proveedor', 'Comprador', 'Detalle'].includes(linea)
-    const texto = linea || ' '
+    const texto = linea.replace(/\t/g, ' ') || ' '
     const font = esTitulo || esSeccion ? negrita : fuente
+    const caracteres = font.getCharacterSet()
     const size = esTitulo ? 16 : esSeccion ? 12 : 10
     const max = 548
-    const palabras = texto.split(' ')
+    const textoSeguro = Array.from(texto, (caracter) => {
+      const codigo = caracter.codePointAt(0)
+      return codigo != null && caracteres.includes(codigo) ? caracter : '?'
+    }).join('')
+    const palabras = textoSeguro.split(' ')
     let fragmento = ''
     const renglones: string[] = []
     for (const palabra of palabras) {

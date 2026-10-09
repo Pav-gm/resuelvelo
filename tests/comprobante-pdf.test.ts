@@ -84,6 +84,52 @@ describe('comprobante PDF de cotización', () => {
     expect(contenido).toContain('Documento informativo. No es un comprobante fiscal (sin NCF) y no sustituye la factura del proveedor.')
   })
 
+  it('lineasComprobante calcula ITBIS no incluido y agrupa importes en formato dominicano', () => {
+    const lineas = lineasComprobante({
+      ...fixture,
+      items: [{
+        cantidad: 10,
+        cantidad_confirmada: 10,
+        precio_unitario: 123.45,
+        precio_ofertado: null,
+        producto: { nombre: 'Tubo PVC' },
+        itbis_incluido: false,
+      }],
+    })
+    const contenido = lineas.join('\n')
+    expect(contenido).toContain('Subtotal línea: RD$ 1.234,50')
+    expect(contenido).toContain('Subtotal general: RD$ 1.234,50')
+    expect(contenido).toContain('ITBIS (18 %): RD$ 222,21')
+    expect(contenido).toContain('Total: RD$ 1.456,71')
+    const importesAgrupados = lineasComprobante({
+      ...fixture,
+      items: [1234.5, 1234567.8].map((precio) => ({
+        cantidad: 1,
+        cantidad_confirmada: 1,
+        precio_unitario: precio,
+        precio_ofertado: null,
+        producto: { nombre: 'Producto' },
+        itbis_incluido: false,
+      })),
+    }).join('\n')
+    expect(importesAgrupados).toContain('Precio ofertado: RD$ 1.234,50')
+    expect(importesAgrupados).toContain('Precio ofertado: RD$ 1.234.567,80')
+  })
+
+  it('lineasComprobante muestra guion cuando falta el RNC de cualquiera de las partes', () => {
+    const lineas = lineasComprobante({
+      ...fixture,
+      proveedor: { ...fixture.proveedor, rnc: null },
+      comprador: { ...fixture.comprador, rnc: null },
+    })
+    expect(lineas.filter((linea) => linea === 'RNC: —')).toHaveLength(2)
+  })
+
+  it('lineasComprobante convierte la fecha de aceptación a la zona horaria dominicana', () => {
+    const lineas = lineasComprobante({ ...fixture, aceptada_at: '2026-10-09T02:30:00.000Z' })
+    expect(lineas).toContain('Fecha de aceptación: 08/10/2026')
+  })
+
   it('GET del comprobante devuelve 401 sin sesión', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null })
     const response = await solicitud()
@@ -109,6 +155,26 @@ describe('comprobante PDF de cotización', () => {
     const response = await solicitud()
     expect(response.status).toBe(200)
     expect(response.headers.get('Content-Type')).toBe('application/pdf')
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-')
+    const pdf = await PDFDocument.load(bytes)
+    expect(pdf.getTitle()).toContain('COT-000042')
+  })
+
+  it('GET del comprobante admite texto multilínea y caracteres fuera de WinAnsi', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: {
+        ...detalle('aceptada'),
+        condiciones: 'Pago 50% por adelantado\nresto contra entrega',
+        items: [{
+          ...fixture.items[0],
+          producto: { nombre: 'Tubo PVC ✓ ≥ 2"', itbis_incluido: true },
+        }],
+      },
+      error: null,
+    })
+    const response = await solicitud()
+    expect(response.status).toBe(200)
     const bytes = new Uint8Array(await response.arrayBuffer())
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-')
     const pdf = await PDFDocument.load(bytes)
