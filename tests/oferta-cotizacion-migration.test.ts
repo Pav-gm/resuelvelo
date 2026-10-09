@@ -9,6 +9,14 @@ const rollbackNombre = readdirSync(join(supabaseDir, 'rollbacks'))
   .find((archivo) => archivo.endsWith('_oferta_cotizacion_proveedor.sql'))
 
 describe('migración de oferta de cotización', () => {
+  it('la migración rechaza una oferta cuyo total de unidades es cero', () => {
+    expect(migracionNombre).toBeDefined()
+    const sql = readFileSync(join(supabaseDir, 'migrations', migracionNombre!), 'utf8')
+    const funcion = sql.slice(sql.indexOf('create or replace function public.responder_cotizacion_con_oferta'))
+
+    expect(funcion).toMatch(/if v_suma_cantidad = 0 then[\s\S]*?raise exception 'La oferta debe incluir al menos una unidad\.';/i)
+  })
+
   it('la migración añade los campos, protege al destinatario y calcula la oferta al responder', () => {
     expect(migracionNombre).toBeDefined()
     const sql = readFileSync(join(supabaseDir, 'migrations', migracionNombre!), 'utf8')

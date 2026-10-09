@@ -142,7 +142,7 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     fireEvent.change(screen.getByLabelText('Válida hasta'), { target: { value: '2026-10-08' } })
 
     fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
-    expect(screen.getByRole('alert')).toHaveTextContent('Cada precio ofertado debe ser mayor que 0.')
+    expect(screen.getByRole('alert')).toHaveTextContent('Indica el precio')
 
     fireEvent.change(screen.getByLabelText('Precio unitario de Tubo PVC'), { target: { value: '12' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
@@ -181,6 +181,107 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     })
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('muestra el error de cantidad cuando el campo está vacío y no envía la oferta', () => {
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        cantidad: 3,
+        sujeta_disponibilidad: true,
+        producto: producto('Tubo PVC', 15),
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    fireEvent.change(screen.getByLabelText('Plazo de entrega en días'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Válida hasta'), { target: { value: '2026-10-20' } })
+    fireEvent.change(screen.getByLabelText('Cantidad de Tubo PVC'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Indica cuántas unidades confirmas')
+    expect(h.ofertarCotizacion).not.toHaveBeenCalled()
+  })
+
+  it('muestra el error de precio cuando el campo está vacío y no envía la oferta', () => {
+    const items: ItemCotizacion[] = [
+      item({ id: 'item-1', cantidad: 3, producto: producto('Tubo PVC', 15) }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    fireEvent.change(screen.getByLabelText('Precio unitario de Tubo PVC'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Indica el precio')
+    expect(h.ofertarCotizacion).not.toHaveBeenCalled()
+  })
+
+  it('desactiva el envío e indica que se rechace cuando todas las cantidades son cero', () => {
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        cantidad: 3,
+        sujeta_disponibilidad: true,
+        producto: producto('Tubo PVC', 15),
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    fireEvent.change(screen.getByLabelText('Cantidad de Tubo PVC'), { target: { value: '0' } })
+
+    expect(
+      screen.getByText('Si no puedes servir nada, rechaza la cotización')
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enviar oferta' })).toBeDisabled()
+    expect(h.ofertarCotizacion).not.toHaveBeenCalled()
+  })
+
+  it('permite cantidad cero en una línea cuando otra conserva unidades', async () => {
+    h.ofertarCotizacion.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        cantidad: 3,
+        sujeta_disponibilidad: true,
+        producto: producto('Tubo PVC', 15),
+      }),
+      item({
+        id: 'item-2',
+        producto_id: 'prod-2',
+        cantidad: 2,
+        sujeta_disponibilidad: true,
+        producto: producto('Cemento', 8),
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    fireEvent.change(screen.getByLabelText('Cantidad de Tubo PVC'), { target: { value: '0' } })
+    fireEvent.change(screen.getByLabelText('Cantidad de Cemento'), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText('Plazo de entrega en días'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Válida hasta'), { target: { value: '2026-10-20' } })
+
+    expect(screen.getByRole('button', { name: 'Enviar oferta' })).not.toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
+
+    await waitFor(() => {
+      expect(h.ofertarCotizacion).toHaveBeenCalledWith('cot-1', {
+        lineas: [
+          { itemId: 'item-1', precioUnitario: 15, cantidadOfertada: 0 },
+          { itemId: 'item-2', precioUnitario: 8, cantidadOfertada: 1 },
+        ],
+        plazoDias: 5,
+        validaHasta: '2026-10-20',
+        condiciones: null,
+      })
     })
   })
 
