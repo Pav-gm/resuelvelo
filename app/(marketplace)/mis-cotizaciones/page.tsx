@@ -64,8 +64,13 @@ function textoRechazo(cot: {
   rechazada_at?: string | null
   created_at: string
   motivo_rechazo?: string | null
+  rechazada_motivo?: string | null
 }): string {
   const fecha = fechaEnSantoDomingo(cot.rechazada_at ?? cot.created_at)
+  const motivoComprador = cot.rechazada_motivo?.trim()
+  if (motivoComprador) {
+    return `Rechazada por el comprador el ${fecha}: ${motivoComprador}`
+  }
   const motivo = cot.motivo_rechazo?.trim() || 'Motivo no especificado.'
   return `Rechazada por el proveedor el ${fecha}: ${motivo}`
 }
