@@ -34,9 +34,25 @@ create table if not exists public.proveedores (
   direccion      text,
   ciudad         text,
   logo_url       text,
+  rnc            text,
+  telefono       text,
+  whatsapp       text,
+  horario        text,
+  sitio_web      text,
   verificado     boolean not null default false,
   created_at     timestamptz not null default now()
 );
+
+-- ─── Cobertura de proveedores ───────────────────────────────
+create table if not exists public.proveedor_zonas (
+  proveedor_id uuid not null references public.proveedores(id) on delete cascade,
+  provincia text not null,
+  primary key (proveedor_id, provincia)
+);
+
+alter table public.proveedor_zonas enable row level security;
+grant select on public.proveedor_zonas to anon, authenticated;
+grant insert, update, delete on public.proveedor_zonas to authenticated;
 
 -- ─── direcciones de obra ────────────────────────────────────
 create table if not exists public.direcciones_obra (
@@ -143,6 +159,37 @@ create policy "productos storage: proveedor elimina de su carpeta"
   on storage.objects for delete to authenticated
   using (
     bucket_id = 'productos'
+    and exists (
+      select 1 from public.proveedores
+      where id::text = (storage.foldername(name))[1]
+        and user_id = auth.uid()
+    )
+  );
+
+-- ─── Storage de logos de proveedores (referencia; se aplica por migración) ───
+insert into storage.buckets (id, name, public)
+values ('logos', 'logos', true)
+on conflict do nothing;
+
+create policy "logos storage: lectura pública"
+  on storage.objects for select
+  using (bucket_id = 'logos');
+
+create policy "logos storage: proveedor inserta en su carpeta"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'logos'
+    and exists (
+      select 1 from public.proveedores
+      where id::text = (storage.foldername(name))[1]
+        and user_id = auth.uid()
+    )
+  );
+
+create policy "logos storage: proveedor elimina de su carpeta"
+  on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'logos'
     and exists (
       select 1 from public.proveedores
       where id::text = (storage.foldername(name))[1]
@@ -326,6 +373,47 @@ drop policy if exists "proveedores: proveedor actualiza el suyo" on public.prove
 create policy "proveedores: proveedor actualiza el suyo"
   on public.proveedores for update
   using (auth.uid() = user_id);
+
+drop policy if exists "proveedor_zonas: lectura pública" on public.proveedor_zonas;
+create policy "proveedor_zonas: lectura pública"
+  on public.proveedor_zonas for select
+  using (true);
+
+drop policy if exists "proveedor_zonas: proveedor inserta las suyas" on public.proveedor_zonas;
+create policy "proveedor_zonas: proveedor inserta las suyas"
+  on public.proveedor_zonas for insert to authenticated
+  with check (
+    exists (
+      select 1 from public.proveedores
+      where id = proveedor_id and user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "proveedor_zonas: proveedor actualiza las suyas" on public.proveedor_zonas;
+create policy "proveedor_zonas: proveedor actualiza las suyas"
+  on public.proveedor_zonas for update to authenticated
+  using (
+    exists (
+      select 1 from public.proveedores
+      where id = proveedor_id and user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.proveedores
+      where id = proveedor_id and user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "proveedor_zonas: proveedor elimina las suyas" on public.proveedor_zonas;
+create policy "proveedor_zonas: proveedor elimina las suyas"
+  on public.proveedor_zonas for delete to authenticated
+  using (
+    exists (
+      select 1 from public.proveedores
+      where id = proveedor_id and user_id = auth.uid()
+    )
+  );
 
 -- ─── subcategorias ──────────────────────────────────────────
 drop policy if exists "subcategorias: lectura pública" on public.subcategorias;

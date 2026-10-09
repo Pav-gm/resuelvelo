@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { BadgeCheck } from 'lucide-react'
 import ProductoImagen from '@/components/marketplace/ProductoImagen'
+import { creditoFoto } from '@/lib/creditos-fotos'
 import AgregarProductoButton from '@/components/marketplace/AgregarProductoButton'
 import { getProducto } from '@/lib/data'
 
@@ -45,16 +46,28 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
   const itbisIncluido = producto.itbis_incluido !== false
   // Existencias disponibles: stock total menos las unidades reservadas.
   const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+  const credito = creditoFoto(producto.id, producto.imagen_url)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <div className="grid gap-8 md:grid-cols-2">
-        <ProductoImagen
-          imagenUrl={producto.imagen_url}
-          nombre={producto.nombre}
-          categoria={producto.categoria}
-          tamanio="ficha"
-        />
+        <div>
+          <ProductoImagen
+            imagenUrl={producto.imagen_url}
+            nombre={producto.nombre}
+            categoria={producto.categoria}
+            tamanio="ficha"
+          />
+          {credito && (
+            <p className="mt-2 text-xs text-gray-400">
+              Foto:{' '}
+              <a href={credito.pagina} target="_blank" rel="noopener noreferrer" className="underline">
+                {credito.autor}
+              </a>
+              , {credito.licencia}, vía Wikimedia Commons
+            </p>
+          )}
+        </div>
 
         <div className="flex flex-col gap-4">
           <div>
