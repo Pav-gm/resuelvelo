@@ -7,7 +7,11 @@ import {
   eliminarDireccionObra,
   guardarPerfil,
 } from '@/app/(marketplace)/perfil/actions'
-import { esRncValido } from '@/lib/validaciones-perfil'
+import {
+  esRncValido,
+  esTelefonoDoValido,
+  normalizarTelefonoDo,
+} from '@/lib/validaciones-perfil'
 import { PROVINCIAS_RD } from '@/lib/provincias'
 
 type DireccionObra = {
@@ -34,7 +38,11 @@ type PerfilCompradorProps = {
 type Mensaje = { tipo: 'exito' | 'error'; texto: string } | null
 
 const ERROR_RNC = 'El RNC debe tener 9 u 11 dígitos numéricos.'
+const ERROR_TELEFONO = 'El teléfono debe ser un número dominicano válido de 10 dígitos.'
 const ERROR_CAMPOS_DIRECCION = 'La etiqueta, la dirección y la provincia son obligatorias.'
+
+// Id del mensaje de teléfono, referenciado por el input con `aria-describedby`.
+const ID_ERROR_TELEFONO = 'error-telefono'
 
 function nuevoId(): string {
   return `tmp-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`
@@ -74,6 +82,7 @@ export default function PerfilComprador({
   const [telefono, setTelefono] = useState(perfil.telefono ?? '')
   const [guardandoPerfil, setGuardandoPerfil] = useState(false)
   const [mensajePerfil, setMensajePerfil] = useState<Mensaje>(null)
+  const [errorTelefono, setErrorTelefono] = useState<string | null>(null)
 
   const [listaDirecciones, setListaDirecciones] = useState<DireccionObra[]>(direcciones)
   // Sincroniza la lista con las direcciones que entrega el servidor tras `revalidatePath('/perfil')`:
@@ -102,17 +111,32 @@ export default function PerfilComprador({
       return
     }
 
+    // El teléfono vacío sigue permitido; se valida y se normaliza antes de
+    // enviarlo para que el servidor guarde solo los diez dígitos.
+    const telefonoLimpio = telefono.trim()
+    if (!esTelefonoDoValido(telefonoLimpio)) {
+      setMensajePerfil(null)
+      setErrorTelefono(ERROR_TELEFONO)
+      return
+    }
+
     setMensajePerfil(null)
+    setErrorTelefono(null)
     setGuardandoPerfil(true)
     const resultado = await guardarPerfil({
       nombre,
       razon_social: razonSocial,
       rnc,
-      telefono,
+      telefono: normalizarTelefonoDo(telefonoLimpio),
     })
     setGuardandoPerfil(false)
 
     if (resultado.error) {
+      // El mismo error de teléfono se muestra junto al campo; el resto, en `Aviso`.
+      if (resultado.error === ERROR_TELEFONO) {
+        setErrorTelefono(ERROR_TELEFONO)
+        return
+      }
       setMensajePerfil({ tipo: 'error', texto: resultado.error })
       return
     }
@@ -250,11 +274,20 @@ export default function PerfilComprador({
             <input
               type="tel"
               value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
+              onChange={(e) => {
+                setTelefono(e.target.value)
+                setErrorTelefono(null)
+              }}
               disabled={guardandoPerfil}
+              aria-describedby={errorTelefono ? ID_ERROR_TELEFONO : undefined}
               className={claseInput}
             />
           </label>
+          {errorTelefono && (
+            <p id={ID_ERROR_TELEFONO} role="alert" className="text-sm text-red-600">
+              {errorTelefono}
+            </p>
+          )}
 
           <Aviso mensaje={mensajePerfil} />
 

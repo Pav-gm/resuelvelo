@@ -35,6 +35,9 @@ vi.mock('next/navigation', () => ({
     h.notFound()
     throw new Error('NEXT_NOT_FOUND')
   },
+  // `AccionesVentaProveedor` refresca la vista tras despachar; aquí basta con
+  // que el router exista para las tarjetas del proveedor que lo renderizan.
+  useRouter: () => ({ refresh: () => {} }),
 }))
 
 vi.mock('next/link', () => ({
