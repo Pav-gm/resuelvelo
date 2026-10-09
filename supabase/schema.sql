@@ -152,6 +152,7 @@ create table if not exists public.cotizaciones (
   respondida_at   timestamptz,
   total_ofertado  numeric,
   motivo_rechazo  text,
+  rechazada_at    timestamptz,
   created_at      timestamptz not null default now()
 );
 
@@ -1151,7 +1152,8 @@ begin
 
   update public.cotizaciones c
     set estado = 'rechazada',
-        motivo_rechazo = btrim(p_motivo)
+        motivo_rechazo = btrim(p_motivo),
+        rechazada_at = now()
   from public.proveedores p
   where c.id = p_cotizacion_id
     and p.id = c.proveedor_id
@@ -1207,6 +1209,7 @@ begin
     'respondida_at', c.respondida_at,
     'total_ofertado', c.total_ofertado,
     'motivo_rechazo', c.motivo_rechazo,
+    'rechazada_at', c.rechazada_at,
     'proveedor', jsonb_build_object(
       'id', p.id,
       'nombre_empresa', p.nombre_empresa,

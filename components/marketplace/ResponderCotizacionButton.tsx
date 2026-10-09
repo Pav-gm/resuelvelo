@@ -6,6 +6,10 @@ import {
   ofertarCotizacion,
   rechazarCotizacionConMotivo,
 } from '@/app/(marketplace)/proveedor/actions'
+import {
+  esFechaISOFuturaEnSantoDomingo,
+  sumarDiasISOEnSantoDomingo,
+} from '@/lib/cotizaciones'
 import type { ItemCotizacion, LineaOfertaInput, OfertaCotizacionInput } from '@/types'
 
 interface Props {
@@ -25,18 +29,6 @@ function cantidadInicial(item: ItemCotizacion): number {
     return Math.min(item.cantidad, item.stock_al_cotizar ?? item.cantidad)
   }
   return item.cantidad
-}
-
-/** Fecha de hoy en ISO (YYYY-MM-DD), usada como referencia de validez. */
-function hoyISO(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-/** Siete días desde hoy en ISO (YYYY-MM-DD); validez por defecto de la oferta. */
-function enSieteDiasISO(): string {
-  const base = new Date()
-  const fecha = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + 7))
-  return fecha.toISOString().slice(0, 10)
 }
 
 type OfertaConstruida = { error: string } | { oferta: OfertaCotizacionInput }
@@ -65,7 +57,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     setPrecios(preciosIniciales)
     setCantidades(cantidadesIniciales)
     setPlazo('')
-    setValidaHasta(enSieteDiasISO())
+    setValidaHasta(sumarDiasISOEnSantoDomingo(7))
     setCondiciones('')
     setAbierto(true)
   }
@@ -115,7 +107,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
       return { error: 'El plazo debe estar entre 0 y 90 días.' }
     }
 
-    if (!validaHasta || validaHasta <= hoyISO()) {
+    if (!esFechaISOFuturaEnSantoDomingo(validaHasta)) {
       return { error: 'La fecha de validez debe ser futura.' }
     }
 

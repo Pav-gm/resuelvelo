@@ -62,6 +62,41 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     expect(screen.getByLabelText('Condiciones')).toHaveValue('')
   })
 
+  it('propone siete días desde la fecha calendario de Santo Domingo al cruzar medianoche UTC', () => {
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    const items: ItemCotizacion[] = [item({ id: 'item-1', producto: producto('Tubo PVC', 15) })]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    expect(screen.getByLabelText('Válida hasta')).toHaveValue('2026-10-14')
+  })
+
+  it('acepta como futura la fecha siguiente al día actual de Santo Domingo', async () => {
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    h.ofertarCotizacion.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({ id: 'item-1', cantidad: 1, producto: producto('Tubo PVC', 15) }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    fireEvent.change(screen.getByLabelText('Plazo de entrega en días'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Válida hasta'), { target: { value: '2026-10-08' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
+
+    await waitFor(() => {
+      expect(h.ofertarCotizacion).toHaveBeenCalledWith('cot-1', {
+        lineas: [{ itemId: 'item-1', precioUnitario: 15, cantidadOfertada: null }],
+        plazoDias: 5,
+        validaHasta: '2026-10-08',
+        condiciones: null,
+      })
+    })
+  })
+
   it('envía precios y cantidades junto con los términos de la oferta', async () => {
     h.ofertarCotizacion.mockResolvedValue(null)
     const items: ItemCotizacion[] = [
