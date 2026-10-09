@@ -6,6 +6,7 @@ import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
 import AccionesVentaProveedor from '@/components/marketplace/AccionesVentaProveedor'
+import AccionesOfertaComprador from '@/components/marketplace/AccionesOfertaComprador'
 import CancelarVentaButton from '@/components/marketplace/CancelarVentaButton'
 import ConfirmarRecepcionButton from '@/components/marketplace/ConfirmarRecepcionButton'
 import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
@@ -39,6 +40,19 @@ function fechaValidez(fecha: string): string {
   return `${dia}/${mes}/${anio}`
 }
 
+/**
+ * ¿La oferta venció? Se compara la fecha calendario `valida_hasta` (ISO) con la
+ * fecha local actual sin convertir la fecha a otro huso horario.
+ */
+function ofertaVencida(validaHasta: string | null | undefined): boolean {
+  if (!validaHasta) return false
+  const hoy = new Date()
+  const hoyISO = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(
+    hoy.getDate()
+  ).padStart(2, '0')}`
+  return validaHasta.slice(0, 10) < hoyISO
+}
+
 /** Fecha de un instante como día calendario en Santo Domingo (d/m/aaaa). */
 function fechaRechazoEnSantoDomingo(instante: string): string {
   return new Date(instante).toLocaleDateString('es-DO', {
@@ -54,8 +68,13 @@ function textoRechazo(cot: {
   rechazada_at?: string | null
   created_at: string
   motivo_rechazo?: string | null
+  rechazada_motivo?: string | null
 }): string {
   const fecha = fechaRechazoEnSantoDomingo(cot.rechazada_at ?? cot.created_at)
+  const motivoComprador = cot.rechazada_motivo?.trim()
+  if (motivoComprador) {
+    return `Rechazada por el comprador el ${fecha}: ${motivoComprador}`
+  }
   const motivo = cot.motivo_rechazo?.trim() || 'Motivo no especificado.'
   return `Rechazada por el proveedor el ${fecha}: ${motivo}`
 }
@@ -92,6 +111,7 @@ export default async function CotizacionDetallePage({
   const confirmado = ESTADOS_CONFIRMADOS.includes(detalle.estado)
   const respondida = detalle.estado === 'respondida'
   const tieneOferta = respondida && detalle.total_ofertado != null
+  const vencida = tieneOferta && ofertaVencida(detalle.valida_hasta)
   const totalConfirmado = items.reduce((sum, i) => {
     const unidades = confirmado ? (i.cantidad_confirmada ?? i.cantidad) : i.cantidad
     return sum + (i.precio_unitario ?? 0) * unidades
@@ -212,13 +232,26 @@ export default async function CotizacionDetallePage({
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-500">
-                  <span>x{unidades}</span>
-                  {precioUnitario != null && subtotal != null && (
+                  {ofertada && item.precio_ofertado != null ? (
                     <>
-                      <span>{ofertada ? dineroOferta(precioUnitario) : dinero(precioUnitario)} c/u</span>
+                      {item.precio_unitario != null && (
+                        <span>{`Catálogo: ${dineroOferta(item.precio_unitario)} c/u`}</span>
+                      )}
+                      <span>{`Oferta: ${dineroOferta(item.precio_ofertado)} c/u`}</span>
+                      <span>x{unidades}</span>
                       <span className="font-medium text-gray-700">
-                        {ofertada ? dineroOferta(subtotal) : dinero(subtotal)}
+                        {dineroOferta(item.precio_ofertado * unidades)}
                       </span>
+                    </>
+                  ) : (
+                    <>
+                      <span>x{unidades}</span>
+                      {precioUnitario != null && subtotal != null && (
+                        <>
+                          <span>{dinero(precioUnitario)} c/u</span>
+                          <span className="font-medium text-gray-700">{dinero(subtotal)}</span>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -238,9 +271,16 @@ export default async function CotizacionDetallePage({
             )
           : tieneOferta
             ? (
-                <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-                  Total ofertado: {dineroOferta(Number(detalle.total_ofertado))}
-                </div>
+                <>
+                  {detalle.total_estimado != null && (
+                    <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+                      {`Total estimado: ${dinero(Number(detalle.total_estimado))}`}
+                    </div>
+                  )}
+                  <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
+                    {`Total ofertado: ${dineroOferta(Number(detalle.total_ofertado))}`}
+                  </div>
+                </>
               )
             : detalle.total_estimado != null && (
                 <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
@@ -251,14 +291,22 @@ export default async function CotizacionDetallePage({
 
       {tieneOferta && (
         <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4">
-          <p className="text-sm font-medium text-gray-900">
-            {`Respondida: ${dineroOferta(Number(detalle.total_ofertado))}, plazo ${detalle.plazo_dias ?? 0} días, válida hasta ${fechaValidez(detalle.valida_hasta ?? '')}`}
-          </p>
+          <p className="text-sm font-medium text-gray-900">Oferta del proveedor</p>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700">
+            <span>{`plazo ${detalle.plazo_dias ?? 0} días`}</span>
+            <span>{`válida hasta ${fechaValidez(detalle.valida_hasta ?? '')}`}</span>
+          </div>
           {detalle.condiciones && (
             <p className="mt-1 break-words [overflow-wrap:anywhere] text-sm text-gray-700">
               {detalle.condiciones}
             </p>
           )}
+        </div>
+      )}
+
+      {esComprador && respondida && (
+        <div className="mt-4">
+          <AccionesOfertaComprador cotizacionId={detalle.id} vencida={vencida} />
         </div>
       )}
 

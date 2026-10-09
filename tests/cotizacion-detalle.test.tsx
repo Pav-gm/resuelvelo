@@ -3,7 +3,7 @@
  * acciones según estado, manejo de sesión/detalle denegado, enlaces desde las
  * listas y legibilidad móvil (envoltura sin scroll horizontal).
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
@@ -86,6 +86,11 @@ beforeEach(() => {
   h.getCotizacionesDeProveedor.mockResolvedValue([])
   h.getProductosDeProveedor.mockResolvedValue([])
   h.getCotizacionesDelComprador.mockResolvedValue([])
+})
+
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
 })
 
 describe('Página de detalle de cotización', () => {
@@ -269,7 +274,10 @@ describe('Página de detalle de cotización', () => {
     expect(screen.queryByLabelText('Dejar reseña del proveedor')).toBeNull()
   })
 
-  it('el comprador ve el total ofertado en lugar del total estimado en el detalle y su tarjeta', async () => {
+  it('el comprador compara la oferta vigente y puede aceptarla o rechazarla', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T12:00:00'))
+
     const itemOfertado = {
       id: 'item-1',
       cotizacion_id: 'cot-1',
@@ -282,8 +290,58 @@ describe('Página de detalle de cotización', () => {
       stock_al_cotizar: 5,
       producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
     }
-    const resumen = 'Respondida: RD$ 2,900.00, plazo 5 días, válida hasta 20/10/2026'
-    const totalOfertado = 'Total ofertado: RD$ 2,900.00'
+    const comun = {
+      id: 'cot-1',
+      numero: 42,
+      comprador_id: 'buyer-1',
+      proveedor_id: 'prov-1',
+      estado: 'respondida' as const,
+      created_at: '2026-03-15T15:00:00.000Z',
+      total_estimado: 30,
+      total_ofertado: 46,
+      plazo_dias: 5,
+      valida_hasta: '2026-10-20',
+      condiciones: 'Entrega en almacén.',
+      items: [itemOfertado],
+    }
+
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({ ...detalleBase, ...comun })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.getByText('Catálogo: RD$ 10.00 c/u')).toBeInTheDocument()
+    expect(screen.getByText('Oferta: RD$ 23.00 c/u')).toBeInTheDocument()
+    expect(screen.getByText('Total estimado: $30.00')).toBeInTheDocument()
+    expect(screen.getByText('Total ofertado: RD$ 46.00')).toBeInTheDocument()
+    expect(screen.getByText('plazo 5 días')).toBeInTheDocument()
+    expect(screen.getByText('válida hasta 20/10/2026')).toBeInTheDocument()
+    expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aceptar oferta' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rechazar oferta' })).toBeInTheDocument()
+    expect(screen.queryByText('Oferta vencida')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Responder con oferta' })).toBeNull()
+
+    cleanup()
+
+    h.getCotizacionesDelComprador.mockResolvedValue([comun])
+
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+
+    expect(screen.getByText('Catálogo: RD$ 10.00 c/u')).toBeInTheDocument()
+    expect(screen.getByText('Oferta: RD$ 23.00 c/u')).toBeInTheDocument()
+    expect(screen.getByText('Total estimado: $30.00')).toBeInTheDocument()
+    expect(screen.getByText('Total ofertado: RD$ 46.00')).toBeInTheDocument()
+    expect(screen.getByText('plazo 5 días')).toBeInTheDocument()
+    expect(screen.getByText('válida hasta 20/10/2026')).toBeInTheDocument()
+    expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aceptar oferta' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rechazar oferta' })).toBeInTheDocument()
+  })
+
+  it('una oferta vencida oculta aceptar y permite pedir una nueva con nota', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T12:00:00'))
 
     h.state.user = { id: 'buyer-1' }
     h.getCotizacionDetalle.mockResolvedValue({
@@ -291,54 +349,55 @@ describe('Página de detalle de cotización', () => {
       id: 'cot-1',
       numero: 42,
       estado: 'respondida',
-      total_estimado: 2960,
-      total_ofertado: 2900,
+      total_estimado: 30,
+      total_ofertado: 46,
       plazo_dias: 5,
-      valida_hasta: '2026-10-20',
+      valida_hasta: '2026-10-07',
       condiciones: 'Entrega en almacén.',
-      items: [itemOfertado],
+      items: [
+        {
+          id: 'item-1',
+          cotizacion_id: 'cot-1',
+          producto_id: 'prod-1',
+          cantidad: 3,
+          cantidad_ofertada: 2,
+          precio_ofertado: 23,
+          precio_unitario: 10,
+          sujeta_disponibilidad: false,
+          stock_al_cotizar: 5,
+          producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+        },
+      ],
     })
 
     render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
 
-    expect(screen.getAllByText(totalOfertado).length).toBeGreaterThan(0)
-    expect(screen.getByText(resumen)).toBeInTheDocument()
-    expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
-    expect(screen.getByText('x2')).toBeInTheDocument()
-    expect(screen.getByText('RD$ 46.00')).toBeInTheDocument()
-    expect(screen.queryByText('Total estimado: $2,960.00')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Responder con oferta' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Rechazar' })).toBeNull()
-    expect(screen.queryByText('Aceptar al precio de catálogo')).toBeNull()
+    expect(screen.getByText('Oferta vencida')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pedir nueva oferta' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Aceptar oferta' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Rechazar oferta' })).toBeInTheDocument()
+  })
 
-    cleanup()
+  it('el proveedor no ve controles de decisión del comprador en una cotización respondida', async () => {
+    h.state.user = { id: 'provider-user-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'respondida',
+      total_estimado: 30,
+      total_ofertado: 46,
+      plazo_dias: 5,
+      valida_hasta: '2026-10-20',
+      condiciones: 'Entrega en almacén.',
+      items: [],
+    })
 
-    h.getCotizacionesDelComprador.mockResolvedValue([
-      {
-        id: 'cot-1',
-        numero: 42,
-        comprador_id: 'buyer-1',
-        proveedor_id: 'prov-1',
-        estado: 'respondida',
-        created_at: '2026-03-15T15:00:00.000Z',
-        total_estimado: 2960,
-        total_ofertado: 2900,
-        plazo_dias: 5,
-        valida_hasta: '2026-10-20',
-        condiciones: 'Entrega en almacén.',
-        items: [itemOfertado],
-      },
-    ])
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
 
-    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
-
-    expect(screen.getAllByText(totalOfertado).length).toBeGreaterThan(0)
-    expect(screen.getByText(resumen)).toBeInTheDocument()
-    expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
-    expect(screen.getByText('x2')).toBeInTheDocument()
-    expect(screen.getByText('RD$ 46.00')).toBeInTheDocument()
-    expect(screen.queryByText(/Total estimado/)).toBeNull()
-    expect(screen.queryByText('Aceptar al precio de catálogo')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Aceptar oferta' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Rechazar oferta' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Pedir nueva oferta' })).toBeNull()
   })
 
   it('la bandeja del proveedor muestra la oferta por línea, el total y sus términos', async () => {
@@ -381,13 +440,15 @@ describe('Página de detalle de cotización', () => {
 
     render(await PedidosPage())
 
+    expect(screen.getByText('Catálogo: RD$ 1,480.00 c/u')).toBeInTheDocument()
+    expect(screen.getByText('Oferta: RD$ 1,450.00 c/u')).toBeInTheDocument()
     expect(screen.getByText('x2')).toBeInTheDocument()
-    expect(screen.getByText('RD$ 1,450.00 c/u')).toBeInTheDocument()
     expect(screen.getAllByText('Total ofertado: RD$ 2,900.00').length).toBeGreaterThan(0)
-    expect(
-      screen.getByText('Respondida: RD$ 2,900.00, plazo 5 días, válida hasta 20/10/2026')
-    ).toBeInTheDocument()
+    expect(screen.getByText('plazo 5 días')).toBeInTheDocument()
+    expect(screen.getByText('válida hasta 20/10/2026')).toBeInTheDocument()
     expect(screen.queryByText(/2,960\.00/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Aceptar oferta' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Rechazar oferta' })).toBeNull()
   })
 
   it('comprador y proveedor ven fecha y motivo del rechazo en tarjeta y detalle', async () => {
@@ -441,6 +502,58 @@ describe('Página de detalle de cotización', () => {
     h.getCotizacionDetalle.mockResolvedValue({ ...detalleBase, ...comun })
     render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
     expect(screen.getByText(texto)).toBeInTheDocument()
+  })
+
+  it('comprador y proveedor ven el rechazo de la oferta por el comprador con su motivo', async () => {
+    const itemRechazado = {
+      id: 'item-1',
+      cotizacion_id: 'cot-1',
+      producto_id: 'prod-1',
+      cantidad: 3,
+      precio_unitario: 10,
+      sujeta_disponibilidad: false,
+      stock_al_cotizar: 5,
+      producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+    }
+    const texto = 'Rechazada por el comprador el 8/10/2026: Precio fuera del presupuesto'
+    const comun = {
+      id: 'cot-1',
+      numero: 42,
+      comprador_id: 'buyer-1',
+      proveedor_id: 'prov-1',
+      estado: 'rechazada',
+      created_at: '2026-10-08T15:00:00.000Z',
+      rechazada_at: '2026-10-08T15:00:00.000Z',
+      motivo_rechazo: null,
+      rechazada_motivo: 'Precio fuera del presupuesto',
+      items: [itemRechazado],
+    }
+
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({ ...detalleBase, ...comun })
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText(/Rechazada por el proveedor/)).toBeNull()
+    cleanup()
+
+    h.getCotizacionesDelComprador.mockResolvedValue([comun])
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText(/Rechazada por el proveedor/)).toBeNull()
+    cleanup()
+
+    h.state.user = { id: 'provider-user-1' }
+    h.getProveedorDelUsuario.mockResolvedValue({
+      id: 'prov-1',
+      user_id: 'provider-user-1',
+      nombre_empresa: 'Promeria',
+      verificado: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+    })
+    h.getCotizacionesDeProveedor.mockResolvedValue([comun])
+    render(await PedidosPage())
+    expect(screen.getByText(texto)).toBeInTheDocument()
+    expect(screen.queryByText(/Rechazada por el proveedor/)).toBeNull()
   })
 
   it('el usuario sin sesión es redirigido a login', async () => {

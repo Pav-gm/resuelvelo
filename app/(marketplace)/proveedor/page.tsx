@@ -49,10 +49,15 @@ export default async function PanelProveedorPage() {
     getProductosDeProveedor(proveedor.id),
   ])
 
+  // El estado `aceptada` lo produce la decisión del comprador; el panel del
+  // proveedor no ofrece ninguna acción que lo escriba. Aquí solo se cuenta como
+  // indicador de los pedidos que el comprador ya aceptó.
+  const pedidosAceptados = cotizaciones.filter((c) => c.estado === 'aceptada').length
+
   const statsCards = [
     { label: 'Productos activos',   valor: stats.productosActivos,        icono: Package,      color: 'text-blue-600 bg-blue-50' },
     { label: 'Cotizaciones nuevas', valor: stats.cotizacionesPendientes,  icono: ShoppingBag,  color: 'text-orange-600 bg-orange-50' },
-    { label: 'Pedidos este mes',    valor: cotizaciones.filter(c => c.estado === 'aceptada').length, icono: TrendingUp, color: 'text-green-600 bg-green-50' },
+    { label: 'Pedidos este mes',    valor: pedidosAceptados,              icono: TrendingUp,   color: 'text-green-600 bg-green-50' },
     { label: 'Sin stock',           valor: stats.sinStock,                icono: AlertCircle,  color: 'text-red-600 bg-red-50' },
   ]
 
