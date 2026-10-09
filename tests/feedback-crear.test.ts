@@ -413,6 +413,7 @@ describe('recepción — el cliente no asigna el estado', () => {
     expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledWith(COTIZACION_OTRA, 'cotizacion_despachada')
     expect(h.revalidatePath).toHaveBeenCalledWith('/proveedor/pedidos')
     expect(h.revalidatePath).toHaveBeenCalledWith('/mis-cotizaciones')
+    expect(h.revalidatePath).toHaveBeenCalledWith(`/cotizaciones/${COTIZACION_OTRA}`)
     expect(h.state.mutaciones).toEqual([])
   })
 

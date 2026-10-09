@@ -266,6 +266,7 @@ export async function despacharCotizacion(cotizacionId: string): Promise<{ error
 
   revalidatePath('/proveedor/pedidos')
   revalidatePath('/mis-cotizaciones')
+  revalidatePath(`/cotizaciones/${cotizacionId}`)
   return null
 }
 
