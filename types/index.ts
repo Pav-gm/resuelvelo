@@ -171,9 +171,19 @@ export type MotivoCancelacionInput = {
 }
 
 export type CotizacionDetalle = Cotizacion & {
-  proveedor: Pick<Proveedor, 'id' | 'nombre_empresa' | 'ciudad' | 'verificado'>
-  comprador: Pick<Profile, 'id' | 'nombre' | 'email'> & { telefono: string | null }
-  items: Array<ItemCotizacion & { producto: Pick<Producto, 'id' | 'nombre' | 'activo'> & { precio?: number } | null }>
+  proveedor: Pick<Proveedor, 'id' | 'nombre_empresa' | 'ciudad' | 'verificado'> & {
+    rnc?: string | null
+    direccion?: string | null
+    telefono?: string | null
+  }
+  comprador: Pick<Profile, 'id' | 'nombre' | 'email'> & {
+    telefono: string | null
+    razon_social?: string | null
+    rnc?: string | null
+  }
+  items: Array<ItemCotizacion & {
+    producto: (Pick<Producto, 'id' | 'nombre' | 'activo'> & { precio?: number; itbis_incluido?: boolean | null }) | null
+  }>
 }
 
 export interface Feedback {
