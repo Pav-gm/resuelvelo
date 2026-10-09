@@ -18,6 +18,9 @@ describe('migración de decisión de oferta del comprador', () => {
     expect(migracion).toMatch(/c\.comprador_id = auth\.uid\(\)/i)
     expect(migracion).toMatch(/c\.estado = 'respondida'/i)
     expect(migracion).toMatch(/v_valida_hasta < current_date/i)
+    expect(migracion).toMatch(/rechazada_motivo = btrim\(p_motivo\),\s*rechazada_at = now\(\)/i)
+    expect(migracion).toMatch(/'aceptada_at', c\.aceptada_at/i)
+    expect(migracion).toMatch(/'rechazada_motivo', c\.rechazada_motivo/i)
     for (const firma of [
       'aceptar_oferta_cotizacion(uuid)',
       'rechazar_oferta_cotizacion(uuid, text)',
@@ -40,5 +43,7 @@ describe('migración de decisión de oferta del comprador', () => {
     expect(rollback).toMatch(/function public\.aceptar_cotizacion_con_cantidades\(/i)
     expect(rollback).toMatch(/function public\.aceptar_cotizacion\(p_cotizacion_id uuid\)/i)
     expect(rollback).toMatch(/grant execute on function public\.aceptar_cotizacion_con_cantidades\(uuid, jsonb\) to authenticated/i)
+    expect(rollback).toMatch(/function public\.get_cotizacion_detalle\(p_cotizacion_id uuid\)/i)
+    expect(rollback).not.toMatch(/'rechazada_motivo', c\.rechazada_motivo/i)
   })
 })
