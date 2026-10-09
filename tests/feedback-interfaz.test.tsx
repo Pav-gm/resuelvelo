@@ -618,6 +618,49 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(/^Respuesta publicada\.$/)
   })
 
+  it('el mensaje de respuesta persiste cuando el panel se revalida', async () => {
+    h.resumen = {
+      promedio: 4.5,
+      conteo: 1,
+      reseñas: [
+        {
+          id: 'fb-1',
+          proveedor_id: 'prov-1',
+          calificacion: 5,
+          comentario: 'Entrega a tiempo',
+          created_at: '2026-03-01T12:00:00.000Z',
+          autor_anonimo: 'Comprador verificado',
+          respuesta: null,
+        },
+      ],
+    }
+    h.responderFeedbackProveedor.mockResolvedValue({ success: true })
+
+    const { rerender } = render(await PanelProveedorPage())
+
+    const seccion = screen.getByRole('region', { name: 'Reseñas' })
+    const formulario = within(seccion).getByRole('form', { name: 'Responder reseña' })
+    fireEvent.change(within(formulario).getByLabelText('Respuesta'), {
+      target: { value: 'Gracias por compartir tu experiencia.' },
+    })
+    fireEvent.click(within(formulario).getByRole('button', { name: 'Publicar respuesta' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent(/^Respuesta publicada\.$/)
+    })
+
+    // La revalidación re-renderiza el panel con la respuesta ya guardada; el
+    // componente permanece montado y conserva el estado.
+    h.resumen.reseñas[0].respuesta = 'Gracias por compartir tu experiencia.'
+    rerender(await PanelProveedorPage())
+
+    const region = screen.getByRole('region', { name: 'Reseñas' })
+    expect(screen.getByRole('status')).toHaveTextContent(/^Respuesta publicada\.$/)
+    expect(region).toHaveTextContent('Tu respuesta')
+    expect(region).toHaveTextContent('Gracias por compartir tu experiencia.')
+    expect(screen.queryByRole('form', { name: 'Responder reseña' })).not.toBeInTheDocument()
+  })
+
   it('la bandeja del proveedor muestra el badge y no la acción de reseña', async () => {
     h.cotizacionesProveedor.push(cotizacion('recibida', COT_RECIBIDA))
     h.cotizacionesProveedor.push(cotizacion('pendiente', '11111111-1111-4111-8111-111111111111'))
