@@ -1,16 +1,6 @@
-import Link from 'next/link'
 import { obtenerNotificaciones } from './actions'
-
-/** Fecha y hora legible en español para la lista completa. */
-function fechaLegible(iso: string): string {
-  return new Date(iso).toLocaleString('es-DO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+import { NotificacionLink } from '@/components/marketplace/NotificacionLink'
+import { formatearFechaNotificacion } from '@/lib/notificaciones'
 
 export default async function NotificacionesPage() {
   // Lista completa (sin límite) de las notificaciones propias; RLS autoriza.
@@ -40,18 +30,20 @@ export default async function NotificacionesPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   {n.cotizacion_id ? (
-                    <Link
+                    <NotificacionLink
+                      id={n.id}
+                      leida={Boolean(n.leida_at)}
                       href={`/cotizaciones/${n.cotizacion_id}`}
                       className="font-semibold text-gray-900 hover:underline"
                     >
                       {n.titulo}
-                    </Link>
+                    </NotificacionLink>
                   ) : (
                     <p className="font-semibold text-gray-900">{n.titulo}</p>
                   )}
                   <p className="mt-1 text-sm text-gray-600">{n.cuerpo}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                    <span>{fechaLegible(n.created_at)}</span>
+                    <span>{formatearFechaNotificacion(n.created_at)}</span>
                     {!n.cotizacion_id && <span>Sin cotización asociada</span>}
                   </div>
                 </div>
