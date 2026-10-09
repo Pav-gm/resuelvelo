@@ -1,12 +1,12 @@
-export const PROVINCIAS_RD = [
+export const PROVINCIAS = [
   'Azua',
   'Baoruco',
   'Barahona',
   'Dajabón',
   'Distrito Nacional',
   'Duarte',
-  'Elías Piña',
   'El Seibo',
+  'Elías Piña',
   'Espaillat',
   'Hato Mayor',
   'Hermanas Mirabal',
@@ -22,13 +22,17 @@ export const PROVINCIAS_RD = [
   'Peravia',
   'Puerto Plata',
   'Samaná',
+  'Sánchez Ramírez',
   'San Cristóbal',
   'San José de Ocoa',
   'San Juan',
   'San Pedro de Macorís',
-  'Sánchez Ramírez',
   'Santiago',
   'Santiago Rodríguez',
   'Santo Domingo',
   'Valverde',
 ] as const
+
+export const PROVINCIAS_RD = PROVINCIAS
+
+export type Provincia = (typeof PROVINCIAS)[number]

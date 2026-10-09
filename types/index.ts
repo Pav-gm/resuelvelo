@@ -38,9 +38,26 @@ export interface Proveedor {
   direccion?: string
   ciudad?: string
   logo_url?: string
+  rnc?: string | null
+  telefono?: string | null
+  whatsapp?: string | null
+  horario?: string | null
+  sitio_web?: string | null
+  zonas_cobertura?: string[]
   verificado: boolean
   created_at: string
 }
+
+export type PerfilProveedor = Proveedor & {
+  rnc: string | null
+  telefono: string | null
+  whatsapp: string | null
+  horario: string | null
+  sitio_web: string | null
+  zonas_cobertura: string[]
+}
+
+export type PerfilProveedorActionResult = { error: string } | { success: true }
 
 export interface Categoria {
   id: string

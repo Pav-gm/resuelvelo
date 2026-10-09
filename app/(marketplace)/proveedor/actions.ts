@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
 import { esFechaISOFuturaEnSantoDomingo } from '@/lib/cotizaciones'
-import type { CotizacionActionResult, OfertaCotizacionInput } from '@/types'
+import type { CotizacionActionResult, OfertaCotizacionInput, PerfilProveedorActionResult } from '@/types'
+import { PROVINCIAS } from '@/lib/provincias'
 
 async function getProveedorId(
   supabase?: Awaited<ReturnType<typeof createClient>>
@@ -22,6 +23,73 @@ async function getProveedorId(
 
   if (!data) redirect('/login')
   return data.id
+}
+
+export async function guardarPerfilProveedor(
+  _prevState: PerfilProveedorActionResult,
+  formData: FormData
+): Promise<PerfilProveedorActionResult> {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+  if (userError) return { error: userError.message }
+
+  const { data: proveedor, error: proveedorError } = await supabase
+    .from('proveedores')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (proveedorError) return { error: proveedorError.message }
+  if (!proveedor) return { error: 'No se pudo identificar el proveedor.' }
+
+  const valor = (campo: string): string | null => {
+    const raw = formData.get(campo)
+    return typeof raw === 'string' ? raw.trim() || null : null
+  }
+  const nombre_empresa = valor('nombre_empresa')
+  if (!nombre_empresa) return { error: 'El nombre de empresa es obligatorio.' }
+
+  const zonas = [...new Set(formData.getAll('zonas').filter((zona): zona is string => typeof zona === 'string').map((zona) => zona.trim()))]
+  if (zonas.some((zona) => !PROVINCIAS.includes(zona as (typeof PROVINCIAS)[number]))) {
+    return { error: 'La zona de cobertura contiene una provincia no válida.' }
+  }
+
+  const { error: updateError } = await supabase
+    .from('proveedores')
+    .update({
+      nombre_empresa,
+      descripcion: valor('descripcion'),
+      direccion: valor('direccion'),
+      ciudad: valor('ciudad'),
+      rnc: valor('rnc'),
+      telefono: valor('telefono'),
+      whatsapp: valor('whatsapp'),
+      horario: valor('horario'),
+      sitio_web: valor('sitio_web'),
+      logo_url: valor('logo_url'),
+    })
+    .eq('id', proveedor.id)
+    .eq('user_id', user.id)
+  if (updateError) return { error: updateError.message }
+
+  const { error: deleteError } = await supabase
+    .from('proveedor_zonas')
+    .delete()
+    .eq('proveedor_id', proveedor.id)
+  if (deleteError) return { error: deleteError.message }
+
+  if (zonas.length > 0) {
+    const { error: insertError } = await supabase
+      .from('proveedor_zonas')
+      .insert(zonas.map((provincia) => ({ proveedor_id: proveedor.id, provincia })))
+    if (insertError) return { error: insertError.message }
+  }
+
+  revalidatePath('/proveedor')
+  revalidatePath('/proveedor/perfil')
+  revalidatePath('/proveedores')
+  revalidatePath(`/proveedores/${proveedor.id}`)
+  return { success: true }
 }
 
 // ─── Crear producto ──────────────────────────────────────────
