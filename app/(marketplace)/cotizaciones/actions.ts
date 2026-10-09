@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
 import type { TipoNotificacionEmail } from '@/lib/notificaciones-email'
-import type { ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
+import type { CotizacionActionResult, ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
 
 // ─── Crear cotización(es) desde el carrito ───────────────────
 // Agrupa los items por proveedor y crea una cotización por cada uno.
@@ -176,12 +176,13 @@ export async function cotizarDesdeCarrito(
 
 // ─── Responder cotización (proveedor) ────────────────────────
 
-type EstadoCotizacion = 'aceptada' | 'rechazada'
+type EstadoCotizacion = 'rechazada'
 
 export async function responderCotizacion(
   cotizacionId: string,
   estado: EstadoCotizacion
 ): Promise<void> {
+  void estado
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -194,17 +195,77 @@ export async function responderCotizacion(
 
   if (!prov) return
 
-  const { error } = estado === 'aceptada'
-    ? await supabase.rpc('aceptar_cotizacion', { p_cotizacion_id: cotizacionId })
-    : await supabase.rpc('rechazar_cotizacion', { p_cotizacion_id: cotizacionId })
+  const { error } = await supabase.rpc('rechazar_cotizacion', { p_cotizacion_id: cotizacionId })
 
   if (error) return
 
-  const tipo: TipoNotificacionEmail = estado === 'aceptada' ? 'cotizacion_aceptada' : 'cotizacion_rechazada'
+  const tipo: TipoNotificacionEmail = 'cotizacion_rechazada'
   await enviarNotificacionCotizacionEmail(cotizacionId, tipo)
 
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
+}
+
+const RUTAS_DECISION_COTIZACION = (cotizacionId: string) => [
+  `/cotizaciones/${cotizacionId}`,
+  '/mis-cotizaciones',
+  '/proveedor',
+  '/proveedor/pedidos',
+]
+
+function revalidarDecisionCotizacion(cotizacionId: string): void {
+  for (const ruta of RUTAS_DECISION_COTIZACION(cotizacionId)) revalidatePath(ruta)
+}
+
+export async function aceptarOfertaCotizacion(cotizacionId: string): Promise<CotizacionActionResult> {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('aceptar_oferta_cotizacion', { p_cotizacion_id: cotizacionId })
+  if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_aceptada')
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
+}
+
+export async function rechazarOfertaCotizacion(
+  cotizacionId: string,
+  motivo: string
+): Promise<CotizacionActionResult> {
+  const motivoRecortado = typeof motivo === 'string' ? motivo.trim() : ''
+  if (motivoRecortado.length < 1 || motivoRecortado.length > 500) {
+    return { error: 'El motivo debe tener entre 1 y 500 caracteres.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('rechazar_oferta_cotizacion', {
+    p_cotizacion_id: cotizacionId,
+    p_motivo: motivoRecortado,
+  })
+  if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_rechazada')
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
+}
+
+export async function solicitarNuevaOferta(
+  cotizacionId: string,
+  nota: string
+): Promise<CotizacionActionResult> {
+  const notaRecortada = typeof nota === 'string' ? nota.trim() : ''
+  if (notaRecortada.length < 1 || notaRecortada.length > 500) {
+    return { error: 'El motivo debe tener entre 1 y 500 caracteres.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('solicitar_nueva_oferta', {
+    p_cotizacion_id: cotizacionId,
+    p_nota: notaRecortada,
+  })
+  if (error) return { error: error.message }
+
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
 }
 
 export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
