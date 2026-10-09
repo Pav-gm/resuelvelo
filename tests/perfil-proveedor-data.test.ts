@@ -60,6 +60,8 @@ describe('lecturas del perfil del proveedor', () => {
     await expect(getPerfilProveedorDelUsuario()).resolves.toEqual({
       id: 'prov-1', user_id: 'user-1', nombre_empresa: 'Promeria', rnc: null,
       telefono: null, whatsapp: null, horario: null, sitio_web: null,
+      verificacion_estado: 'sin_solicitar', verificacion_nota: null,
+      verificacion_solicitada_at: null, verificado_at: null,
       zonas_cobertura: ['Azua', 'Santiago'],
     })
   })
