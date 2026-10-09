@@ -42,52 +42,12 @@ beforeEach(() => {
 })
 
 describe('aceptarCotizacionConCantidades', () => {
-  it('acepta cantidades por línea y revalida las listas cuando el RPC termina bien', async () => {
-    const resultado = await aceptarCotizacionConCantidades('cot-1', [
-      { itemId: 'item-1', cantidad: 2 },
-      { itemId: 'item-2', cantidad: 0 },
-    ])
-
-    expect(resultado).toBeNull()
-    expect(h.rpc).toHaveBeenCalledWith('aceptar_cotizacion_con_cantidades', {
-      p_cotizacion_id: 'cot-1',
-      p_cantidades: [
-        { item_id: 'item-1', cantidad: 2 },
-        { item_id: 'item-2', cantidad: 0 },
-      ],
-    })
-    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledOnce()
-    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledWith('cot-1', 'cotizacion_aceptada')
-    expect(h.revalidatePath.mock.calls.map(([ruta]) => ruta)).toEqual([
-      '/proveedor',
-      '/proveedor/pedidos',
-      '/mis-cotizaciones',
-    ])
-  })
-
-  it('devuelve el error del RPC y no revalida cuando falla la aceptación', async () => {
-    h.state.rpcResult = {
-      data: null,
-      error: { message: 'No hay stock disponible de Tubo PVC (disponible: 1, confirmado: 2).' },
-    }
-
+  it('aceptarCotizacionConCantidades devuelve error porque el proveedor no puede aceptar', async () => {
     const resultado = await aceptarCotizacionConCantidades('cot-1', [
       { itemId: 'item-1', cantidad: 2 },
     ])
 
-    expect(resultado).toEqual({
-      error: 'No hay stock disponible de Tubo PVC (disponible: 1, confirmado: 2).',
-    })
-    expect(h.revalidatePath).not.toHaveBeenCalled()
-    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
-  })
-
-  it('rechaza cantidades inválidas antes de llamar al RPC', async () => {
-    const resultado = await aceptarCotizacionConCantidades('cot-1', [
-      { itemId: 'item-1', cantidad: -1 },
-    ])
-
-    expect(resultado).toEqual({ error: 'Datos de cantidades inválidos.' })
+    expect(resultado).toEqual({ error: 'Solo el comprador puede aceptar una oferta respondida.' })
     expect(h.rpc).not.toHaveBeenCalled()
     expect(h.revalidatePath).not.toHaveBeenCalled()
     expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
