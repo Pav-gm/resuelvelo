@@ -230,6 +230,55 @@ describe('NavbarClient — campana de notificaciones', () => {
     await waitFor(() => expect(boton).toHaveAttribute('data-no-leidas', '0'))
     await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-1'))
   })
+
+  it('cierra el panel al navegar desde un aviso', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({
+      data: [notificacion({ id: 'n-1', cotizacion_id: 'c-1', leida_at: '2026-10-08T12:30:00.000Z' })],
+      noLeidas: 0,
+      error: null,
+    })
+
+    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+
+    const boton = await screen.findByRole('button', { name: 'Notificaciones' })
+    fireEvent.click(boton)
+
+    const enlace = await screen.findByRole('link', { name: 'Nueva solicitud #COT-000042' })
+    fireEvent.click(enlace)
+
+    expect(h.marcarNotificacionLeida).not.toHaveBeenCalled()
+    await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-1'))
+
+    h.pathname = '/cotizaciones/c-1'
+    rerender(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+
+    expect(screen.queryByTestId('notificacion')).toBeNull()
+  })
+
+  it('si falla marcar como leída muestra el error y no navega', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({
+      data: [notificacion({ id: 'n-1', cotizacion_id: 'c-1', leida_at: null })],
+      noLeidas: 1,
+      error: null,
+    })
+    h.marcarNotificacionLeida.mockResolvedValue({
+      error: 'No se pudo marcar la notificación como leída.',
+    })
+
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+
+    const boton = await screen.findByRole('button', { name: 'Notificaciones' })
+    fireEvent.click(boton)
+
+    const enlace = await screen.findByRole('link', { name: 'Nueva solicitud #COT-000042' })
+    fireEvent.click(enlace)
+
+    const alerta = await screen.findByRole('alert')
+    expect(alerta).toHaveTextContent('No se pudo marcar la notificación como leída.')
+    expect(h.push).not.toHaveBeenCalled()
+    expect(screen.getByTestId('notificacion')).toHaveAttribute('data-leida', 'false')
+    expect(boton).toHaveAttribute('data-no-leidas', '1')
+  })
   it('actualiza el contador al cambiar de ruta y al abrir la campana', async () => {
     h.obtenerNotificaciones
       .mockResolvedValueOnce({ data: [], noLeidas: 2, error: null })
