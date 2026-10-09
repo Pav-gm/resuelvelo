@@ -15,15 +15,17 @@ function mensajeDeError(code: string): string {
 }
 
 export default function ResponderResenaForm({ feedbackId }: { feedbackId: string }) {
-  const [respuesta, setRespuesta] = useState('')
+  const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [publicada, setPublicada] = useState(false)
 
-  // Tras el éxito el formulario se reemplaza y no ofrece otro envío.
+  // Tras el éxito el formulario se reemplaza por el mensaje. El mensaje
+  // permanece visible (no se descarta con un temporizador) para que el
+  // proveedor pueda leerlo.
   if (publicada) {
     return (
-      <p className="text-sm font-medium text-teal-700" role="status">
+      <p className="text-sm font-medium text-teal-700" role="status" aria-live="polite">
         Respuesta publicada.
       </p>
     )
@@ -33,8 +35,8 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
     e.preventDefault()
     if (enviando) return
 
-    const texto = respuesta.trim()
-    if (!texto) {
+    const textoLimpio = texto.trim()
+    if (!textoLimpio) {
       setError('Escribe una respuesta antes de publicarla.')
       return
     }
@@ -42,7 +44,7 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
     setError(null)
     setEnviando(true)
 
-    const resultado = await responderFeedbackProveedor(feedbackId, texto)
+    const resultado = await responderFeedbackProveedor(feedbackId, textoLimpio)
 
     setEnviando(false)
 
@@ -64,8 +66,8 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
       </label>
       <textarea
         id={`respuesta-${feedbackId}`}
-        value={respuesta}
-        onChange={(e) => setRespuesta(e.target.value)}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
         maxLength={1000}
         rows={3}
         disabled={enviando}
@@ -80,7 +82,7 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
 
       <button
         type="submit"
-        disabled={enviando || !respuesta.trim()}
+        disabled={enviando || !texto.trim()}
         className="mt-2 w-fit rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {enviando ? 'Publicando…' : 'Publicar respuesta'}

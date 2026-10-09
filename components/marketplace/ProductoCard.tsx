@@ -45,7 +45,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
             <InsigniaProveedorVerificado fecha={producto.proveedor?.verificado_at} compacta />
           </div>
           <Link href={hrefFicha}>
-            <h3 className="mt-0.5 font-semibold text-gray-900 leading-tight line-clamp-2">{producto.nombre}</h3>
+            <h3 className="mt-0.5 break-words font-semibold text-gray-900 leading-tight line-clamp-2 [overflow-wrap:anywhere]">{producto.nombre}</h3>
           </Link>
         </div>
 

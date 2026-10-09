@@ -589,7 +589,9 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
         'Gracias por compartir tu experiencia.'
       )
     })
-    expect(await screen.findByText('Respuesta publicada.')).toBeInTheDocument()
+    const exito = await screen.findByRole('status')
+    expect(exito).toHaveTextContent(/^Respuesta publicada\.$/)
+    expect(exito).toHaveAttribute('aria-live', 'polite')
     expect(screen.queryByRole('form', { name: 'Responder reseña' })).not.toBeInTheDocument()
   })
 

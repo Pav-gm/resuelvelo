@@ -388,6 +388,85 @@ describe('Página de detalle de cotización', () => {
     expect(screen.queryByRole('button', { name: 'Rechazar oferta' })).toBeNull()
   })
 
+  it('el detalle conserva la oferta en aceptada, despachada y recibida', async () => {
+    h.state.user = { id: 'buyer-1' }
+
+    for (const estado of ['aceptada', 'despachada', 'recibida'] as const) {
+      h.getCotizacionDetalle.mockResolvedValue({
+        ...detalleBase,
+        id: 'cot-1',
+        numero: 42,
+        estado,
+        total_ofertado: 46,
+        plazo_dias: 5,
+        valida_hasta: '2026-10-20',
+        condiciones: 'Entrega en almacén.',
+        items: [
+          {
+            id: 'item-1',
+            cotizacion_id: 'cot-1',
+            producto_id: 'prod-1',
+            cantidad: 3,
+            cantidad_confirmada: 2,
+            cantidad_ofertada: 2,
+            precio_unitario: 10,
+            precio_ofertado: 23,
+            sujeta_disponibilidad: false,
+            stock_al_cotizar: 5,
+            producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+          },
+        ],
+      })
+
+      render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+      expect(screen.getByText('Oferta: RD$ 23.00 c/u')).toBeInTheDocument()
+      expect(screen.getByText('Total ofertado: RD$ 46.00')).toBeInTheDocument()
+      expect(screen.getByText('plazo 5 días')).toBeInTheDocument()
+      expect(screen.getByText('válida hasta 20/10/2026')).toBeInTheDocument()
+      expect(screen.getByText('Entrega en almacén.')).toBeInTheDocument()
+      expect(screen.queryByText('Catálogo: RD$ 10.00 c/u')).toBeNull()
+      expect(screen.queryByText(/Total confirmado:/)).toBeNull()
+
+      cleanup()
+    }
+  })
+
+  it('en estados confirmados con oferta el detalle no muestra el Total estimado', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'aceptada',
+      total_estimado: 30,
+      total_ofertado: 46,
+      plazo_dias: 5,
+      valida_hasta: '2026-10-20',
+      condiciones: 'Entrega en almacén.',
+      items: [
+        {
+          id: 'item-1',
+          cotizacion_id: 'cot-1',
+          producto_id: 'prod-1',
+          cantidad: 3,
+          cantidad_confirmada: 2,
+          cantidad_ofertada: 2,
+          precio_unitario: 10,
+          precio_ofertado: 23,
+          sujeta_disponibilidad: false,
+          stock_al_cotizar: 5,
+          producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+        },
+      ],
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.getByText('Total ofertado: RD$ 46.00')).toBeInTheDocument()
+    expect(screen.queryByText(/Total estimado/)).toBeNull()
+  })
+
   it('una oferta vencida oculta aceptar y permite pedir una nueva con nota', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-10-08T12:00:00'))

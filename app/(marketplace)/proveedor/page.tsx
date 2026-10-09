@@ -209,7 +209,7 @@ export default async function PanelProveedorPage() {
                   {resena.comentario && (
                     <p className="mt-2 text-sm text-gray-700">{resena.comentario}</p>
                   )}
-                  {resena.respuesta && resena.respuesta.trim() ? (
+                  {resena.respuesta ? (
                     <div className="mt-3 rounded-lg border bg-gray-50 px-4 py-3">
                       <p className="text-xs font-medium text-gray-600">Tu respuesta</p>
                       <p className="mt-1 text-sm text-gray-700">{resena.respuesta}</p>
