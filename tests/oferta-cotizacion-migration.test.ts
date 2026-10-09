@@ -7,7 +7,7 @@ const migracionNombre = readdirSync(join(supabaseDir, 'migrations'))
   .find((archivo) => archivo.endsWith('_oferta_cotizacion_proveedor.sql'))
 const rollbackNombre = readdirSync(join(supabaseDir, 'rollbacks'))
   .find((archivo) => archivo.endsWith('_oferta_cotizacion_proveedor.sql'))
-const rechazoFechaPath = join(supabaseDir, 'migrations', '20261010000207_fecha_rechazo_cotizacion.sql')
+const rechazoFechaPath = join(supabaseDir, 'migrations', '20261010000208_fecha_rechazo_cotizacion.sql')
 
 describe('migración de oferta de cotización', () => {
   it('la migración registra la fecha del rechazo y la devuelve en el detalle', () => {
@@ -16,6 +16,19 @@ describe('migración de oferta de cotización', () => {
     expect(sql).toMatch(/add column rechazada_at timestamptz null/i)
     expect(sql).toMatch(/estado = 'rechazada',[\s\S]*?motivo_rechazo = btrim\(p_motivo\),[\s\S]*?rechazada_at = now\(\)/i)
     expect(sql).toContain("'rechazada_at', c.rechazada_at")
+  })
+
+  it('el rollback de la fecha de rechazo restaura las funciones y quita la columna', () => {
+    const sql = readFileSync(
+      join(supabaseDir, 'rollbacks', '20261010000208_fecha_rechazo_cotizacion.sql'),
+      'utf8'
+    )
+
+    expect(sql).toMatch(/drop column rechazada_at/i)
+    expect(sql).toContain('create or replace function public.rechazar_cotizacion_con_motivo')
+    expect(sql).toContain('create or replace function public.get_cotizacion_detalle')
+    expect(sql).not.toContain('rechazada_at = now()')
+    expect(sql).not.toContain("'rechazada_at', c.rechazada_at")
   })
 
   it('la migración rechaza una oferta cuyo total de unidades es cero', () => {
