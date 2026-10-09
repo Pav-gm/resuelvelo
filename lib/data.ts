@@ -236,6 +236,10 @@ export async function getPerfilProveedorDelUsuario(): Promise<PerfilProveedor | 
   }
   return {
     ...proveedor,
+    verificacion_estado: proveedor.verificacion_estado ?? (proveedor.verificado ? 'verificado' : 'sin_solicitar'),
+    verificacion_nota: proveedor.verificacion_nota ?? null,
+    verificacion_solicitada_at: proveedor.verificacion_solicitada_at ?? null,
+    verificado_at: proveedor.verificado_at ?? null,
     rnc: proveedor.rnc ?? null,
     telefono: proveedor.telefono ?? null,
     whatsapp: proveedor.whatsapp ?? null,

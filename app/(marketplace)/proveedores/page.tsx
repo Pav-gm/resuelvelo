@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { Building2, MapPin, BadgeCheck, Package, Clock, MessageCircle, Phone } from 'lucide-react'
+import { Building2, MapPin, Package, Clock, MessageCircle, Phone } from 'lucide-react'
 import ErrorCarga from '@/components/marketplace/ErrorCarga'
+import InsigniaProveedorVerificado from '@/components/marketplace/InsigniaProveedorVerificado'
 import { getProveedores } from '@/lib/data'
 
 // Normaliza el número de WhatsApp a dígitos; antepone `1` si son 10 dígitos
@@ -21,7 +22,7 @@ function numeroTelefono(valor?: string | null): string | null {
 
 export const metadata = {
   title: 'Proveedores — Resuélvelo',
-  description: 'Conoce a los proveedores verificados de materiales e insumos.',
+  description: 'Conoce a los proveedores de materiales e insumos y cuáles tienen la insignia «Verificado» de Resuélvelo.',
 }
 
 export default async function ProveedoresPage() {
@@ -71,9 +72,7 @@ export default async function ProveedoresPage() {
                         {prov.nombre_empresa}
                       </Link>
                     </h2>
-                    {prov.verificado && (
-                      <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" aria-label="Verificado" />
-                    )}
+                    <InsigniaProveedorVerificado fecha={prov.verificado_at} compacta />
                   </div>
                   {prov.ciudad && (
                     <p className="flex items-center gap-1 text-xs text-gray-400">
