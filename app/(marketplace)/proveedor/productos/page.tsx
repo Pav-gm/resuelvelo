@@ -60,7 +60,10 @@ export default async function ProductosProveedorPage({
           Archivados
         </Link>
       </nav>
-      <ListaProductosProveedor productos={productos} />
+      <ListaProductosProveedor
+        productos={productos}
+        mensajeVacio={enArchivados ? 'No tienes productos archivados.' : undefined}
+      />
     </div>
   )
 }

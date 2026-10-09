@@ -16,6 +16,12 @@ interface Props {
   tieneCotizaciones?: boolean
   /** Un producto archivado solo se puede restaurar. */
   archivado?: boolean
+  /**
+   * Cuando la acción la usa una lista que sobrevive a la revalidación del
+   * servidor, el mensaje de éxito se delega en quien la contiene: la fila
+   * desaparece y con ella este botón.
+   */
+  onExito?: (mensaje: string) => void
 }
 
 const MENSAJE_EXITO: Record<'archived' | 'deleted' | 'restored', string> = {
@@ -29,6 +35,7 @@ export default function EliminarProductoButton({
   nombre,
   tieneCotizaciones = false,
   archivado = false,
+  onExito,
 }: Props) {
   const [pending, startTransition] = useTransition()
   const [resultado, setResultado] = useState<ProductoActionResult | null>(null)
@@ -47,6 +54,17 @@ export default function EliminarProductoButton({
       const result = archivado
         ? await restaurarProducto(id)
         : await archivarOEliminarProducto(id)
+      // El error siempre se muestra aquí; el éxito se delega a la lista cuando
+      // esta puede sobrevivir a la desaparición de la fila.
+      if ('error' in result) {
+        setResultado(result)
+        return
+      }
+      if (onExito) {
+        setResultado(null)
+        onExito(MENSAJE_EXITO[result.action])
+        return
+      }
       setResultado(result)
     })
   }
