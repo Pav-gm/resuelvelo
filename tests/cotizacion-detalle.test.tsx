@@ -339,6 +339,52 @@ describe('Página de detalle de cotización', () => {
     expect(screen.getByRole('button', { name: 'Rechazar oferta' })).toBeInTheDocument()
   })
 
+  it('la tarjeta del comprador conserva importes y términos ofertados después de aceptar', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T12:00:00'))
+
+    const itemOfertado = {
+      id: 'item-1',
+      cotizacion_id: 'cot-1',
+      producto_id: 'prod-1',
+      cantidad: 3,
+      cantidad_confirmada: 2,
+      cantidad_ofertada: 2,
+      precio_ofertado: 23,
+      precio_unitario: 10,
+      sujeta_disponibilidad: false,
+      stock_al_cotizar: 5,
+      producto: { id: 'prod-1', nombre: 'Tubo PVC', activo: true },
+    }
+    const comun = {
+      numero: 42,
+      comprador_id: 'buyer-1',
+      proveedor_id: 'prov-1',
+      created_at: '2026-10-01T15:00:00.000Z',
+      total_ofertado: 46,
+      plazo_dias: 5,
+      valida_hasta: '2026-10-20',
+      items: [itemOfertado],
+    }
+
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionesDelComprador.mockResolvedValue([
+      { ...comun, id: 'cot-aceptada', estado: 'aceptada' },
+      { ...comun, id: 'cot-despachada', estado: 'despachada' },
+      { ...comun, id: 'cot-recibida', estado: 'recibida' },
+    ])
+
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+
+    expect(screen.getAllByText('Oferta: RD$ 23.00 c/u')).toHaveLength(3)
+    expect(screen.getAllByText('Total ofertado: RD$ 46.00')).toHaveLength(3)
+    expect(screen.getAllByText('plazo 5 días')).toHaveLength(3)
+    expect(screen.getAllByText('válida hasta 20/10/2026')).toHaveLength(3)
+    expect(screen.queryByText('Catálogo: RD$ 10.00 c/u')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Aceptar oferta' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Rechazar oferta' })).toBeNull()
+  })
+
   it('una oferta vencida oculta aceptar y permite pedir una nueva con nota', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-10-08T12:00:00'))
