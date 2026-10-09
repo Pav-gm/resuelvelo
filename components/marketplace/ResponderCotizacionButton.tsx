@@ -48,19 +48,19 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   const [error, setError] = useState<string | null>(null)
   const [errorRechazo, setErrorRechazo] = useState<string | null>(null)
   const [motivoRechazo, setMotivoRechazo] = useState('')
-  const [precios, setPrecios] = useState<Record<string, number>>({})
-  const [cantidades, setCantidades] = useState<Record<string, number>>({})
+  const [precios, setPrecios] = useState<Record<string, string>>({})
+  const [cantidades, setCantidades] = useState<Record<string, string>>({})
   const [plazo, setPlazo] = useState('')
   const [validaHasta, setValidaHasta] = useState('')
   const [condiciones, setCondiciones] = useState('')
 
   function abrirDialogo() {
     setError(null)
-    const preciosIniciales: Record<string, number> = {}
-    const cantidadesIniciales: Record<string, number> = {}
+    const preciosIniciales: Record<string, string> = {}
+    const cantidadesIniciales: Record<string, string> = {}
     for (const item of items) {
-      preciosIniciales[item.id] = precioInicial(item)
-      cantidadesIniciales[item.id] = cantidadInicial(item)
+      preciosIniciales[item.id] = String(precioInicial(item))
+      cantidadesIniciales[item.id] = String(cantidadInicial(item))
     }
     setPrecios(preciosIniciales)
     setCantidades(cantidadesIniciales)
@@ -75,13 +75,39 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     setError(null)
   }
 
-  /** Valida los datos en español y arma el payload de la oferta. */
-  function construirOferta(preciosUsados: Record<string, number>): OfertaConstruida {
+  /** Parsea un texto como entero; devuelve NaN si está vacío o no es entero. */
+  function parseEntero(texto: string): number {
+    const limpio = texto.trim()
+    return /^-?\d+$/.test(limpio) ? Number(limpio) : Number.NaN
+  }
+
+  /** Analiza las cantidades efectivas: si son válidas y cuántas unidades suman. */
+  function analizarCantidades(): { validas: boolean; total: number } {
+    let total = 0
     for (const item of items) {
-      const precio = preciosUsados[item.id]
-      if (!Number.isFinite(precio) || precio <= 0) {
-        return { error: 'Cada precio ofertado debe ser mayor que 0.' }
+      if (item.sujeta_disponibilidad) {
+        const cantidad = parseEntero(cantidades[item.id] ?? '')
+        if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > item.cantidad) {
+          return { validas: false, total }
+        }
+        total += cantidad
+      } else {
+        total += item.cantidad
       }
+    }
+    return { validas: true, total }
+  }
+
+  /** Valida los datos en español y arma el payload de la oferta. */
+  function construirOferta(preciosUsados: Record<string, string>): OfertaConstruida {
+    const preciosNumericos: Record<string, number> = {}
+    for (const item of items) {
+      const texto = (preciosUsados[item.id] ?? '').trim()
+      const precio = texto === '' ? Number.NaN : Number(texto)
+      if (!Number.isFinite(precio) || precio <= 0) {
+        return { error: 'Indica el precio' }
+      }
+      preciosNumericos[item.id] = precio
     }
 
     const plazoDias = plazo.trim() === '' ? Number.NaN : Number(plazo)
@@ -97,28 +123,28 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     let unidadesTotales = 0
     for (const item of items) {
       if (item.sujeta_disponibilidad) {
-        const cantidad = cantidades[item.id] ?? cantidadInicial(item)
+        const cantidad = parseEntero(cantidades[item.id] ?? '')
         if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > item.cantidad) {
-          return { error: 'Las cantidades no pueden superar lo solicitado.' }
+          return { error: 'Indica cuántas unidades confirmas' }
         }
         unidadesTotales += cantidad
         lineas.push({
           itemId: item.id,
-          precioUnitario: preciosUsados[item.id],
+          precioUnitario: preciosNumericos[item.id],
           cantidadOfertada: cantidad,
         })
       } else {
         unidadesTotales += item.cantidad
         lineas.push({
           itemId: item.id,
-          precioUnitario: preciosUsados[item.id],
+          precioUnitario: preciosNumericos[item.id],
           cantidadOfertada: null,
         })
       }
     }
 
     if (unidadesTotales === 0) {
-      return { error: 'Debes ofertar al menos una unidad o rechazar la cotización.' }
+      return { error: 'Si no puedes servir nada, rechaza la cotización' }
     }
 
     return {
@@ -157,8 +183,8 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   }
 
   function handleAceptarCatalogo() {
-    const preciosCatalogo: Record<string, number> = {}
-    for (const item of items) preciosCatalogo[item.id] = precioInicial(item)
+    const preciosCatalogo: Record<string, string> = {}
+    for (const item of items) preciosCatalogo[item.id] = String(precioInicial(item))
     const resultado = construirOferta(preciosCatalogo)
     if ('error' in resultado) {
       setError(resultado.error)
@@ -197,6 +223,9 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
       }
     })
   }
+
+  const { validas: cantidadesValidas, total: totalUnidades } = analizarCantidades()
+  const totalCero = cantidadesValidas && totalUnidades === 0
 
   return (
     <div className="flex flex-col gap-2">
@@ -248,13 +277,12 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                       type="number"
                       min={0}
                       step="0.01"
-                      value={precios[item.id] ?? 0}
+                      value={precios[item.id] ?? ''}
                       disabled={pending}
                       onChange={(evento) => {
-                        const valor = Number.parseFloat(evento.target.value)
                         setPrecios((previos) => ({
                           ...previos,
-                          [item.id]: Number.isNaN(valor) ? 0 : valor,
+                          [item.id]: evento.target.value,
                         }))
                       }}
                       className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
@@ -270,13 +298,12 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                         type="number"
                         min={0}
                         max={item.cantidad}
-                        value={cantidades[item.id] ?? 0}
+                        value={cantidades[item.id] ?? ''}
                         disabled={pending}
                         onChange={(evento) => {
-                          const valor = Number.parseInt(evento.target.value, 10)
                           setCantidades((previas) => ({
                             ...previas,
-                            [item.id]: Number.isNaN(valor) ? 0 : valor,
+                            [item.id]: evento.target.value,
                           }))
                         }}
                         className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
@@ -327,6 +354,12 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
             />
           </div>
 
+          {totalCero && (
+            <p className="mt-2 text-sm text-red-600">
+              Si no puedes servir nada, rechaza la cotización
+            </p>
+          )}
+
           {error && (
             <p className="mt-2 text-sm text-red-600" role="alert">
               {error}
@@ -337,7 +370,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
             <Button
               size="sm"
               className="bg-green-500 hover:bg-green-600 text-white"
-              disabled={pending}
+              disabled={pending || totalCero}
               onClick={handleEnviarOferta}
             >
               {pending ? 'Enviando…' : 'Enviar oferta'}

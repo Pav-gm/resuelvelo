@@ -403,6 +403,46 @@ describe('ProductoForm — previsualización de imagen', () => {
   })
 })
 
+describe('ProductoForm — estado pendiente', () => {
+  it('desactiva el botón de edición mientras se guarda el producto', async () => {
+    let resolver: (valor: null) => void = () => {}
+    mocks.actualizarMock.mockImplementation(
+      () => new Promise<null>((resolve) => {
+        resolver = resolve
+      })
+    )
+
+    const producto: Producto = {
+      id: 'legacy-1',
+      proveedor_id: 'prov-1',
+      categoria_id: 'cat-elec',
+      subcategoria_id: null,
+      nombre: 'Producto legacy',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 5,
+      activo: true,
+      created_at: '',
+    }
+
+    render(
+      <ProductoForm
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        producto={producto}
+      />
+    )
+
+    const boton = screen.getByRole('button', { name: 'Actualizar producto' })
+    fireEvent.submit(boton.closest('form')!)
+
+    await waitFor(() => expect(boton).toBeDisabled())
+
+    resolver(null)
+    await waitFor(() => expect(boton).not.toBeDisabled())
+  })
+})
+
 describe('ProductoForm — error de stock reservado', () => {
   it('muestra cuántas unidades reservadas impiden bajar el stock', async () => {
     mocks.actualizarMock.mockResolvedValue({
