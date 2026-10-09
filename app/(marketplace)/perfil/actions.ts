@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { esRncValido } from '@/lib/validaciones-perfil'
+import { esRncValido, esTelefonoDoValido, normalizarTelefonoDo } from '@/lib/validaciones-perfil'
 
 export type PerfilCompradorInput = {
   nombre: string
@@ -57,10 +57,14 @@ export async function guardarPerfil(datos: PerfilCompradorInput): Promise<Perfil
     if (!esRncValido(rnc)) {
       return { error: 'El RNC debe tener 9 u 11 dígitos numéricos.', success: false }
     }
+    if (!esTelefonoDoValido(telefono)) {
+      return { error: 'El teléfono debe ser un número dominicano válido de 10 dígitos.', success: false }
+    }
+    const telefonoNormalizado = telefono ? normalizarTelefonoDo(telefono) : null
 
     const { error } = await acceso.supabase
       .from('profiles')
-      .update({ nombre, razon_social: razon_social || null, rnc: rnc || null, telefono: telefono || null })
+      .update({ nombre, razon_social: razon_social || null, rnc: rnc || null, telefono: telefonoNormalizado })
       .eq('id', acceso.user.id)
 
     if (error) return errorSupabase()

@@ -69,6 +69,7 @@ import {
   eliminarDireccionObra,
   guardarPerfil,
 } from '@/app/(marketplace)/perfil/actions'
+import { esTelefonoDoValido, normalizarTelefonoDo } from '@/lib/validaciones-perfil'
 
 beforeEach(() => {
   h.state.user = { id: 'u-1' }
@@ -80,6 +81,50 @@ beforeEach(() => {
 })
 
 describe('acciones de perfil del comprador', () => {
+  it('esTelefonoDoValido acepta teléfonos dominicanos formateados y vacíos', () => {
+    expect(esTelefonoDoValido('809-555-1234')).toBe(true)
+    expect(esTelefonoDoValido('+1 (829) 555 1234')).toBe(true)
+    expect(esTelefonoDoValido('')).toBe(true)
+    expect(normalizarTelefonoDo('809-555-1234')).toBe('8095551234')
+    expect(normalizarTelefonoDo('+1 (829) 555 1234')).toBe('8295551234')
+    expect(normalizarTelefonoDo('')).toBe('')
+  })
+
+  it('esTelefonoDoValido rechaza entradas que no son teléfonos dominicanos válidos', () => {
+    for (const telefono of ['abc', '123', '1235551234', '80955512345']) {
+      expect(esTelefonoDoValido(telefono)).toBe(false)
+    }
+  })
+
+  it('guardarPerfil guarda teléfonos dominicanos formateados normalizados', async () => {
+    const primera = await guardarPerfil({
+      nombre: 'Ana Pérez', razon_social: '', rnc: '123456789', telefono: '809-555-1234',
+    })
+    const segundo = await guardarPerfil({
+      nombre: 'Ana Pérez', razon_social: '', rnc: '123456789', telefono: '+1 (829) 555 1234',
+    })
+
+    expect(primera).toEqual({ error: null, success: true })
+    expect(segundo).toEqual({ error: null, success: true })
+    expect(h.state.writes.map((write) => (write.value as { telefono: string | null }).telefono)).toEqual([
+      '8095551234', '8295551234',
+    ])
+  })
+
+  it('guardarPerfil rechaza teléfonos inválidos sin escribir en Supabase', async () => {
+    for (const telefono of ['abc', '123']) {
+      const result = await guardarPerfil({
+        nombre: 'Ana Pérez', razon_social: '', rnc: '123456789', telefono,
+      })
+
+      expect(result).toEqual({
+        error: 'El teléfono debe ser un número dominicano válido de 10 dígitos.',
+        success: false,
+      })
+    }
+    expect(h.state.writes).toEqual([])
+  })
+
   it('guardarPerfil actualiza los datos normalizados del comprador autenticado', async () => {
     const result = await guardarPerfil({
       nombre: ' Ana Pérez ',
