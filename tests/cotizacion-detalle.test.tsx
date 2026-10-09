@@ -798,4 +798,52 @@ describe('Página de detalle de cotización', () => {
     })
     expect(infractores).toHaveLength(0)
   })
+
+  it('el comprador puede descargar el comprobante PDF de una cotización aceptada', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'aceptada',
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    const enlace = screen.getByRole('link', { name: 'Descargar comprobante (PDF)' })
+    expect(enlace).toHaveAttribute('href', '/api/cotizaciones/cot-1/pdf')
+    expect(enlace).toHaveAttribute('download')
+  })
+
+  it('el proveedor destinatario puede descargar el comprobante PDF de una cotización aceptada', async () => {
+    h.state.user = { id: 'supplier-user-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'aceptada',
+      comprador_id: 'buyer-1',
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    const enlace = screen.getByRole('link', { name: 'Descargar comprobante (PDF)' })
+    expect(enlace).toHaveAttribute('href', '/api/cotizaciones/cot-1/pdf')
+    expect(enlace).toHaveAttribute('download')
+  })
+
+  it('el detalle no muestra la descarga del comprobante en estado respondida', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'respondida',
+      comprador_id: 'buyer-1',
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.queryByRole('link', { name: 'Descargar comprobante (PDF)' })).toBeNull()
+  })
 })
