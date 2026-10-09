@@ -11,9 +11,11 @@ import {
   getStatsProveedor,
   getCotizacionesDeProveedor,
   getProductosDeProveedor,
+  getFeedbackDeProveedor,
 } from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import ListaProductosProveedor from '@/components/marketplace/ListaProductosProveedor'
+import ResponderResenaForm from '@/components/marketplace/ResponderResenaForm'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
@@ -43,10 +45,12 @@ export default async function PanelProveedorPage() {
   const proveedor = await getProveedorDelUsuario()
   if (!proveedor) redirect('/register?rol=proveedor')
 
-  const [stats, cotizaciones, productos] = await Promise.all([
+  const [stats, cotizaciones, productos, resenas] = await Promise.all([
     getStatsProveedor(proveedor.id),
     getCotizacionesDeProveedor(proveedor.id),
     getProductosDeProveedor(proveedor.id),
+    // Un error de lectura de reseñas no debe interrumpir el panel.
+    getFeedbackDeProveedor(proveedor.id).catch(() => null),
   ])
 
   // El estado `aceptada` lo produce la decisión del comprador; el panel del
@@ -141,6 +145,67 @@ export default async function PanelProveedorPage() {
           )}
         </div>
       </div>
+
+      {/* Reseñas */}
+      {resenas && (
+        <section aria-label="Reseñas" className="rounded-2xl bg-white border shadow-sm mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-4 sm:px-6 border-b">
+            <h2 className="font-semibold text-gray-900">Reseñas</h2>
+            {resenas.conteo > 0 && (
+              <p className="text-sm text-gray-500">
+                <span className="font-semibold text-gray-900">{resenas.promedio.toFixed(2)}</span>{' '}
+                <span className="text-yellow-400" aria-hidden="true">
+                  {'★'.repeat(Math.round(resenas.promedio))}
+                  <span className="text-gray-300">
+                    {'★'.repeat(5 - Math.round(resenas.promedio))}
+                  </span>
+                </span>{' '}
+                <span>({resenas.conteo} reseña{resenas.conteo !== 1 ? 's' : ''})</span>
+              </p>
+            )}
+          </div>
+          <div className="divide-y">
+            {resenas.conteo === 0 ? (
+              <p className="px-6 py-8 text-center text-sm text-gray-400">
+                Aún no tienes reseñas.
+              </p>
+            ) : (
+              resenas.reseñas.map((resena) => (
+                <div key={resena.id} className="px-4 py-4 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900">{resena.autor_anonimo}</span>
+                    <span className="text-xs text-gray-400">
+                      {new Date(resena.created_at).toLocaleDateString('es-DO', {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-yellow-400" aria-hidden="true">
+                      {'★'.repeat(resena.calificacion)}
+                      <span className="text-gray-300">{'★'.repeat(5 - resena.calificacion)}</span>
+                    </span>
+                    <span className="sr-only">{`${resena.calificacion} de 5 estrellas`}</span>
+                  </div>
+                  {resena.comentario && (
+                    <p className="mt-2 text-sm text-gray-700">{resena.comentario}</p>
+                  )}
+                  {resena.respuesta && resena.respuesta.trim() ? (
+                    <div className="mt-3 rounded-lg border bg-gray-50 px-4 py-3">
+                      <p className="text-xs font-medium text-gray-600">Tu respuesta</p>
+                      <p className="mt-1 text-sm text-gray-700">{resena.respuesta}</p>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <ResponderResenaForm feedbackId={resena.id} />
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Mis productos */}
       <div className="rounded-2xl bg-white border shadow-sm">
