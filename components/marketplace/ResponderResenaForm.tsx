@@ -14,18 +14,46 @@ function mensajeDeError(code: string): string {
   return ERRORES[code] ?? ERRORES.FEEDBACK_RESPUESTA_ERROR
 }
 
-export default function ResponderResenaForm({ feedbackId }: { feedbackId: string }) {
-  const [respuesta, setRespuesta] = useState('')
+export default function ResponderResenaForm({
+  feedbackId,
+  respuesta,
+}: {
+  feedbackId: string
+  respuesta?: string | null
+}) {
+  const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [publicada, setPublicada] = useState(false)
 
-  // Tras el éxito el formulario se reemplaza y no ofrece otro envío.
+  const tieneRespuestaGuardada = Boolean(respuesta?.trim())
+
+  // Tras el éxito el formulario se reemplaza por el mensaje y, si la reseña ya
+  // trae respuesta, también por el bloque «Tu respuesta». El mensaje permanece
+  // visible (no se descarta con un temporizador) incluso si el panel se refresca.
   if (publicada) {
     return (
-      <p className="text-sm font-medium text-teal-700" role="status" aria-live="polite">
-        Respuesta publicada.
-      </p>
+      <>
+        <p className="text-sm font-medium text-teal-700" role="status" aria-live="polite">
+          Respuesta publicada.
+        </p>
+        {tieneRespuestaGuardada && (
+          <div className="mt-2 rounded-lg border bg-gray-50 px-4 py-3">
+            <p className="text-xs font-medium text-gray-600">Tu respuesta</p>
+            <p className="mt-1 text-sm text-gray-700">{respuesta}</p>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  // Una reseña ya respondida muestra solo su respuesta, sin formulario.
+  if (tieneRespuestaGuardada) {
+    return (
+      <div className="rounded-lg border bg-gray-50 px-4 py-3">
+        <p className="text-xs font-medium text-gray-600">Tu respuesta</p>
+        <p className="mt-1 text-sm text-gray-700">{respuesta}</p>
+      </div>
     )
   }
 
@@ -33,8 +61,8 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
     e.preventDefault()
     if (enviando) return
 
-    const texto = respuesta.trim()
-    if (!texto) {
+    const textoLimpio = texto.trim()
+    if (!textoLimpio) {
       setError('Escribe una respuesta antes de publicarla.')
       return
     }
@@ -42,7 +70,7 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
     setError(null)
     setEnviando(true)
 
-    const resultado = await responderFeedbackProveedor(feedbackId, texto)
+    const resultado = await responderFeedbackProveedor(feedbackId, textoLimpio)
 
     setEnviando(false)
 
@@ -64,8 +92,8 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
       </label>
       <textarea
         id={`respuesta-${feedbackId}`}
-        value={respuesta}
-        onChange={(e) => setRespuesta(e.target.value)}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
         maxLength={1000}
         rows={3}
         disabled={enviando}
@@ -80,7 +108,7 @@ export default function ResponderResenaForm({ feedbackId }: { feedbackId: string
 
       <button
         type="submit"
-        disabled={enviando || !respuesta.trim()}
+        disabled={enviando || !texto.trim()}
         className="mt-2 w-fit rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {enviando ? 'Publicando…' : 'Publicar respuesta'}
