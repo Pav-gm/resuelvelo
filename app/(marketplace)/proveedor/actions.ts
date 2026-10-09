@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
+import { esFechaISOFuturaEnSantoDomingo } from '@/lib/cotizaciones'
 import type { CotizacionActionResult, OfertaCotizacionInput } from '@/types'
 
 async function getProveedorId(
@@ -247,12 +248,9 @@ export async function ofertarCotizacion(
   if (!Number.isInteger(oferta.plazoDias) || oferta.plazoDias < 0 || oferta.plazoDias > 90) {
     return { error: 'El plazo debe estar entre 0 y 90 días.' }
   }
-  const fechaValida = typeof oferta.validaHasta === 'string' &&
-    /^\d{4}-\d{2}-\d{2}$/.test(oferta.validaHasta) &&
-    !Number.isNaN(Date.parse(`${oferta.validaHasta}T00:00:00Z`)) &&
-    new Date(`${oferta.validaHasta}T00:00:00Z`).toISOString().slice(0, 10) === oferta.validaHasta &&
-    oferta.validaHasta > new Date().toISOString().slice(0, 10)
-  if (!fechaValida) return { error: 'La fecha de validez debe ser futura.' }
+  if (!esFechaISOFuturaEnSantoDomingo(oferta.validaHasta)) {
+    return { error: 'La fecha de validez debe ser futura.' }
+  }
 
   const { error } = await supabase.rpc('responder_cotizacion_con_oferta', {
     p_cotizacion_id: cotizacionId,
