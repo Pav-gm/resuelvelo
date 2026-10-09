@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import ToggleProductoButton from '@/components/marketplace/ToggleProductoButton'
@@ -11,6 +14,11 @@ interface Props {
    * conservar su tarjeta contenedora única («Mis productos» + `divide-y`).
    */
   enTarjeta?: boolean
+  /**
+   * Texto alternativo del estado vacío. En la pestaña de archivados no tiene
+   * sentido invitar a publicar, así que se omite el enlace.
+   */
+  mensajeVacio?: string
 }
 
 /**
@@ -18,10 +26,24 @@ interface Props {
  * `/proveedor/productos`. En móvil cada fila envuelve su contenido: el nombre
  * se lee completo (sin `truncate`) y las acciones quedan dentro de la tarjeta.
  * En escritorio conserva la disposición en una sola línea.
+ *
+ * Es un componente cliente para conservar el aviso de éxito cuando la acción
+ * revalida la ruta y la fila desaparece de la lista.
  */
-export default function ListaProductosProveedor({ productos, enTarjeta = true }: Props) {
+export default function ListaProductosProveedor({
+  productos,
+  enTarjeta = true,
+  mensajeVacio,
+}: Props) {
+  const [aviso, setAviso] = useState<string | null>(null)
+
   return (
     <div className={enTarjeta ? 'rounded-2xl bg-white border shadow-sm divide-y' : 'divide-y'}>
+      {aviso && (
+        <p role="status" className="px-4 py-3 text-sm text-green-700 sm:px-6">
+          {aviso}
+        </p>
+      )}
       {productos.map((p) => (
         <div
           key={p.id}
@@ -45,7 +67,9 @@ export default function ListaProductosProveedor({ productos, enTarjeta = true }:
             {p.activo ? 'Activo' : 'Inactivo'}
           </span>
           <div data-testid="product-actions" className="flex flex-wrap items-center gap-2">
-            <ToggleProductoButton id={p.id} activo={p.activo} />
+            {/* Un producto archivado no ofrece activar/desactivar: activarlo sin
+                limpiar `archivado_at` lo devolvería al catálogo sin restaurarlo. */}
+            {!p.archivado_at && <ToggleProductoButton id={p.id} activo={p.activo} />}
             <Link href={`/proveedor/productos/${p.id}/editar`}>
               <Button variant="outline" size="sm" className="min-h-11 sm:min-h-0 sm:h-7">Editar</Button>
             </Link>
@@ -56,11 +80,15 @@ export default function ListaProductosProveedor({ productos, enTarjeta = true }:
               nombre={p.nombre}
               tieneCotizaciones={p.tieneCotizaciones ?? false}
               archivado={Boolean(p.archivado_at)}
+              onExito={setAviso}
             />
           </div>
         </div>
       ))}
-      {productos.length === 0 && (
+      {productos.length === 0 && mensajeVacio && (
+        <p className="px-4 py-8 text-center text-sm text-gray-400 sm:px-6">{mensajeVacio}</p>
+      )}
+      {productos.length === 0 && !mensajeVacio && (
         <p className="px-4 py-8 text-center text-sm text-gray-400 sm:px-6">
           Aún no publicaste productos.{' '}
           <Link href="/proveedor/productos/nuevo" className="text-orange-500 hover:underline">Publicar ahora</Link>

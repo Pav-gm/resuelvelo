@@ -65,6 +65,7 @@ vi.mock('next/link', async () => {
 })
 
 import EliminarProductoButton from '@/components/marketplace/EliminarProductoButton'
+import ListaProductosProveedor from '@/components/marketplace/ListaProductosProveedor'
 import PanelProveedorPage from '@/app/(marketplace)/proveedor/page'
 import ProductosProveedorPage from '@/app/(marketplace)/proveedor/productos/page'
 
@@ -152,6 +153,29 @@ describe('Acción de producto — archivar, eliminar y restaurar', () => {
   })
 })
 
+describe('Lista de productos — aviso persistente', () => {
+  it('el aviso de archivado sigue visible cuando la fila desaparece', async () => {
+    mocks.archivarOEliminarProducto.mockResolvedValue({ success: true, action: 'archived' })
+
+    const { rerender } = render(
+      <ListaProductosProveedor
+        productos={[{ ...PRODUCTO_ARCHIVADO, activo: true, archivado_at: null }]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Archivar Tubo PVC' }))
+
+    const aviso = await screen.findByRole('status')
+    expect(aviso).toHaveTextContent('Producto archivado.')
+
+    // La revalidación del servidor deja la fila fuera de la lista; el aviso
+    // vive en la lista, que sigue montada.
+    rerender(<ListaProductosProveedor productos={[]} />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Producto archivado.')
+  })
+})
+
 describe('Ruta /proveedor/productos — pestaña de archivados', () => {
   it('la pestaña Archivados muestra productos archivados con acción Restaurar', async () => {
     mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO_ARCHIVADO])
@@ -163,6 +187,24 @@ describe('Ruta /proveedor/productos — pestaña de archivados', () => {
     expect(screen.getByText('Tubo PVC')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Restaurar Tubo PVC' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Archivar Tubo PVC' })).toBeNull()
+  })
+
+  it('la pestaña Archivados no ofrece Activar', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO_ARCHIVADO])
+
+    render(await ProductosProveedorPage({ searchParams: Promise.resolve({ tab: 'archivados' }) }))
+
+    expect(screen.queryByRole('button', { name: 'Activar' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Restaurar Tubo PVC' })).toBeInTheDocument()
+  })
+
+  it('la pestaña Archivados vacía lo dice', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([])
+
+    render(await ProductosProveedorPage({ searchParams: Promise.resolve({ tab: 'archivados' }) }))
+
+    expect(screen.getByText('No tienes productos archivados.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Publicar ahora' })).toBeNull()
   })
 })
 
