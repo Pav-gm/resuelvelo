@@ -272,7 +272,7 @@ export default async function CotizacionDetallePage({
 
         {tieneOferta ? (
           <>
-            {detalle.total_estimado != null && (
+            {!confirmado && detalle.total_estimado != null && (
               <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
                 {`Total estimado: ${dinero(Number(detalle.total_estimado))}`}
               </div>

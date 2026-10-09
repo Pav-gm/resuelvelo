@@ -595,6 +595,73 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     expect(screen.queryByRole('form', { name: 'Responder reseña' })).not.toBeInTheDocument()
   })
 
+  it('el mensaje Respuesta publicada sigue visible tras refrescar el panel', async () => {
+    h.resumen = {
+      promedio: 5,
+      conteo: 1,
+      reseñas: [
+        {
+          id: 'fb-1',
+          proveedor_id: 'prov-1',
+          calificacion: 5,
+          comentario: 'Entrega a tiempo',
+          created_at: '2026-03-01T12:00:00.000Z',
+          autor_anonimo: 'Comprador verificado',
+          respuesta: null,
+        },
+      ],
+    }
+    h.responderFeedbackProveedor.mockResolvedValue({ success: true })
+
+    const { rerender } = render(await PanelProveedorPage())
+
+    const seccion = screen.getByRole('region', { name: 'Reseñas' })
+    const formulario = within(seccion).getByRole('form', { name: 'Responder reseña' })
+    fireEvent.change(within(formulario).getByLabelText('Respuesta'), {
+      target: { value: 'Gracias por compartir tu experiencia.' },
+    })
+    fireEvent.click(within(formulario).getByRole('button', { name: 'Publicar respuesta' }))
+
+    await screen.findByRole('status')
+
+    // El panel se refresca con la respuesta ya persistida (lo que hace
+    // revalidatePath en la app real) sin desmontar el mensaje de éxito.
+    h.resumen.reseñas[0].respuesta = 'Gracias por compartir tu experiencia.'
+    rerender(await PanelProveedorPage())
+
+    const exito = screen.getByRole('status')
+    expect(exito).toHaveTextContent(/^Respuesta publicada\.$/)
+    expect(exito).toHaveAttribute('aria-live', 'polite')
+    expect(screen.getByText('Tu respuesta')).toBeInTheDocument()
+    expect(screen.getByText('Gracias por compartir tu experiencia.')).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Responder reseña' })).toBeNull()
+  })
+
+  it('una reseña ya respondida muestra Tu respuesta sin formulario ni estado', async () => {
+    h.resumen = {
+      promedio: 5,
+      conteo: 1,
+      reseñas: [
+        {
+          id: 'fb-1',
+          proveedor_id: 'prov-1',
+          calificacion: 5,
+          comentario: 'Entrega a tiempo',
+          created_at: '2026-03-01T12:00:00.000Z',
+          autor_anonimo: 'Comprador verificado',
+          respuesta: 'Gracias.',
+        },
+      ],
+    }
+
+    render(await PanelProveedorPage())
+
+    expect(screen.getByText('Tu respuesta')).toBeInTheDocument()
+    expect(screen.getByText('Gracias.')).toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'Responder reseña' })).toBeNull()
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
   it('la bandeja del proveedor muestra el badge y no la acción de reseña', async () => {
     h.cotizacionesProveedor.push(cotizacion('recibida', COT_RECIBIDA))
     h.cotizacionesProveedor.push(cotizacion('pendiente', '11111111-1111-4111-8111-111111111111'))
