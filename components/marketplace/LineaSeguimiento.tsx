@@ -95,9 +95,12 @@ export default function LineaSeguimiento({
               {' · '}
               {paso.etiqueta}
               {paso.etiqueta === 'Despachada' && despachadaAt && (
-                <span className="ml-1 font-normal text-gray-500">
-                  {formatearFecha(despachadaAt)}
-                </span>
+                <>
+                  {' '}
+                  <span className="ml-1 font-normal text-gray-500">
+                    {formatearFecha(despachadaAt)}
+                  </span>
+                </>
               )}
               {paso.etiqueta === 'Cancelada' && canceladaAt && (
                 <span className="ml-1 font-normal text-gray-500">

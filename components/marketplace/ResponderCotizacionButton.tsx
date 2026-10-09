@@ -56,7 +56,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     }
     setPrecios(preciosIniciales)
     setCantidades(cantidadesIniciales)
-    setPlazo('')
+    setPlazo('0')
     setValidaHasta(sumarDiasISOEnSantoDomingo(7))
     setCondiciones('')
     setAbierto(true)
@@ -373,7 +373,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
               disabled={pending}
               onClick={handleAceptarCatalogo}
             >
-              Aceptar al precio de catálogo
+              Ofertar al precio de catálogo
             </Button>
             <Button size="sm" variant="outline" disabled={pending} onClick={cerrarDialogo}>
               Volver
