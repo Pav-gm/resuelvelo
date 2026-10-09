@@ -5,8 +5,41 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
 import { esFechaISOFuturaEnSantoDomingo } from '@/lib/cotizaciones'
-import type { CotizacionActionResult, OfertaCotizacionInput, PerfilProveedorActionResult } from '@/types'
+import type { CotizacionActionResult, OfertaCotizacionInput, PerfilProveedorActionResult, VerificacionActionResult } from '@/types'
 import { PROVINCIAS } from '@/lib/provincias'
+
+export async function solicitarVerificacionProveedor(): Promise<VerificacionActionResult> {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError) return { error: userError.message }
+  if (!user) return { error: 'No autorizado.' }
+
+  const { data: proveedor, error: proveedorError } = await supabase
+    .from('proveedores')
+    .select('id, rnc, telefono, verificacion_estado, verificado')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (proveedorError) return { error: proveedorError.message }
+  if (!proveedor) return { error: 'No se pudo identificar el proveedor.' }
+  if (!proveedor.rnc?.trim() || !proveedor.telefono?.trim()) {
+    return { error: 'Completa el RNC y el teléfono en tu perfil antes de solicitar la verificación.' }
+  }
+  const estado = proveedor.verificacion_estado ?? (proveedor.verificado ? 'verificado' : 'sin_solicitar')
+  if (estado !== 'sin_solicitar' && estado !== 'rechazado') {
+    return { error: 'Solo puedes solicitar la verificación si está sin solicitar o fue rechazada.' }
+  }
+
+  try {
+    const { error } = await supabase.rpc('solicitar_verificacion_proveedor')
+    if (error) return { error: error.message }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'No se pudo solicitar la verificación.' }
+  }
+
+  revalidatePath('/proveedor')
+  revalidatePath('/proveedor/perfil')
+  return { success: true }
+}
 
 async function getProveedorId(
   supabase?: Awaited<ReturnType<typeof createClient>>

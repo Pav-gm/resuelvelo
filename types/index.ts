@@ -1,4 +1,6 @@
 export type UserRole = 'comprador' | 'proveedor' | 'admin'
+export type VerificacionEstado = 'sin_solicitar' | 'pendiente' | 'verificado' | 'rechazado'
+export type VerificacionActionResult = { success: true } | { error: string }
 
 export interface Profile {
   id: string
@@ -45,6 +47,10 @@ export interface Proveedor {
   sitio_web?: string | null
   zonas_cobertura?: string[]
   verificado: boolean
+  verificacion_estado?: VerificacionEstado
+  verificacion_nota?: string | null
+  verificacion_solicitada_at?: string | null
+  verificado_at?: string | null
   created_at: string
   promedio_feedback?: number
   conteo_feedback?: number

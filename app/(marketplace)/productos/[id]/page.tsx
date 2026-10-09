@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { BadgeCheck } from 'lucide-react'
 import ProductoImagen from '@/components/marketplace/ProductoImagen'
+import InsigniaProveedorVerificado from '@/components/marketplace/InsigniaProveedorVerificado'
 import { creditoFoto } from '@/lib/creditos-fotos'
 import AgregarProductoButton from '@/components/marketplace/AgregarProductoButton'
 import { getProducto, getFeedbackDeProveedor } from '@/lib/data'
@@ -85,17 +85,14 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
           </div>
 
           {proveedor && (
-            <Link
-              href={`/proveedores/${proveedor.id}`}
-              className="inline-flex w-fit items-center gap-1.5 text-sm text-gray-700 hover:text-orange-500"
-            >
-              <span>{proveedor.nombre_empresa}</span>
-              {proveedor.verificado && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
-                  <BadgeCheck className="h-3.5 w-3.5" />
-                  Verificado
-                </span>
-              )}
+            <div className="flex w-fit flex-wrap items-center gap-2">
+              <Link
+                href={`/proveedores/${proveedor.id}`}
+                className="text-sm text-gray-700 hover:text-orange-500"
+              >
+                {proveedor.nombre_empresa}
+              </Link>
+              <InsigniaProveedorVerificado fecha={proveedor.verificado_at} />
               {resumenResenas && resumenResenas.conteo > 0 && (
                 <span className="inline-flex items-center gap-1 text-xs text-gray-500">
                   <span className="font-semibold text-gray-700">
@@ -112,7 +109,7 @@ export default async function ProductoPage({ params }: ProductoPageProps) {
                   </span>
                 </span>
               )}
-            </Link>
+            </div>
           )}
 
           <div>

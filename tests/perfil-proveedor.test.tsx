@@ -18,6 +18,7 @@ const h = vi.hoisted(() => ({
   redirect: vi.fn(),
   notFound: vi.fn(),
   guardarPerfilProveedor: vi.fn(),
+  solicitarVerificacionProveedor: vi.fn(),
   createBrowserClient: vi.fn(),
 }))
 
@@ -28,6 +29,7 @@ vi.mock('@/lib/supabase/client', () => ({ createClient: h.createBrowserClient })
 vi.mock('next/navigation', () => ({ redirect: h.redirect, notFound: h.notFound }))
 vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   guardarPerfilProveedor: h.guardarPerfilProveedor,
+  solicitarVerificacionProveedor: h.solicitarVerificacionProveedor,
   crearProducto: vi.fn(),
   actualizarProducto: vi.fn(),
   toggleProducto: vi.fn(),
@@ -121,6 +123,44 @@ describe('panel del proveedor', () => {
       'href',
       '/proveedor/perfil'
     )
+  })
+
+  it('el panel muestra cómo solicitar verificación cuando faltan datos del perfil', async () => {
+    h.getProveedorDelUsuario.mockResolvedValue(
+      proveedorBase({
+        verificacion_estado: 'sin_solicitar',
+        rnc: null,
+        telefono: null,
+        verificacion_nota: null,
+        verificado_at: null,
+      })
+    )
+
+    render(await PanelProveedorPage())
+
+    expect(screen.getByText('Verifica tu empresa')).toBeInTheDocument()
+    expect(screen.getByText(/completa RNC y teléfono/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Editar perfil' })).toHaveAttribute(
+      'href',
+      '/proveedor/perfil'
+    )
+    expect(screen.queryByRole('button', { name: 'Solicitar verificación' })).toBeNull()
+  })
+
+  it('el panel informa que la solicitud está pendiente', async () => {
+    h.getProveedorDelUsuario.mockResolvedValue(
+      proveedorBase({
+        verificacion_estado: 'pendiente',
+        rnc: '101234567',
+        telefono: '809-555-0100',
+        verificacion_solicitada_at: '2026-10-09T12:00:00.000Z',
+      })
+    )
+
+    render(await PanelProveedorPage())
+
+    expect(screen.getByText('Solicitud pendiente — nuestro equipo está revisando tu empresa.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Solicitar verificación' })).toBeNull()
   })
 })
 
@@ -218,5 +258,24 @@ describe('ficha pública del proveedor', () => {
       'https://promeria.example'
     )
     expect(screen.getByText('Lun a vie')).toBeInTheDocument()
+  })
+
+  it('la ficha pública enlaza la insignia verificada a los criterios y muestra la fecha', async () => {
+    h.getProveedores.mockResolvedValue([
+      {
+        ...proveedorBase({
+          verificacion_estado: 'verificado',
+          verificado_at: '2026-01-02T00:00:00.000Z',
+        }),
+        productos_count: 0,
+        zonas_cobertura: [],
+      },
+    ])
+
+    render(await ProveedorPage({ params: Promise.resolve({ id: 'prov-1' }) }))
+
+    const insignia = screen.getByRole('link', { name: 'Verificado' })
+    expect(insignia).toHaveAttribute('href', '/como-funciona#verificacion-proveedores')
+    expect(insignia).toHaveAttribute('title', expect.stringContaining('2 de enero de 2026'))
   })
 })
