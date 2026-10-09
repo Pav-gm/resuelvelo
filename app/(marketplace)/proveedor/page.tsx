@@ -97,6 +97,11 @@ export default async function PanelProveedorPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href="/contacto">
+            <Button variant="outline" size="sm">
+              Contacto
+            </Button>
+          </Link>
           <Link href="/proveedor/perfil">
             <Button variant="outline" size="sm">
               Editar perfil de empresa
