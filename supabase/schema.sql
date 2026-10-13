@@ -1398,7 +1398,7 @@ begin
     ) then
       raise exception 'La oferta debe incluir cada línea de la cotización una sola vez.';
     end if;
-    if v_linea.cantidad_ofertada is not null and not exists (
+    if v_linea.precio_ofertado is not null and v_linea.cantidad_ofertada is not null and not exists (
       select 1 from public.items_cotizacion i
       where i.id = v_linea.item_id
         and i.cotizacion_id = p_cotizacion_id
