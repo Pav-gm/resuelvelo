@@ -1,5 +1,5 @@
 create table public.solicitudes (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   comprador_id uuid not null references public.profiles(id),
   titulo text not null,
   notas text null,
@@ -46,7 +46,6 @@ declare
   v_cotizacion_ids uuid[] := '{}';
   v_proveedor_id uuid;
   v_linea record;
-  v_lineas record[];
   v_producto record;
   v_titulo text := btrim(coalesce(p_titulo, ''));
 begin
