@@ -386,11 +386,11 @@ export async function ofertarCotizacion(
     return { error: 'Cada línea de la oferta debe tener un identificador único.' }
   }
   if (oferta.lineas.some((linea) =>
-    typeof linea.precioUnitario !== 'number' || !Number.isFinite(linea.precioUnitario)
-  )) {
+    linea.precioUnitario !== null && (typeof linea.precioUnitario !== 'number' || !Number.isFinite(linea.precioUnitario))
+  ) || oferta.lineas.some((linea) => linea.precioUnitario === null && linea.cantidadOfertada !== 0)) {
     return { error: 'Indica el precio' }
   }
-  if (oferta.lineas.some((linea) => linea.precioUnitario <= 0)) {
+  if (oferta.lineas.some((linea) => linea.precioUnitario !== null && linea.precioUnitario <= 0)) {
     return { error: 'Cada precio ofertado debe ser mayor que 0.' }
   }
   if (oferta.lineas.some((linea) =>
@@ -405,8 +405,10 @@ export async function ofertarCotizacion(
   )) {
     return { error: 'Las cantidades ofertadas deben ser números enteros no negativos.' }
   }
-  if (oferta.lineas.every((linea) => linea.cantidadOfertada === 0)) {
-    return { error: 'Si no puedes servir nada, rechaza la cotización' }
+  if (!oferta.lineas.some((linea) =>
+    linea.precioUnitario !== null && linea.precioUnitario > 0 && (linea.cantidadOfertada === null || linea.cantidadOfertada > 0)
+  )) {
+    return { error: 'La oferta debe incluir al menos una línea disponible.' }
   }
   if (!Number.isInteger(oferta.plazoDias) || oferta.plazoDias < 0 || oferta.plazoDias > 90) {
     return { error: 'El plazo debe estar entre 0 y 90 días.' }

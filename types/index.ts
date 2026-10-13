@@ -142,13 +142,58 @@ export interface Cotizacion {
   rechazada_at?: string | null
   aceptada_at?: string | null
   rechazada_motivo?: string | null
+  solicitud_id?: string | null
   items?: ItemCotizacion[]
 }
 
 export type LineaOfertaInput = {
   itemId: string
-  precioUnitario: number
+  precioUnitario: number | null
   cantidadOfertada: number | null
+}
+
+export interface Solicitud {
+  id: string
+  comprador_id: string
+  titulo: string
+  notas: string | null
+  fecha_requerida: string | null
+  created_at: string
+}
+
+export type LineaSolicitudInput = {
+  productoId: string | null
+  descripcion: string | null
+  cantidad: number
+  unidad: string | null
+}
+
+export type CrearSolicitudInput = {
+  titulo: string
+  notas: string | null
+  fechaRequerida: string | null
+  proveedorIds: string[]
+  lineas: LineaSolicitudInput[]
+}
+
+export type CrearSolicitudResultado =
+  | { solicitudId: string; cotizacionIds: string[] }
+  | { error: string }
+
+export type SolicitudComparador = {
+  solicitud: Solicitud
+  cotizaciones: CotizacionComparador[]
+}
+
+export type CotizacionComparador = Cotizacion & {
+  proveedor: {
+    id: string
+    nombre_empresa: string
+    verificado: boolean
+    promedio_feedback: number
+    conteo_feedback: number
+  }
+  items?: Array<ItemCotizacion & { producto: Pick<Producto, 'nombre'> | null }>
 }
 
 export type OfertaCotizacionInput = {
@@ -218,14 +263,16 @@ export interface ResumenFeedbackProveedor {
 export interface ItemCotizacion {
   id: string
   cotizacion_id: string
-  producto_id: string
+  producto_id: string | null
+  descripcion?: string | null
+  unidad?: string | null
   cantidad: number
   /** Cantidad aceptada por el proveedor; null en cotizaciones anteriores o pendientes. */
   cantidad_confirmada?: number | null
   precio_ofertado?: number | null
   cantidad_ofertada?: number | null
   precio_unitario?: number
-  producto?: Producto
+  producto?: Producto | null
   /** true si la cantidad pedida superaba el stock al cotizar. */
   sujeta_disponibilidad: boolean
   /** Stock observado al cotizar; null en líneas históricas o sin snapshot. */
