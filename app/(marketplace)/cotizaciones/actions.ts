@@ -16,6 +16,18 @@ export type CotizarError = { error: string; noDisponibles?: string[] } | null
 // seed (y de producción) usan ids como d0000000-0000-0000-0000-000000000001.
 const UUID_PRODUCTO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+function leerCampoOpcional(formData: FormData, nombre: string): string | null {
+  const valor = formData.get(nombre)
+  return typeof valor === 'string' && valor !== '' ? valor : null
+}
+
+function fechaRequeridaValida(fecha: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return false
+  const [year, month, day] = fecha.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
 export async function cotizarDesdeCarrito(
   _prevState: CotizarError,
   formData: FormData
@@ -34,6 +46,12 @@ export async function cotizarDesdeCarrito(
     return { error: 'Datos del carrito inválidos.' }
   }
   if (!itemsRawParsed.length) return { error: 'El carrito está vacío.' }
+
+  const direccionObraId = leerCampoOpcional(formData, 'direccion_obra_id')
+  const fechaRequerida = leerCampoOpcional(formData, 'fecha_requerida')
+  if (fechaRequerida && !fechaRequeridaValida(fechaRequerida)) {
+    return { error: 'La fecha requerida no es válida.' }
+  }
 
   const itemsUnicos = new Map<string, ItemCarrito>()
   for (const item of itemsRawParsed) {
@@ -71,6 +89,16 @@ export async function cotizarDesdeCarrito(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  if (direccionObraId) {
+    const { data: direccion } = await supabase
+      .from('direcciones_obra')
+      .select('id')
+      .eq('id', direccionObraId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!direccion) return { error: 'La dirección de obra seleccionada no es válida.' }
+  }
 
   // Resolver todos los productos de una vez contra la base de datos: nunca
   // confiamos en proveedor_id/precio que llega del carrito del cliente, ya
@@ -138,6 +166,8 @@ export async function cotizarDesdeCarrito(
         proveedor_id: proveedorId,
         estado: 'pendiente',
         total_estimado: total,
+        direccion_obra_id: direccionObraId,
+        fecha_requerida: fechaRequerida,
       })
       .select('id')
       .single()
