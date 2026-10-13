@@ -28,6 +28,10 @@ const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
 // Estados en los que la oferta del proveedor sigue vigente y debe mostrarse.
 const ESTADOS_CON_OFERTA = ['respondida', 'aceptada', 'despachada', 'recibida']
 
+// Estados en los que existe un comprobante informativo descargable para los
+// dos participantes (comprador dueño y proveedor destinatario).
+const ESTADOS_CON_COMPROBANTE = ['aceptada', 'despachada', 'recibida']
+
 function dinero(valor: number): string {
   return `$${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
 }
@@ -307,6 +311,18 @@ export default async function CotizacionDetallePage({
               {detalle.condiciones}
             </p>
           )}
+        </div>
+      )}
+
+      {ESTADOS_CON_COMPROBANTE.includes(detalle.estado) && (
+        <div className="mt-4">
+          <a
+            href={`/api/cotizaciones/${detalle.id}/pdf`}
+            download
+            className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+          >
+            Descargar comprobante (PDF)
+          </a>
         </div>
       )}
 
