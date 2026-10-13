@@ -72,6 +72,7 @@ export interface FiltrosProductos {
   categoriaSlug?: string
   subcategoriaSlug?: string
   proveedorIds?: string[]
+  provincia?: string
   /** Compatibilidad temporal con consumidores existentes de un solo proveedor. */
   proveedorId?: string
   precioMin?: number
@@ -111,6 +112,9 @@ function filtrarProductos(productos: Producto[], filtros?: FiltrosProductos): Pr
   }
   const proveedorIds = filtros?.proveedorIds?.length ? filtros.proveedorIds : filtros?.proveedorId ? [filtros.proveedorId] : undefined
   if (proveedorIds) resultado = resultado.filter((p) => proveedorIds.includes(p.proveedor_id))
+  if (filtros?.provincia) {
+    resultado = resultado.filter((p) => p.proveedor?.zonas_cobertura?.includes(filtros.provincia!))
+  }
   const { min, max } = normalizePrecioRange(filtros?.precioMin, filtros?.precioMax)
   if (min !== undefined) resultado = resultado.filter((p) => p.precio >= min)
   if (max !== undefined) resultado = resultado.filter((p) => p.precio <= max)
@@ -133,12 +137,25 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('productos')
-    .select(`*, proveedor:proveedores(*), categoria:categorias(*), subcategoria:subcategorias(*)`)
+    .select(`*, proveedor:proveedores(*, proveedor_zonas(provincia)), categoria:categorias(*), subcategoria:subcategorias(*)`)
     .eq('activo', true)
 
   if (error) propagarErrorLectura('getProductos', error)
   if (data === null) errorSinDatos('getProductos')
-  return filtrarProductos(data as unknown as Producto[], filtros)
+  const productos = (data as unknown as Array<Producto & {
+    proveedor: (Producto['proveedor'] & { proveedor_zonas?: Array<{ provincia: string }> | null }) | null
+  }>).map((producto) => {
+    if (!producto.proveedor) return producto
+    const { proveedor_zonas, ...proveedor } = producto.proveedor
+    return {
+      ...producto,
+      proveedor: {
+        ...proveedor,
+        zonas_cobertura: ordenarZonas(proveedor_zonas),
+      },
+    }
+  })
+  return filtrarProductos(productos, filtros)
 }
 
 // ─── Productos de un proveedor específico ────────────────────

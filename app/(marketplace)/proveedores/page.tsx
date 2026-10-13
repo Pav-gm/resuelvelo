@@ -109,6 +109,10 @@ export default async function ProveedoresPage() {
                 </p>
               )}
 
+              <p className="mt-1 text-xs text-gray-500">
+                {`Entrega en ${prov.zonas_cobertura?.length ?? 0} provincias`}
+              </p>
+
               {prov.horario && (
                 <p className="mt-2 flex items-center gap-1 text-xs text-gray-500">
                   <Clock className="h-3 w-3 text-gray-400" />

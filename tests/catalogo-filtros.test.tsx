@@ -5,8 +5,8 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import CatalogoFiltros from '@/components/marketplace/CatalogoFiltros'
+import { getProductos, type ProveedorConConteo } from '@/lib/data'
 import type { Categoria, Subcategoria } from '@/types'
-import type { ProveedorConConteo } from '@/lib/data'
 
 const mocks = vi.hoisted(() => ({
   pushMock: vi.fn(),
@@ -26,6 +26,58 @@ vi.mock('next/navigation', () => ({
     return mocks.cache.params
   },
 }))
+
+// Catálogo de datos en memoria para probar el filtro por provincia de cobertura
+// sin depender del catálogo de demostración.
+const catalogoProvincia = vi.hoisted(() => ({
+  productos: [
+    {
+      id: 'prod-santiago',
+      proveedor_id: 'prov-santiago',
+      categoria_id: 'c1',
+      subcategoria_id: null,
+      nombre: 'Bloques de hormigón',
+      precio: 100,
+      unidad: 'unidad',
+      stock: 10,
+      activo: true,
+      created_at: '',
+      proveedor: {
+        id: 'prov-santiago',
+        user_id: 'u-santiago',
+        nombre_empresa: 'Proveedor Santiago',
+        verificado: true,
+        created_at: '',
+        zonas_cobertura: ['Santiago'],
+      },
+    },
+    {
+      id: 'prod-duarte',
+      proveedor_id: 'prov-duarte',
+      categoria_id: 'c1',
+      subcategoria_id: null,
+      nombre: 'Varilla de hierro',
+      precio: 200,
+      unidad: 'unidad',
+      stock: 10,
+      activo: true,
+      created_at: '',
+      proveedor: {
+        id: 'prov-duarte',
+        user_id: 'u-duarte',
+        nombre_empresa: 'Proveedor Duarte',
+        verificado: true,
+        created_at: '',
+        zonas_cobertura: ['Duarte'],
+      },
+    },
+  ],
+}))
+
+vi.mock('@/lib/mock', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/mock')>()
+  return { ...actual, PRODUCTOS_MOCK: catalogoProvincia.productos }
+})
 
 const CATEGORIAS: Categoria[] = [
   { id: 'c1', nombre: 'Plomería', slug: 'plomeria' },
@@ -103,7 +155,7 @@ describe('CatalogoFiltros — subcategorías', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         categoriaInicial="electricidad"
       />
     )
@@ -119,7 +171,7 @@ describe('CatalogoFiltros — subcategorías', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
       />
     )
     expect(screen.queryByLabelText('Subcategoría')).not.toBeInTheDocument()
@@ -131,7 +183,7 @@ describe('CatalogoFiltros — subcategorías', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         categoriaInicial="electricidad"
       />
     )
@@ -151,7 +203,7 @@ describe('CatalogoFiltros — proveedores y orden', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         proveedorInicialIds={['p1', 'p2']}
         ordenInicial="precio_desc"
       />
@@ -173,7 +225,7 @@ describe('CatalogoFiltros — búsqueda y filtros', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         ordenInicial="precio_desc"
       />
     )
@@ -197,7 +249,7 @@ describe('CatalogoFiltros — búsqueda y filtros', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         busquedaInicial="cable"
         ordenInicial="precio_desc"
       />
@@ -207,7 +259,7 @@ describe('CatalogoFiltros — búsqueda y filtros', () => {
 
   it('Aplicar filtros justo después de cambiar el orden no pierde el orden', () => {
     render(
-      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} />
+      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} provincias={[]} />
     )
 
     // La URL del orden ya se pidió, pero searchParams todavía no cambió (la navegación no terminó).
@@ -224,7 +276,7 @@ describe('CatalogoFiltros — búsqueda y filtros', () => {
 describe('CatalogoFiltros — validación de precios', () => {
   it('no aplica filtros y muestra un error si el precio mínimo supera el máximo', () => {
     render(
-      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} />
+      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} provincias={[]} />
     )
 
     fireEvent.change(screen.getByLabelText('Precio mínimo (DOP)'), { target: { value: '300' } })
@@ -239,7 +291,7 @@ describe('CatalogoFiltros — validación de precios', () => {
 
   it('no aplica filtros y muestra un error propio si un precio es negativo', () => {
     render(
-      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} />
+      <CatalogoFiltros categorias={CATEGORIAS} subcategorias={SUBCATEGORIAS} proveedores={PROVEEDORES} provincias={[]} />
     )
 
     fireEvent.change(screen.getByLabelText('Precio mínimo (DOP)'), { target: { value: '-5' } })
@@ -261,7 +313,7 @@ describe('CatalogoFiltros — validación de precios', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         busquedaInicial="cable"
         conStockInicial
       />
@@ -289,7 +341,7 @@ describe('CatalogoFiltros — chips y limpieza', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         categoriaInicial="electricidad"
         subcategoriaInicial="electricidad-0"
         ordenInicial="nombre_asc"
@@ -313,7 +365,7 @@ describe('CatalogoFiltros — chips y limpieza', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         busquedaInicial="cable"
         categoriaInicial="electricidad"
         subcategoriaInicial="electricidad-0"
@@ -356,7 +408,7 @@ describe('CatalogoFiltros — chips y limpieza', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         conStockInicial={false}
       />
     )
@@ -368,7 +420,7 @@ describe('CatalogoFiltros — chips y limpieza', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
         busquedaInicial="cable"
         conStockInicial
       />
@@ -380,10 +432,59 @@ describe('CatalogoFiltros — chips y limpieza', () => {
       <CatalogoFiltros
         categorias={CATEGORIAS}
         subcategorias={SUBCATEGORIAS}
-        proveedores={PROVEEDORES}
+        proveedores={PROVEEDORES} provincias={[]}
       />
     )
     expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('')
     expect(screen.getByRole('checkbox', { name: 'Solo con stock' })).not.toBeChecked()
+  })
+})
+
+describe('CatalogoFiltros — provincia de entrega', () => {
+  it('CatalogoFiltros conserva la provincia de entrega en la URL y muestra el chip correspondiente', () => {
+    mocks.paramsState.value = '?orden=precio_desc'
+    render(
+      <CatalogoFiltros
+        categorias={CATEGORIAS}
+        subcategorias={SUBCATEGORIAS}
+        proveedores={PROVEEDORES}
+        provincias={['Duarte', 'Santiago']}
+        provinciaInicial="Santiago"
+        ordenInicial="precio_desc"
+      />
+    )
+
+    const selector = screen.getByLabelText('Provincia de entrega') as HTMLSelectElement
+    expect(selector.value).toBe('Santiago')
+
+    fireEvent.change(selector, { target: { value: 'Santiago' } })
+
+    const trasCambiar = ultimoPush()
+    expect(trasCambiar.get('provincia')).toBe('Santiago')
+    expect(trasCambiar.get('orden')).toBe('precio_desc')
+
+    expect(screen.getByText('Entrega en: Santiago')).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar filtro Entrega en: Santiago' })
+    )
+
+    const trasQuitar = ultimoPush()
+    expect(trasQuitar.has('provincia')).toBe(false)
+    expect(trasQuitar.get('orden')).toBe('precio_desc')
+  })
+})
+
+describe('getProductos — provincia de cobertura', () => {
+  it('getProductos filtra por provincia de cobertura del proveedor', async () => {
+    const productos = await getProductos({ provincia: 'Santiago' })
+
+    expect(productos.map((producto) => producto.id)).toEqual(['prod-santiago'])
+  })
+
+  it('getProductos conserva todos los productos cuando no se indica provincia', async () => {
+    const productos = await getProductos({})
+
+    expect(productos.map((producto) => producto.id)).toEqual(['prod-santiago', 'prod-duarte'])
   })
 })

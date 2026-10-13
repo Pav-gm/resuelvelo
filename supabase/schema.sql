@@ -223,6 +223,8 @@ create table if not exists public.cotizaciones (
   rechazada_at    timestamptz,
   aceptada_at     timestamptz,
   rechazada_motivo text,
+  direccion_obra_id uuid null references public.direcciones_obra(id),
+  fecha_requerida date null,
   created_at      timestamptz not null default now()
 );
 
@@ -1505,6 +1507,17 @@ begin
     'mensaje', c.mensaje,
     'total_estimado', c.total_estimado,
     'created_at', c.created_at,
+    'fecha_requerida', c.fecha_requerida,
+    'direccion_obra', (
+      select jsonb_build_object(
+        'id', direccion.id,
+        'provincia', direccion.provincia,
+        'municipio', direccion.municipio,
+        'referencia', direccion.referencia
+      )
+      from public.direcciones_obra direccion
+      where direccion.id = c.direccion_obra_id
+    ),
     'despachada_at', c.despachada_at,
     'cancelada_por', c.cancelada_por,
     'cancelada_at', c.cancelada_at,
@@ -1522,13 +1535,18 @@ begin
       'id', p.id,
       'nombre_empresa', p.nombre_empresa,
       'ciudad', p.ciudad,
-      'verificado', p.verificado
+      'verificado', p.verificado,
+      'rnc', p.rnc,
+      'direccion', p.direccion,
+      'telefono', p.telefono
     ),
     'comprador', jsonb_build_object(
       'id', comprador.id,
       'nombre', comprador.nombre,
       'email', comprador.email,
-      'telefono', comprador.telefono
+      'telefono', comprador.telefono,
+      'razon_social', comprador.razon_social,
+      'rnc', comprador.rnc
     ),
     'items', coalesce((
       select jsonb_agg(
@@ -1545,7 +1563,7 @@ begin
           'stock_al_cotizar', i.stock_al_cotizar,
           'producto', case
             when producto.id is null then null
-            else jsonb_build_object('id', producto.id, 'nombre', producto.nombre, 'activo', producto.activo, 'precio', producto.precio)
+            else jsonb_build_object('id', producto.id, 'nombre', producto.nombre, 'activo', producto.activo, 'precio', producto.precio, 'itbis_incluido', producto.itbis_incluido)
           end
         ) order by i.id
       )
@@ -1563,6 +1581,7 @@ begin
   return v_detalle;
 end;
 $$;
+
 
 revoke execute on function public.get_cotizacion_detalle(uuid) from public, anon;
 grant execute on function public.get_cotizacion_detalle(uuid) to authenticated;
