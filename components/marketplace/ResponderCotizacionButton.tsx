@@ -92,14 +92,24 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
 
   /** Valida los datos en español y arma el payload de la oferta. */
   function construirOferta(preciosUsados: Record<string, string>): OfertaConstruida {
-    const preciosNumericos: Record<string, number> = {}
+    // El precio vacío representa una línea no disponible; se serializa como
+    // `precioUnitario: null` y `cantidadOfertada: 0`.
+    const preciosNumericos: Record<string, number | null> = {}
     for (const item of items) {
       const texto = (preciosUsados[item.id] ?? '').trim()
-      const precio = texto === '' ? Number.NaN : Number(texto)
+      if (texto === '') {
+        preciosNumericos[item.id] = null
+        continue
+      }
+      const precio = Number(texto)
       if (!Number.isFinite(precio) || precio <= 0) {
         return { error: 'Indica el precio' }
       }
       preciosNumericos[item.id] = precio
+    }
+
+    if (!items.some((item) => preciosNumericos[item.id] !== null)) {
+      return { error: 'La oferta debe incluir al menos una línea disponible.' }
     }
 
     const plazoDias = plazo.trim() === '' ? Number.NaN : Number(plazo)
@@ -114,23 +124,24 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     const lineas: LineaOfertaInput[] = []
     let unidadesTotales = 0
     for (const item of items) {
+      const precio = preciosNumericos[item.id]
       if (item.sujeta_disponibilidad) {
         const cantidad = parseEntero(cantidades[item.id] ?? '')
         if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > item.cantidad) {
           return { error: 'Indica cuántas unidades confirmas' }
         }
-        unidadesTotales += cantidad
+        unidadesTotales += precio === null ? 0 : cantidad
         lineas.push({
           itemId: item.id,
-          precioUnitario: preciosNumericos[item.id],
-          cantidadOfertada: cantidad,
+          precioUnitario: precio,
+          cantidadOfertada: precio === null ? 0 : cantidad,
         })
       } else {
-        unidadesTotales += item.cantidad
+        unidadesTotales += precio === null ? 0 : item.cantidad
         lineas.push({
           itemId: item.id,
-          precioUnitario: preciosNumericos[item.id],
-          cantidadOfertada: null,
+          precioUnitario: precio,
+          cantidadOfertada: precio === null ? 0 : null,
         })
       }
     }
@@ -279,7 +290,11 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                       }}
                       className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
                     />
+                    <span className="text-xs text-gray-500">(opcional)</span>
                   </div>
+                  {(precios[item.id] ?? '').trim() === '' && (
+                    <p className="text-xs text-gray-500">No disponible</p>
+                  )}
                   {item.sujeta_disponibilidad ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <label htmlFor={`cantidad-${item.id}`} className="text-sm text-gray-700">
