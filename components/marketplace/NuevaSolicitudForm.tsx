@@ -53,6 +53,8 @@ export default function NuevaSolicitudForm({
   const montado = useSyncExternalStore(noop, () => true, () => false)
   const vaciar = useCarritoStore((state) => state.vaciar)
   const importado = useRef(false)
+  // Solo se vacía el carrito si la solicitud importó realmente sus líneas.
+  const importoCarrito = useRef(false)
 
   const [titulo, setTitulo] = useState('')
   const [notas, setNotas] = useState('')
@@ -101,6 +103,7 @@ export default function NuevaSolicitudForm({
     importado.current = true
     const items = useCarritoStore.getState().items
     if (!items.length) return
+    importoCarrito.current = true
     setLineas(
       items.map((item) => {
         contadorLineas.current += 1
@@ -177,7 +180,7 @@ export default function NuevaSolicitudForm({
         setError(resultado.error)
         return
       }
-      vaciar()
+      if (importoCarrito.current) vaciar()
       router.push(`/solicitudes/${resultado.solicitudId}`)
     })
   }
