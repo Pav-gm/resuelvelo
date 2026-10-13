@@ -187,7 +187,7 @@ begin
     elsif v_linea.precio_ofertado <= 0 or v_linea.precio_ofertado::text in ('NaN', 'Infinity', '-Infinity') then
       raise exception 'Cada precio ofertado debe ser mayor que 0.';
     end if;
-    if v_linea.cantidad_ofertada is not null and not exists (
+    if v_linea.precio_ofertado is not null and v_linea.cantidad_ofertada is not null and not exists (
       select 1 from public.items_cotizacion i where i.id = v_linea.item_id and i.cotizacion_id = p_cotizacion_id
         and v_linea.cantidad_ofertada between 0 and i.cantidad
         and (v_linea.cantidad_ofertada = i.cantidad or i.sujeta_disponibilidad)
