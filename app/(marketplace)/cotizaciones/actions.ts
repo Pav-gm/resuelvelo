@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
 import type { TipoNotificacionEmail } from '@/lib/notificaciones-email'
-import type { CotizacionActionResult, ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
+import type { CotizacionActionResult, CrearSolicitudInput, CrearSolicitudResultado, ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
 
 // ─── Crear cotización(es) desde el carrito ───────────────────
 // Agrupa los items por proveedor y crea una cotización por cada uno.
@@ -254,6 +254,70 @@ export async function aceptarOfertaCotizacion(cotizacionId: string): Promise<Cot
 
   await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_aceptada')
   revalidarDecisionCotizacion(cotizacionId)
+  return null
+}
+
+export async function crearSolicitudAProveedores(input: CrearSolicitudInput): Promise<CrearSolicitudResultado> {
+  if (!input || typeof input.titulo !== 'string' || !input.titulo.trim()) {
+    return { error: 'Indica el título de la solicitud.' }
+  }
+  if (!Array.isArray(input.proveedorIds) || input.proveedorIds.length < 1 || input.proveedorIds.length > 5) {
+    return { error: 'Selecciona entre 1 y 5 proveedores.' }
+  }
+  if (new Set(input.proveedorIds).size !== input.proveedorIds.length) {
+    return { error: 'Selecciona proveedores distintos.' }
+  }
+  if (!Array.isArray(input.lineas) || input.lineas.length === 0 || input.lineas.some((linea) =>
+    !linea || !Number.isSafeInteger(linea.cantidad) || linea.cantidad <= 0 ||
+    (typeof linea.productoId !== 'string' && !(typeof linea.descripcion === 'string' && linea.descripcion.trim()))
+  )) {
+    return { error: 'Agrega al menos una línea válida a la solicitud.' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autorizado.' }
+
+  const { data, error } = await supabase.rpc('crear_solicitud_a_proveedores', {
+    p_titulo: input.titulo,
+    p_notas: input.notas,
+    p_fecha_requerida: input.fechaRequerida,
+    p_proveedor_ids: input.proveedorIds,
+    p_lineas: input.lineas.map(({ productoId, descripcion, cantidad, unidad }) => ({
+      producto_id: productoId,
+      descripcion,
+      cantidad,
+      unidad,
+    })),
+  })
+  if (error) return { error: error.message }
+  if (!data || typeof data.solicitud_id !== 'string' || !Array.isArray(data.cotizacion_ids)) {
+    return { error: 'No se pudo crear la solicitud.' }
+  }
+
+  const cotizacionIds = data.cotizacion_ids as string[]
+  await Promise.all(cotizacionIds.map((id) => enviarNotificacionCotizacionEmail(id, 'nueva_solicitud')))
+  revalidatePath('/solicitudes')
+  revalidatePath('/mis-cotizaciones')
+  revalidatePath(`/solicitudes/${data.solicitud_id}`)
+  return { solicitudId: data.solicitud_id, cotizacionIds }
+}
+
+export async function aceptarOfertaDeSolicitud(cotizacionId: string): Promise<CotizacionActionResult> {
+  const supabase = await createClient()
+  const { data: cotizacion } = await supabase
+    .from('cotizaciones')
+    .select('solicitud_id')
+    .eq('id', cotizacionId)
+    .maybeSingle()
+
+  const { error } = await supabase.rpc('aceptar_oferta_de_solicitud', { p_cotizacion_id: cotizacionId })
+  if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_aceptada')
+  revalidarDecisionCotizacion(cotizacionId)
+  revalidatePath('/solicitudes')
+  if (cotizacion?.solicitud_id) revalidatePath(`/solicitudes/${cotizacion.solicitud_id}`)
   return null
 }
 
