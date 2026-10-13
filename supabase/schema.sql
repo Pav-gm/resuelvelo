@@ -1864,7 +1864,7 @@ grant execute on function public.solicitar_nueva_oferta(uuid, text) to authentic
 revoke all on function public.datos_email_notificacion_cotizacion(uuid, text) from public, anon, authenticated;
 grant execute on function public.datos_email_notificacion_cotizacion(uuid, text) to authenticated;
 create table public.solicitudes (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   comprador_id uuid not null references public.profiles(id),
   titulo text not null,
   notas text null,
@@ -1911,7 +1911,6 @@ declare
   v_cotizacion_ids uuid[] := '{}';
   v_proveedor_id uuid;
   v_linea record;
-  v_lineas record[];
   v_producto record;
   v_titulo text := btrim(coalesce(p_titulo, ''));
 begin
@@ -2159,7 +2158,6 @@ declare
   v_cotizacion_ids uuid[] := '{}';
   v_proveedor_id uuid;
   v_linea record;
-  v_lineas record[];
   v_producto record;
   v_titulo text := btrim(coalesce(p_titulo, ''));
 begin

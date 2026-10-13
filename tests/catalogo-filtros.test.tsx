@@ -3,7 +3,7 @@
  * proveedores múltiples, orden, chips y limpieza de filtros.
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import CatalogoFiltros from '@/components/marketplace/CatalogoFiltros'
 import { getProductos, type ProveedorConConteo } from '@/lib/data'
 import type { Categoria, Subcategoria } from '@/types'
@@ -14,6 +14,12 @@ const mocks = vi.hoisted(() => ({
   // Como en Next, el mismo objeto mientras la URL no cambia: un re-render por estado local no lo renueva.
   cache: { value: null as string | null, params: new URLSearchParams() },
 }))
+
+vi.hoisted(() => {
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://<project-ref>.supabase.co')
+})
+
+afterAll(() => vi.unstubAllEnvs())
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.pushMock }),
