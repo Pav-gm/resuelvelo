@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import NavbarClient from './NavbarClient'
+import type { DireccionObraDrawer } from '@/components/marketplace/CarritoDrawer'
 
 export default async function Navbar() {
   let usuario: { nombre: string; rol: string } | null = null
+  let direccionesObra: DireccionObraDrawer[] = []
 
   try {
     const supabase = await createClient()
@@ -17,11 +19,24 @@ export default async function Navbar() {
 
       if (profile) {
         usuario = { nombre: profile.nombre, rol: profile.rol }
+
+        // Solo el comprador tiene direcciones de obra propias; nunca se exponen
+        // las de otros usuarios.
+        if (profile.rol === 'comprador') {
+          const { data: direcciones } = await supabase
+            .from('direcciones_obra')
+            .select('id, etiqueta, direccion, provincia, municipio, referencia, es_principal')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+
+          direccionesObra = (direcciones ?? []) as DireccionObraDrawer[]
+        }
       }
     }
   } catch {
     // Sin credenciales de Supabase — modo mock
+    direccionesObra = []
   }
 
-  return <NavbarClient usuario={usuario} />
+  return <NavbarClient usuario={usuario} direccionesObra={direccionesObra} />
 }

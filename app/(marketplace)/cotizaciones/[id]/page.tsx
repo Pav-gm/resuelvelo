@@ -175,6 +175,39 @@ export default async function CotizacionDetallePage({
         </div>
       )}
 
+      {(detalle.direccion_obra || detalle.fecha_requerida) && (
+        <section
+          data-testid="entrega-solicitada"
+          className="mt-4 rounded-2xl border bg-white p-4 shadow-sm"
+        >
+          <h2 className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            Entrega solicitada
+          </h2>
+          {detalle.direccion_obra && (
+            <div className="mt-1 space-y-0.5 text-sm text-gray-700">
+              {detalle.direccion_obra.provincia && (
+                <p className="break-words [overflow-wrap:anywhere]">
+                  {detalle.direccion_obra.provincia}
+                </p>
+              )}
+              {detalle.direccion_obra.municipio && (
+                <p className="break-words [overflow-wrap:anywhere]">{detalle.direccion_obra.municipio}</p>
+              )}
+              {detalle.direccion_obra.referencia && (
+                <p className="break-words [overflow-wrap:anywhere]">
+                  {detalle.direccion_obra.referencia}
+                </p>
+              )}
+            </div>
+          )}
+          {detalle.fecha_requerida && (
+            <p className="mt-1 text-sm text-gray-700">
+              {`Fecha requerida: ${fechaValidez(detalle.fecha_requerida)}`}
+            </p>
+          )}
+        </section>
+      )}
+
       {detalle.estado === 'rechazada' && (
         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
           <p className="break-words [overflow-wrap:anywhere] text-sm text-red-700">

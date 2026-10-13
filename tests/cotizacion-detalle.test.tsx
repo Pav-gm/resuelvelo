@@ -76,6 +76,8 @@ const detalleBase = {
   created_at: '2026-03-15T15:00:00.000Z',
   despachada_at: null,
   cancelada_por: null,
+  direccion_obra: null,
+  fecha_requerida: null,
   proveedor: { id: 'prov-1', nombre_empresa: 'Promeria', ciudad: 'Santo Domingo', verificado: true },
   comprador: { id: 'buyer-1', nombre: 'Ana', email: 'ana@example.com', telefono: '809-555-0101' },
   items: [] as unknown[],
@@ -845,5 +847,48 @@ describe('Página de detalle de cotización', () => {
     render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
 
     expect(screen.queryByRole('link', { name: 'Descargar comprobante (PDF)' })).toBeNull()
+  })
+
+  it('el proveedor ve la dirección de obra y la fecha requerida en la entrega solicitada', async () => {
+    h.state.user = { id: 'provider-user-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'pendiente',
+      direccion_obra: {
+        id: 'dir-1',
+        provincia: 'Santiago',
+        municipio: 'Santiago de los Caballeros',
+        referencia: 'Portón azul',
+      },
+      fecha_requerida: '2026-11-03',
+      items: [],
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.getByText('Entrega solicitada')).toBeInTheDocument()
+    expect(screen.getByText('Santiago')).toBeInTheDocument()
+    expect(screen.getByText('Santiago de los Caballeros')).toBeInTheDocument()
+    expect(screen.getByText('Portón azul')).toBeInTheDocument()
+    expect(screen.getByText('Fecha requerida: 03/11/2026')).toBeInTheDocument()
+  })
+
+  it('una cotización sin dirección ni fecha no muestra la sección de entrega solicitada', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'pendiente',
+      direccion_obra: null,
+      fecha_requerida: null,
+      items: [],
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.queryByText('Entrega solicitada')).toBeNull()
   })
 })

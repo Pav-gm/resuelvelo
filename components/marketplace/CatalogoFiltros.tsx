@@ -21,6 +21,8 @@ interface CatalogoFiltrosProps {
   precioMaxInicial?: string
   conStockInicial?: boolean
   ordenInicial?: OrdenCatalogo
+  provinciaInicial?: string
+  provincias: string[]
 }
 
 const ORDEN_OPCIONES: { value: OrdenCatalogo; label: string }[] = [
@@ -29,7 +31,7 @@ const ORDEN_OPCIONES: { value: OrdenCatalogo; label: string }[] = [
   { value: 'nombre_asc', label: 'Nombre: A–Z' },
 ]
 
-const FILTRO_KEYS = ['busqueda', 'categoria', 'subcategoria', 'proveedor', 'precioMin', 'precioMax', 'conStock'] as const
+const FILTRO_KEYS = ['busqueda', 'categoria', 'subcategoria', 'proveedor', 'precioMin', 'precioMax', 'conStock', 'provincia'] as const
 
 interface Chip {
   key: (typeof FILTRO_KEYS)[number] | 'proveedor'
@@ -49,6 +51,8 @@ export default function CatalogoFiltros({
   precioMaxInicial = '',
   conStockInicial = false,
   ordenInicial,
+  provinciaInicial,
+  provincias,
 }: CatalogoFiltrosProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -123,6 +127,16 @@ export default function CatalogoFiltros({
         params.set('orden', orden)
       } else {
         params.delete('orden')
+      }
+    })
+  }
+
+  function handleProvincia(provincia: string) {
+    updateParams((params) => {
+      if (provincia) {
+        params.set('provincia', provincia)
+      } else {
+        params.delete('provincia')
       }
     })
   }
@@ -245,6 +259,9 @@ export default function CatalogoFiltros({
   }
   if (conStockInicial) {
     chips.push({ key: 'conStock', etiqueta: 'Solo con stock' })
+  }
+  if (provinciaInicial) {
+    chips.push({ key: 'provincia', etiqueta: `Entrega en: ${provinciaInicial}` })
   }
 
   return (
@@ -374,6 +391,26 @@ export default function CatalogoFiltros({
             </select>
           </div>
         )}
+
+        <div className="flex flex-1 flex-col gap-1 sm:min-w-[200px]">
+          <label htmlFor="provincia" className="text-xs font-medium text-gray-600">
+            Provincia de entrega
+          </label>
+          <select
+            id="provincia"
+            name="provincia"
+            value={provinciaInicial ?? ''}
+            onChange={(e) => handleProvincia(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+          >
+            <option value="">Todas las provincias</option>
+            {provincias.map((provincia) => (
+              <option key={provincia} value={provincia}>
+                {provincia}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex flex-1 flex-col gap-1 sm:min-w-[200px]">
           <label htmlFor="orden" className="text-xs font-medium text-gray-600">
