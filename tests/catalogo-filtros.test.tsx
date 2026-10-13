@@ -8,6 +8,11 @@ import CatalogoFiltros from '@/components/marketplace/CatalogoFiltros'
 import { getProductos, type ProveedorConConteo } from '@/lib/data'
 import type { Categoria, Subcategoria } from '@/types'
 
+// Los datos en memoria solo se usan sin Supabase: en CI la URL está definida y getProductos iría a la base.
+vi.hoisted(() => {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = ''
+})
+
 const mocks = vi.hoisted(() => ({
   pushMock: vi.fn(),
   paramsState: { value: '' },
