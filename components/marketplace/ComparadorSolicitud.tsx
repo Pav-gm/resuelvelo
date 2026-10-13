@@ -107,8 +107,10 @@ export default function ComparadorSolicitud({ data }: Props) {
                 Línea
               </th>
               {cotizaciones.map((cot) => {
-                const esMenorTotal = menorTotal !== null && totalOferta(cot) === menorTotal
-                const esMenorPlazo = menorPlazo !== null && cot.plazo_dias === menorPlazo
+                const comparable = cot.estado === 'respondida' && tienePrecio(cot)
+                const esMenorTotal =
+                  comparable && menorTotal !== null && totalOferta(cot) === menorTotal
+                const esMenorPlazo = comparable && menorPlazo !== null && cot.plazo_dias === menorPlazo
                 return (
                   <th key={cot.id} scope="col" className="px-4 py-3 align-top">
                     <span className="block font-semibold text-gray-900">
