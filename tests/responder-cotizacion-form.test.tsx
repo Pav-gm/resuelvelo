@@ -240,7 +240,7 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     expect(h.ofertarCotizacion).not.toHaveBeenCalled()
   })
 
-  it('muestra el error de precio cuando el campo está vacío y no envía la oferta', () => {
+  it('muestra el error de línea disponible cuando el precio está vacío y no envía la oferta', () => {
     const items: ItemCotizacion[] = [
       item({ id: 'item-1', cantidad: 3, producto: producto('Tubo PVC', 15) }),
     ]
@@ -251,7 +251,9 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     fireEvent.change(screen.getByLabelText('Precio unitario de Tubo PVC'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Indica el precio')
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'La oferta debe incluir al menos una línea disponible.'
+    )
     expect(h.ofertarCotizacion).not.toHaveBeenCalled()
   })
 
