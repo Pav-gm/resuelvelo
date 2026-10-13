@@ -19,8 +19,14 @@ interface Props {
 }
 
 /** Precio unitario precargado: el actual del catálogo; si falta, el solicitado. */
-function precioInicial(item: ItemCotizacion): number {
-  return item.producto?.precio ?? item.precio_unitario ?? 0
+function precioInicial(item: ItemCotizacion): number | null {
+  return item.producto?.precio ?? item.precio_unitario ?? null
+}
+
+/** Texto del precio precargado; vacío significa «No disponible». */
+function textoPrecioInicial(item: ItemCotizacion): string {
+  const precio = precioInicial(item)
+  return precio == null ? '' : String(precio)
 }
 
 /** Cantidad inicial: la pedida, sin superar el stock observado al cotizar. */
@@ -51,7 +57,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     const preciosIniciales: Record<string, string> = {}
     const cantidadesIniciales: Record<string, string> = {}
     for (const item of items) {
-      preciosIniciales[item.id] = String(precioInicial(item))
+      preciosIniciales[item.id] = textoPrecioInicial(item)
       cantidadesIniciales[item.id] = String(cantidadInicial(item))
     }
     setPrecios(preciosIniciales)
@@ -187,7 +193,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
 
   function handleAceptarCatalogo() {
     const preciosCatalogo: Record<string, string> = {}
-    for (const item of items) preciosCatalogo[item.id] = String(precioInicial(item))
+    for (const item of items) preciosCatalogo[item.id] = textoPrecioInicial(item)
     const resultado = construirOferta(preciosCatalogo)
     if ('error' in resultado) {
       setError(resultado.error)
@@ -267,10 +273,18 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
 
           <div className="mt-2 space-y-3">
             {items.map((item) => {
-              const nombre = item.producto?.nombre?.trim() || 'Producto no disponible'
+              const nombre =
+                item.producto?.nombre?.trim() ||
+                item.descripcion?.trim() ||
+                'Producto no disponible'
               return (
                 <div key={item.id} className="flex flex-col gap-2">
-                  <span className="text-sm font-medium text-gray-900">{nombre}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {nombre}
+                    {item.unidad && (
+                      <span className="ml-1 text-xs font-normal text-gray-500">{`(${item.unidad})`}</span>
+                    )}
+                  </span>
                   <div className="flex flex-wrap items-center gap-2">
                     <label htmlFor={`precio-${item.id}`} className="text-sm text-gray-700">
                       {`Precio unitario de ${nombre}`}

@@ -62,6 +62,24 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     expect(screen.getByLabelText('Condiciones')).toHaveValue('')
   })
 
+  it('usa la descripción de una línea libre como nombre del producto', () => {
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        producto: null,
+        producto_id: null,
+        descripcion: 'Cemento gris',
+        unidad: 'sacos',
+        precio_unitario: undefined,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    expect(screen.getByLabelText('Precio unitario de Cemento gris')).toBeInTheDocument()
+  })
+
   it('propone siete días desde la fecha calendario de Santo Domingo al cruzar medianoche UTC', () => {
     vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
     const items: ItemCotizacion[] = [item({ id: 'item-1', producto: producto('Tubo PVC', 15) })]

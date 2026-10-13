@@ -122,7 +122,9 @@ export default function ComparadorSolicitud({ data }: Props) {
                       </span>
                     )}
                     <span className="mt-0.5 block text-xs text-gray-500">
-                      {`${cot.proveedor.promedio_feedback} (${cot.proveedor.conteo_feedback} reseñas)`}
+                      {cot.proveedor.conteo_feedback > 0
+                        ? `${cot.proveedor.promedio_feedback.toFixed(1)} (${cot.proveedor.conteo_feedback} reseñas)`
+                        : 'Sin reseñas'}
                     </span>
                     {esMenorTotal && (
                       <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
@@ -153,7 +155,9 @@ export default function ComparadorSolicitud({ data }: Props) {
                   const subtotal = linea ? subtotalDe(linea) : null
                   return (
                     <td key={cot.id} className="px-4 py-3 text-gray-700">
-                      {subtotal === null || linea?.precio_ofertado == null ? (
+                      {cot.estado === 'pendiente' ? (
+                        <span className="text-gray-400">Pendiente</span>
+                      ) : subtotal === null || linea?.precio_ofertado == null ? (
                         <span className="text-gray-400">No disponible</span>
                       ) : (
                         <>
