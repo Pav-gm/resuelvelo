@@ -110,7 +110,7 @@ describe('acciones de oferta de cotización', () => {
     expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
   })
 
-  it('ofertarCotizacion rechaza todas las cantidades en cero sin llamar al RPC', async () => {
+  it('ofertarCotizacion rechaza una oferta sin líneas disponibles sin llamar al RPC', async () => {
     const resultado = await ofertarCotizacion('cot-1', {
       lineas: [{ itemId: 'item-1', precioUnitario: 12, cantidadOfertada: 0 }],
       plazoDias: 5,
@@ -118,9 +118,53 @@ describe('acciones de oferta de cotización', () => {
       condiciones: null,
     })
 
-    expect(resultado).toEqual({ error: 'Si no puedes servir nada, rechaza la cotización' })
+    expect(resultado).toEqual({ error: 'La oferta debe incluir al menos una línea disponible.' })
     expect(h.rpc).not.toHaveBeenCalled()
     expect(h.revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it('ofertarCotizacion permite una línea no disponible si otra línea tiene oferta válida', async () => {
+    const resultado = await ofertarCotizacion('cot-1', {
+      lineas: [
+        { itemId: 'item-1', precioUnitario: null, cantidadOfertada: 0 },
+        { itemId: 'item-2', precioUnitario: 5, cantidadOfertada: 2 },
+      ],
+      plazoDias: 5,
+      validaHasta: '2026-10-20',
+      condiciones: null,
+    })
+
+    expect(resultado).toBeNull()
+    expect(h.rpc).toHaveBeenCalledOnce()
+    expect(h.rpc).toHaveBeenCalledWith('responder_cotizacion_con_oferta', {
+      p_cotizacion_id: 'cot-1',
+      p_lineas: [
+        { item_id: 'item-1', precio_ofertado: null, cantidad_ofertada: 0 },
+        { item_id: 'item-2', precio_ofertado: 5, cantidad_ofertada: 2 },
+      ],
+      p_plazo_dias: 5,
+      p_valida_hasta: '2026-10-20',
+      p_condiciones: null,
+    })
+  })
+
+  it('ofertarCotizacion rechaza precio nulo con unidades y todas las líneas sin precio', async () => {
+    const precioConUnidades = await ofertarCotizacion('cot-1', {
+      lineas: [{ itemId: 'item-1', precioUnitario: null, cantidadOfertada: 2 }],
+      plazoDias: 5,
+      validaHasta: '2026-10-20',
+      condiciones: null,
+    })
+    expect(precioConUnidades).toEqual({ error: 'Indica el precio' })
+
+    const sinDisponibilidad = await ofertarCotizacion('cot-1', {
+      lineas: [{ itemId: 'item-1', precioUnitario: null, cantidadOfertada: 0 }],
+      plazoDias: 5,
+      validaHasta: '2026-10-20',
+      condiciones: null,
+    })
+    expect(sinDisponibilidad).toEqual({ error: 'La oferta debe incluir al menos una línea disponible.' })
+    expect(h.rpc).not.toHaveBeenCalled()
   })
 
   it('ofertarCotizacion rechaza cantidad vacía o no numérica sin llamar al RPC', async () => {
