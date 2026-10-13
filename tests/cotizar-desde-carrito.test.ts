@@ -18,6 +18,7 @@ const h = vi.hoisted(() => {
   const state = {
     user: { id: 'comprador-1' } as { id: string } | null,
     productos: [] as { id: string; proveedor_id: string; precio: number; stock: number; stock_reservado: number | null; activo: boolean }[],
+    direcciones: [] as { id: string; user_id: string }[],
     queryError: null as { message: string } | null,
     queryThrows: false,
     cotizacionError: null as { message: string } | null,
@@ -35,7 +36,8 @@ const h = vi.hoisted(() => {
     from(table: string) {
       return {
         select(columns: string) {
-          return {
+          const filtros: Record<string, string> = {}
+          const query = {
             in(_column: string, ids: string[]) {
               state.ops.push('select:productos')
               state.selects.push({ columns, ids: [...ids] })
@@ -43,7 +45,19 @@ const h = vi.hoisted(() => {
               if (state.queryError) return { data: null, error: state.queryError }
               return { data: state.productos.filter((producto) => ids.includes(producto.id)), error: null }
             },
+            eq(column: string, value: string) {
+              filtros[column] = value
+              return query
+            },
+            async maybeSingle() {
+              state.ops.push('select:direcciones_obra')
+              const direccion = state.direcciones.find((entry) =>
+                entry.id === filtros.id && entry.user_id === filtros.user_id
+              )
+              return { data: direccion ? { id: direccion.id } : null, error: null }
+            },
           }
+          return query
         },
         insert(payload: unknown) {
           state.ops.push(`insert:${table}`)
@@ -164,6 +178,7 @@ beforeEach(() => {
   h.enviarNotificacionCotizacionEmail.mockClear()
   h.state.user = { id: 'comprador-1' }
   h.state.productos = []
+  h.state.direcciones = []
   h.state.queryError = null
   h.state.queryThrows = false
   h.state.cotizacionError = null
@@ -442,6 +457,57 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
 })
 
 describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
+  it('cotizarDesdeCarrito guarda la dirección propia y la fecha requerida en cada cotización', async () => {
+    h.state.productos = [productoDb()]
+    h.state.direcciones = [{ id: 'dir-1', user_id: 'comprador-1' }]
+    const form = formConItems([item()])
+    form.set('direccion_obra_id', 'dir-1')
+    form.set('fecha_requerida', '2026-11-03')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toMatchObject({
+      direccion_obra_id: 'dir-1',
+      fecha_requerida: '2026-11-03',
+    })
+  })
+
+  it('cotizarDesdeCarrito permite solicitar sin dirección ni fecha', async () => {
+    h.state.productos = [productoDb()]
+
+    const outcome = await ejecutar(formConItems([item()]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toMatchObject({
+      direccion_obra_id: null,
+      fecha_requerida: null,
+    })
+  })
+
+  it('cotizarDesdeCarrito rechaza una dirección que pertenece a otro comprador', async () => {
+    h.state.productos = [productoDb()]
+    h.state.direcciones = [{ id: 'dir-2', user_id: 'comprador-2' }]
+    const form = formConItems([item()])
+    form.set('direccion_obra_id', 'dir-2')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'returned', result: { error: 'La dirección de obra seleccionada no es válida.' } })
+    expect(h.state.inserts.filter((insert) => ['cotizaciones', 'items_cotizacion'].includes(insert.table))).toEqual([])
+  })
+
+  it('cotizarDesdeCarrito rechaza una fecha requerida con formato inválido', async () => {
+    h.state.productos = [productoDb()]
+    const form = formConItems([item()])
+    form.set('fecha_requerida', 'mañana')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'returned', result: { error: 'La fecha requerida no es válida.' } })
+    expect(h.state.inserts.filter((insert) => ['cotizaciones', 'items_cotizacion'].includes(insert.table))).toEqual([])
+  })
+
   it('inserta con proveedor y precio de la base y redirige', async () => {
     h.state.productos = [productoDb({
       id: '11111111-1111-4111-8111-111111111111',
@@ -472,6 +538,8 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
         proveedor_id: 'prov-db',
         estado: 'pendiente',
         total_estimado: 160,
+        direccion_obra_id: null,
+        fecha_requerida: null,
       },
     })
     expect(h.state.inserts[1]).toEqual({
@@ -514,12 +582,16 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
         proveedor_id: 'prov-db-1',
         estado: 'pendiente',
         total_estimado: 20,
+        direccion_obra_id: null,
+        fecha_requerida: null,
       },
       {
         comprador_id: 'comprador-1',
         proveedor_id: 'prov-db-2',
         estado: 'pendiente',
         total_estimado: 25,
+        direccion_obra_id: null,
+        fecha_requerida: null,
       },
     ])
   })
