@@ -122,6 +122,8 @@ export interface Cotizacion {
   estado: 'pendiente' | 'respondida' | 'aceptada' | 'rechazada' | 'despachada' | 'recibida' | 'cancelada'
   mensaje?: string
   total_estimado?: number
+  direccion_obra_id?: string | null
+  fecha_requerida?: string | null
   created_at: string
   /** Fecha de despacho (columna despachada_at); null hasta que el proveedor despache. */
   despachada_at?: string | null
@@ -171,6 +173,12 @@ export type MotivoCancelacionInput = {
 }
 
 export type CotizacionDetalle = Cotizacion & {
+  direccion_obra: {
+    id: string
+    provincia: string
+    municipio: string | null
+    referencia: string | null
+  } | null
   proveedor: Pick<Proveedor, 'id' | 'nombre_empresa' | 'ciudad' | 'verificado'> & {
     rnc?: string | null
     direccion?: string | null
