@@ -14,10 +14,13 @@ interface CatalogoPageProps {
     precioMax?: string
     conStock?: string
     orden?: string
+    provincia?: string
   }>
 }
 
 const ORDENES: readonly OrdenCatalogo[] = ['precio_asc', 'precio_desc', 'nombre_asc']
+
+const collatorProvincias = new Intl.Collator('es', { sensitivity: 'base' })
 
 // Un precio de la URL que no es un número finito y no negativo se ignora: ni filtra ni aparece en chips o campos.
 function parsePrecioParam(value?: string): number | undefined {
@@ -40,6 +43,7 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
       : [proveedor]
     : undefined
   const orden = parseOrden(params.orden)
+  const provincia = params.provincia?.trim() ? params.provincia.trim() : undefined
 
   const datos = await Promise.all([
     getProductos({
@@ -51,6 +55,7 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
       precioMax: parsePrecioParam(precioMax),
       conStock: conStock === '1' ? true : undefined,
       orden,
+      provincia,
     }),
     getCategorias(),
     getSubcategorias(),
@@ -62,6 +67,10 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
   const [productos, categorias, subcategorias, proveedores] = datos
 
   const proveedoresUnicos = new Set(productos.map((p) => p.proveedor_id)).size
+
+  const provincias = Array.from(
+    new Set(proveedores.flatMap((prov) => prov.zonas_cobertura ?? []))
+  ).sort((a, b) => collatorProvincias.compare(a, b))
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -84,6 +93,8 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
         precioMaxInicial={parsePrecioParam(precioMax) === undefined ? undefined : precioMax}
         conStockInicial={conStock === '1'}
         ordenInicial={orden}
+        provinciaInicial={provincia}
+        provincias={provincias}
       />
 
       <Suspense fallback={<GridSkeleton />}>

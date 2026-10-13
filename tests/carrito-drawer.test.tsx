@@ -1,9 +1,10 @@
 /**
  * Tests de CarritoDrawer: tope de stock, aria-labels y envío de cotización.
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Producto } from '@/types'
+import type { DireccionObraDrawer } from '@/components/marketplace/CarritoDrawer'
 
 const cotizarDesdeCarrito = vi.hoisted(() => vi.fn())
 
@@ -13,6 +14,27 @@ vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
 
 import CarritoDrawer from '@/components/marketplace/CarritoDrawer'
 import { useCarritoStore } from '@/lib/store/carrito'
+
+const DIRECCIONES: DireccionObraDrawer[] = [
+  {
+    id: 'dir-1',
+    etiqueta: 'Obra principal',
+    direccion: 'Av. 27 de Febrero 123',
+    provincia: 'Santiago',
+    municipio: 'Santiago de los Caballeros',
+    referencia: 'Portón azul',
+    es_principal: true,
+  },
+  {
+    id: 'dir-2',
+    etiqueta: 'Almacén',
+    direccion: 'Calle Duarte 45',
+    provincia: 'Duarte',
+    municipio: null,
+    referencia: null,
+    es_principal: false,
+  },
+]
 
 function producto(overrides: Partial<Producto> = {}): Producto {
   return {
@@ -31,7 +53,7 @@ function producto(overrides: Partial<Producto> = {}): Producto {
 }
 
 function abrirCarrito() {
-  render(<CarritoDrawer />)
+  render(<CarritoDrawer direccionesObra={DIRECCIONES} />)
   fireEvent.click(screen.getByRole('button', { name: 'Carrito' }))
 }
 
@@ -236,5 +258,55 @@ describe('CarritoDrawer — envío de cotización', () => {
     expect(screen.getByText(
       'Estos productos ya no están disponibles: Tubo PVC. Los quitamos del carrito.'
     )).toBeInTheDocument()
+  })
+
+  it('el selector de dirección ofrece sin dirección y las direcciones guardadas', () => {
+    useCarritoStore.getState().agregar(producto(), 1)
+    abrirCarrito()
+
+    const selector = screen.getByLabelText('Dirección de obra') as HTMLSelectElement
+    const opciones = within(selector)
+      .getAllByRole('option')
+      .map((opcion) => opcion.textContent)
+    expect(opciones).toEqual([
+      'Sin dirección',
+      'Obra principal — Av. 27 de Febrero 123, Santiago de los Caballeros, Santiago',
+      'Almacén — Calle Duarte 45, Duarte',
+    ])
+    expect(selector.value).toBe('')
+    expect(screen.getByLabelText('Fecha requerida (opcional)')).toHaveAttribute('type', 'date')
+  })
+
+  it('envía la dirección elegida y la fecha requerida en el FormData', async () => {
+    useCarritoStore.getState().agregar(producto(), 1)
+    abrirCarrito()
+
+    fireEvent.change(screen.getByLabelText('Dirección de obra'), {
+      target: { value: 'dir-1' },
+    })
+    fireEvent.change(screen.getByLabelText('Fecha requerida (opcional)'), {
+      target: { value: '2026-11-03' },
+    })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Solicitar cotización' }))
+    })
+
+    const form = cotizarDesdeCarrito.mock.calls[0][1] as FormData
+    expect(form.get('direccion_obra_id')).toBe('dir-1')
+    expect(form.get('fecha_requerida')).toBe('2026-11-03')
+  })
+
+  it('sin dirección ni fecha no envía esos campos', async () => {
+    useCarritoStore.getState().agregar(producto(), 1)
+    abrirCarrito()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Solicitar cotización' }))
+    })
+
+    const form = cotizarDesdeCarrito.mock.calls[0][1] as FormData
+    expect(form.has('direccion_obra_id')).toBe(false)
+    expect(form.has('fecha_requerida')).toBe(false)
   })
 })

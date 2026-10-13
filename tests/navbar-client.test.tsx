@@ -115,7 +115,7 @@ afterEach(() => {
 
 describe('NavbarClient — carrito en móvil', () => {
   it('muestra el botón Carrito en la cabecera móvil y abre el drawer', () => {
-    render(<NavbarClient usuario={null} />)
+    render(<NavbarClient usuario={null} direccionesObra={[]} />)
 
     // Una sola instancia del carrito: no se duplica entre móvil y escritorio.
     const botones = screen.getAllByRole('button', { name: 'Carrito' })
@@ -137,7 +137,7 @@ describe('NavbarClient — carrito en móvil', () => {
       .getState()
       .agregar(producto({ id: 'prod-1', nombre: 'Tubo PVC 4"', precio: 680, stock: 5 }), 2)
 
-    render(<NavbarClient usuario={null} />)
+    render(<NavbarClient usuario={null} direccionesObra={[]} />)
 
     const boton = screen.getByRole('button', { name: 'Carrito' })
     expect(within(boton).getByText('2')).toBeInTheDocument()
@@ -150,7 +150,7 @@ describe('NavbarClient — carrito en móvil', () => {
   })
 
   it('mantiene en escritorio el carrito delante de los controles de usuario', () => {
-    const { container } = render(<NavbarClient usuario={null} />)
+    const { container } = render(<NavbarClient usuario={null} direccionesObra={[]} />)
 
     // La barra principal (logo, nav y grupo de acciones) mantiene sus tres hijos.
     const barra = container.querySelector('header > div')
@@ -169,7 +169,7 @@ describe('NavbarClient — carrito en móvil', () => {
 
 describe('NavbarClient — acceso del comprador', () => {
   it('el acceso del comprador lleva a perfil y conserva Mis cotizaciones en el menú', () => {
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Menú' }))
 
@@ -191,7 +191,7 @@ describe('NavbarClient — campana de notificaciones', () => {
   it('muestra la campana con el contador para un usuario con sesión también en móvil', async () => {
     h.obtenerNotificaciones.mockResolvedValue({ data: [], noLeidas: 3, error: null })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     await waitFor(() => expect(within(boton).getByText('3')).toBeInTheDocument())
@@ -213,7 +213,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: null,
     })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     fireEvent.click(boton)
@@ -235,7 +235,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: null,
     })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     fireEvent.click(boton)
@@ -258,7 +258,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: null,
     })
 
-    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     fireEvent.click(boton)
@@ -270,7 +270,7 @@ describe('NavbarClient — campana de notificaciones', () => {
     await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-1'))
 
     h.pathname = '/cotizaciones/c-1'
-    rerender(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    rerender(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     expect(screen.queryByTestId('notificacion')).toBeNull()
   })
@@ -285,7 +285,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: 'No se pudo marcar la notificación como leída.',
     })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     fireEvent.click(boton)
@@ -305,13 +305,13 @@ describe('NavbarClient — campana de notificaciones', () => {
       .mockResolvedValueOnce({ data: [], noLeidas: 4, error: null })
       .mockResolvedValueOnce({ data: [], noLeidas: 1, error: null })
 
-    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     await waitFor(() => expect(within(boton).getByText('2')).toBeInTheDocument())
 
     h.pathname = '/proveedores'
-    rerender(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    rerender(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
     await waitFor(() => expect(within(boton).getByText('4')).toBeInTheDocument())
 
     fireEvent.click(boton)
@@ -325,7 +325,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: null,
     })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     await waitFor(() => expect(within(boton).getByText('2')).toBeInTheDocument())
@@ -348,7 +348,7 @@ describe('NavbarClient — campana de notificaciones', () => {
   })
 
   it('no muestra la campana a usuarios sin sesión', () => {
-    render(<NavbarClient usuario={null} />)
+    render(<NavbarClient usuario={null} direccionesObra={[]} />)
 
     expect(screen.queryByRole('button', { name: 'Notificaciones' })).toBeNull()
     expect(h.obtenerNotificaciones).not.toHaveBeenCalled()

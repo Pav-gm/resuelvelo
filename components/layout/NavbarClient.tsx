@@ -8,7 +8,7 @@ import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { cerrarSesion } from '@/app/(auth)/actions'
-import CarritoDrawer from '@/components/marketplace/CarritoDrawer'
+import CarritoDrawer, { type DireccionObraDrawer } from '@/components/marketplace/CarritoDrawer'
 import {
   marcarTodasLasNotificacionesLeidas,
   obtenerNotificaciones,
@@ -190,11 +190,12 @@ function CampanaNotificaciones() {
   )
 }
 
-interface NavbarClientProps {
+export interface NavbarClientProps {
   usuario: { nombre: string; rol: string } | null
+  direccionesObra: DireccionObraDrawer[]
 }
 
-export default function NavbarClient({ usuario }: NavbarClientProps) {
+export default function NavbarClient({ usuario, direccionesObra }: NavbarClientProps) {
   const [menuAbierto, setMenuAbierto] = useState(false)
   const panelHref =
     usuario?.rol === 'admin'
@@ -239,7 +240,7 @@ export default function NavbarClient({ usuario }: NavbarClientProps) {
 
         <div className="flex items-center gap-3">
           {/* Carrito siempre visible, también en móvil, junto al menú hamburguesa. */}
-          <CarritoDrawer />
+          <CarritoDrawer direccionesObra={direccionesObra} />
           {/* Campana de avisos: también visible en móvil para usuarios con sesión. */}
           {usuario && <CampanaNotificaciones />}
           {/* Nombre y acciones de cuenta: solo desde el breakpoint md. */}

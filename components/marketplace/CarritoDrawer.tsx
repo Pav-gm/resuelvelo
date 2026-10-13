@@ -16,9 +16,35 @@ const noop = () => () => {}
  */
 type ResultadoCotizar = { error: string; noDisponibles?: string[] }
 
-export default function CarritoDrawer() {
+/** Dirección de obra propia del comprador que el servidor entrega al drawer. */
+export type DireccionObraDrawer = {
+  id: string
+  etiqueta: string
+  direccion: string
+  provincia: string
+  municipio: string | null
+  referencia: string | null
+  es_principal: boolean
+}
+
+interface CarritoDrawerProps {
+  /** Direcciones guardadas del comprador; vacío para otros roles o sin sesión. */
+  direccionesObra?: DireccionObraDrawer[]
+}
+
+/** Texto de opción: `etiqueta — direccion, municipio, provincia`, omitiendo el municipio vacío. */
+function formatearDireccion(direccion: DireccionObraDrawer): string {
+  const partes = [direccion.direccion, direccion.municipio, direccion.provincia]
+    .map((valor) => valor?.trim())
+    .filter((valor): valor is string => Boolean(valor))
+  return `${direccion.etiqueta} — ${partes.join(', ')}`
+}
+
+export default function CarritoDrawer({ direccionesObra = [] }: CarritoDrawerProps) {
   const [abierto, setAbierto] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [direccionId, setDireccionId] = useState('')
+  const [fechaRequerida, setFechaRequerida] = useState('')
   const [pending, startTransition] = useTransition()
   // El carrito se hidrata desde localStorage solo en el cliente; este flag
   // es false en el server y true en el cliente, evitando el mismatch de SSR.
@@ -30,6 +56,8 @@ export default function CarritoDrawer() {
     setError(null)
     const form = new FormData()
     form.set('items', JSON.stringify(items))
+    if (direccionId) form.set('direccion_obra_id', direccionId)
+    if (fechaRequerida) form.set('fecha_requerida', fechaRequerida)
 
     startTransition(async () => {
       const result = (await cotizarDesdeCarrito(null, form)) as ResultadoCotizar | null
@@ -135,6 +163,36 @@ export default function CarritoDrawer() {
                   <div className="flex items-center justify-between text-sm font-semibold">
                     <span>Total estimado</span>
                     <span>${total().toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="direccionObra" className="text-xs font-medium text-gray-600">
+                      Dirección de obra
+                    </label>
+                    <select
+                      id="direccionObra"
+                      value={direccionId}
+                      onChange={(e) => setDireccionId(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+                    >
+                      <option value="">Sin dirección</option>
+                      {direccionesObra.map((direccion) => (
+                        <option key={direccion.id} value={direccion.id}>
+                          {formatearDireccion(direccion)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="fechaRequerida" className="text-xs font-medium text-gray-600">
+                      Fecha requerida (opcional)
+                    </label>
+                    <input
+                      id="fechaRequerida"
+                      type="date"
+                      value={fechaRequerida}
+                      onChange={(e) => setFechaRequerida(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+                    />
                   </div>
                   {error && (
                     <p className="text-xs text-red-600">{error}</p>
