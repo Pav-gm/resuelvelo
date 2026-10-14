@@ -212,6 +212,20 @@ describe('Panel del proveedor — adaptación a móvil', () => {
     expect(within(fila).getByText(/Stock: 8/)).toBeInTheDocument()
     expect(within(fila).queryByText(/\(0 reservadas\)/)).toBeNull()
   })
+
+  it('el panel del proveedor muestra precios y fechas en formato dominicano', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO])
+    mocks.getCotizacionesDeProveedor.mockResolvedValue([
+      { ...COTIZACION, created_at: '2026-10-08T02:20:00.000Z' },
+    ])
+
+    render(await PanelProveedorPage())
+
+    const fila = screen.getByTestId('product-row')
+    expect(within(fila).getByText(/RD\$ 125\.50/)).toBeInTheDocument()
+
+    expect(screen.getByText(/7 de octubre de 2026/)).toBeInTheDocument()
+  })
 })
 
 describe('Ruta /proveedor/productos — lista compartida', () => {
@@ -271,7 +285,7 @@ describe('Bandeja de cotizaciones — adaptación a móvil', () => {
     expect(nombre.className).toContain('min-w-0')
 
     expect(screen.getByText('x2')).toBeInTheDocument()
-    expect(screen.getByText('$251.00')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 251.00')).toBeInTheDocument()
 
     // La fila pendiente conserva la acción de responder con oferta.
     expect(screen.getByRole('button', { name: 'Responder con oferta' })).toBeInTheDocument()

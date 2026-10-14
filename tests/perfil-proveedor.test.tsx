@@ -284,17 +284,35 @@ describe('ficha pública del proveedor', () => {
       {
         ...proveedorBase({
           verificacion_estado: 'verificado',
-          verificado_at: '2026-01-02T00:00:00.000Z',
+          verificado_at: '2026-10-08T02:20:00.000Z',
         }),
         productos_count: 0,
         zonas_cobertura: [],
       },
     ])
+    h.getFeedbackDeProveedor.mockResolvedValue({
+      reseñas: [
+        {
+          id: 'fb-1',
+          proveedor_id: 'prov-1',
+          autor_anonimo: 'Comprador A',
+          calificacion: 5,
+          comentario: 'Excelente servicio',
+          created_at: '2026-10-08T02:20:00.000Z',
+          respuesta: null,
+        },
+      ],
+      promedio: 5,
+      conteo: 1,
+    })
 
     render(await ProveedorPage({ params: Promise.resolve({ id: 'prov-1' }) }))
 
     const insignia = screen.getByRole('link', { name: 'Verificado' })
     expect(insignia).toHaveAttribute('href', '/como-funciona#verificacion-proveedores')
-    expect(insignia).toHaveAttribute('title', expect.stringContaining('2 de enero de 2026'))
+    expect(insignia).toHaveAttribute('title', expect.stringContaining('7 de octubre de 2026'))
+
+    const regionResenas = screen.getByRole('region', { name: 'Reseñas del proveedor' })
+    expect(within(regionResenas).getByText('7 de octubre de 2026')).toBeInTheDocument()
   })
 })

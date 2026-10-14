@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 import { BadgeCheck, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { solicitarVerificacionProveedor } from '@/app/(marketplace)/proveedor/actions'
+import { formatearFecha } from '@/lib/utils'
 import type { VerificacionEstado } from '@/types'
 
 interface SolicitudVerificacionProps {
@@ -13,14 +14,6 @@ interface SolicitudVerificacionProps {
   telefono: string | null
   nota: string | null
   verificadoAt: string | null
-}
-
-function formatearFecha(fecha: string): string {
-  return new Date(fecha).toLocaleDateString('es-DO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
 }
 
 export default function SolicitudVerificacion({

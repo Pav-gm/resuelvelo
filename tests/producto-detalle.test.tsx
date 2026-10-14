@@ -46,7 +46,7 @@ function producto(overrides: Partial<Producto> = {}): Producto {
       nombre_empresa: 'Promeria',
       verificado: true,
       verificacion_estado: 'verificado',
-      verificado_at: '2026-01-02T00:00:00.000Z',
+      verificado_at: '2026-01-02T12:00:00.000Z',
       created_at: '',
     },
     categoria: { id: 'cat-1', nombre: 'Plomería', slug: 'plomeria' },
@@ -79,11 +79,11 @@ afterEach(() => {
 
 describe('ProductoPage — ficha pública', () => {
   it('renderiza la ficha con precio, ITBIS, proveedor y enlace al catálogo', async () => {
-    mocks.getProductoMock.mockResolvedValue(producto())
+    mocks.getProductoMock.mockResolvedValue(producto({ precio: 680 }))
     await renderFicha()
 
     expect(screen.getByText('Tubo PVC')).toBeInTheDocument()
-    expect(screen.getByText('RD$ 1,234.56')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 680.00')).toBeInTheDocument()
     expect(screen.getByText('ITBIS incluido')).toBeInTheDocument()
     expect(screen.getByText('Promeria')).toBeInTheDocument()
     expect(screen.getByText('Verificado')).toBeInTheDocument()

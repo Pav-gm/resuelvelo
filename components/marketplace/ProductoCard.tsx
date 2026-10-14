@@ -5,7 +5,7 @@ import ProductoImagen from '@/components/marketplace/ProductoImagen'
 import AgregarProductoButton from '@/components/marketplace/AgregarProductoButton'
 import InsigniaProveedorVerificado from '@/components/marketplace/InsigniaProveedorVerificado'
 import type { Producto } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, formatearPrecio } from '@/lib/utils'
 
 interface ProductoCardProps {
   producto: Producto
@@ -52,7 +52,7 @@ export default function ProductoCard({ producto, className }: ProductoCardProps)
         <div className="mt-auto flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <p className="text-lg font-bold text-gray-900">
-              ${producto.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+              {formatearPrecio(producto.precio)}
             </p>
             <p className="text-xs text-gray-400">/ {producto.unidad}</p>
             <p className="text-xs text-gray-500">Stock disponible: {disponible}</p>

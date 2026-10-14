@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCotizacionesDelComprador, getSolicitudesDelComprador } from '@/lib/data'
+import { formatearFecha } from '@/lib/utils'
 import type { Cotizacion } from '@/types'
 
 interface EstadoSolicitud {
@@ -22,15 +23,6 @@ function estadoDeSolicitud(cotizaciones: Cotizacion[]): EstadoSolicitud {
     return { etiqueta: 'Respondida', clase: 'bg-blue-100 text-blue-700' }
   }
   return { etiqueta: 'Cerrada', clase: 'bg-gray-200 text-gray-600' }
-}
-
-/** Fecha de creación como día/mes/año. */
-function fecha(fechaISO: string): string {
-  return new Date(fechaISO).toLocaleDateString('es-DO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
 }
 
 export default async function SolicitudesPage() {
@@ -95,7 +87,7 @@ export default async function SolicitudesPage() {
                     {solicitud.titulo}
                   </span>
                   <span className="mt-0.5 block text-xs text-gray-400">
-                    {fecha(solicitud.created_at)}
+                    {formatearFecha(solicitud.created_at)}
                   </span>
                 </Link>
                 <span className={`rounded-full px-3 py-1 text-xs font-medium ${estado.clase}`}>

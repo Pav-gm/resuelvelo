@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCotizacionesDelComprador, getFeedbackPorCotizacion } from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
+import { formatearPrecio, formatearFecha } from '@/lib/utils'
 import type { Feedback } from '@/types'
 import LimpiarCarritoEnEnviada from '@/components/marketplace/LimpiarCarritoEnEnviada'
 import FormularioFeedback from '@/components/marketplace/FormularioFeedback'
@@ -28,11 +29,6 @@ const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
 // Estados en los que la cotización conserva una oferta del proveedor que el
 // comprador debe seguir viendo, también después de aceptar.
 const ESTADOS_CON_OFERTA = ['respondida', 'aceptada', 'despachada', 'recibida']
-
-/** Importes de la oferta del proveedor, siempre en pesos dominicanos. */
-function dineroOferta(valor: number): string {
-  return `RD$ ${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
-}
 
 /** Fecha de validez (YYYY-MM-DD) como dd/mm/aaaa, sin desfase de zona horaria. */
 function fechaValidez(fecha: string): string {
@@ -165,9 +161,7 @@ export default async function MisCotizacionesPage({
                       Cotización #{formatNumeroCotizacion(cot.numero)}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {new Date(cot.created_at).toLocaleDateString('es-DO', {
-                        year: 'numeric', month: 'long', day: 'numeric',
-                      })}
+                      {formatearFecha(cot.created_at)}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-3">
@@ -232,12 +226,12 @@ export default async function MisCotizacionesPage({
                                   columna ya no es el precio de catálogo, así
                                   que no mostramos la etiqueta «Catálogo». */}
                               {!confirmado && item.precio_unitario != null && (
-                                <span>{`Catálogo: ${dineroOferta(item.precio_unitario)} c/u`}</span>
+                                <span>{`Catálogo: ${formatearPrecio(item.precio_unitario)} c/u`}</span>
                               )}
-                              <span>{`Oferta: ${dineroOferta(item.precio_ofertado)} c/u`}</span>
+                              <span>{`Oferta: ${formatearPrecio(item.precio_ofertado)} c/u`}</span>
                               <span>x{unidades}</span>
                               <span className="font-medium text-gray-700">
-                                {dineroOferta(item.precio_ofertado * unidades)}
+                                {formatearPrecio(item.precio_ofertado * unidades)}
                               </span>
                             </>
                           ) : (
@@ -245,9 +239,7 @@ export default async function MisCotizacionesPage({
                               <span>x{unidades}</span>
                               {precioUnitario != null && (
                                 <span className="font-medium text-gray-700">
-                                  {`$${(precioUnitario * unidades).toLocaleString('es-DO', {
-                                    minimumFractionDigits: 2,
-                                  })}`}
+                                  {formatearPrecio(precioUnitario * unidades)}
                                 </span>
                               )}
                             </>
@@ -277,13 +269,11 @@ export default async function MisCotizacionesPage({
                   ? items.length > 0 &&
                     (tieneOferta ? (
                       <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
-                        {`Total ofertado: ${dineroOferta(Number(cot.total_ofertado))}`}
+                        {`Total ofertado: ${formatearPrecio(Number(cot.total_ofertado))}`}
                       </div>
                     ) : (
                       <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
-                        Total confirmado: ${totalConfirmado.toLocaleString('es-DO', {
-                          minimumFractionDigits: 2,
-                        })}
+                        Total confirmado: {formatearPrecio(totalConfirmado)}
                       </div>
                     ))
                   : tieneOferta
@@ -291,21 +281,17 @@ export default async function MisCotizacionesPage({
                         <>
                           {cot.total_estimado != null && (
                             <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
-                              {`Total estimado: $${Number(cot.total_estimado).toLocaleString('es-DO', {
-                                minimumFractionDigits: 2,
-                              })}`}
+                              {`Total estimado: ${formatearPrecio(Number(cot.total_estimado))}`}
                             </div>
                           )}
                           <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
-                            {`Total ofertado: ${dineroOferta(Number(cot.total_ofertado))}`}
+                            {`Total ofertado: ${formatearPrecio(Number(cot.total_ofertado))}`}
                           </div>
                         </>
                       )
                     : cot.total_estimado != null && (
                         <div className="flex justify-end px-6 py-3 border-t text-sm font-semibold text-gray-900">
-                          Total estimado: ${Number(cot.total_estimado).toLocaleString('es-DO', {
-                            minimumFractionDigits: 2,
-                          })}
+                          Total estimado: {formatearPrecio(Number(cot.total_estimado))}
                         </div>
                       )}
 

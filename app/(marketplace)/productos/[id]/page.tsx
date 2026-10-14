@@ -6,6 +6,7 @@ import InsigniaProveedorVerificado from '@/components/marketplace/InsigniaProvee
 import { creditoFoto } from '@/lib/creditos-fotos'
 import AgregarProductoButton from '@/components/marketplace/AgregarProductoButton'
 import { getProducto, getFeedbackDeProveedor } from '@/lib/data'
+import { formatearPrecio } from '@/lib/utils'
 
 interface ProductoPageProps {
   params: Promise<{ id: string }>
@@ -14,13 +15,6 @@ interface ProductoPageProps {
 const TITULO_GENERICO = 'Producto — Resuélvelo'
 const DESCRIPCION_GENERICA =
   'Ficha de producto en Resuélvelo, el marketplace B2B de materiales y servicios.'
-
-function formatearPrecio(precio: number): string {
-  return `RD$ ${precio.toLocaleString('es-DO', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-}
 
 export async function generateMetadata({ params }: ProductoPageProps): Promise<Metadata> {
   const { id } = await params
