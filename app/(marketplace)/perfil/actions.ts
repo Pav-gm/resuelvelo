@@ -23,6 +23,10 @@ export type DireccionObraInput = {
 export type PerfilActionResult = { error: string | null; success: boolean }
 
 const NO_AUTORIZADO: PerfilActionResult = { error: 'No autorizado.', success: false }
+const ERROR_DIRECCION_EN_COTIZACION: PerfilActionResult = {
+  error: 'Esta dirección se usó en una cotización y no se puede quitar.',
+  success: false,
+}
 
 async function clienteComprador() {
   const supabase = await createClient()
@@ -140,11 +144,21 @@ export async function eliminarDireccionObra(id: string): Promise<PerfilActionRes
     const acceso = await clienteComprador()
     if (!acceso) return NO_AUTORIZADO
 
+    const { data: cotizacion, error: errorConsulta } = await acceso.supabase
+      .from('cotizaciones')
+      .select('id')
+      .eq('direccion_obra_id', id)
+      .limit(1)
+      .maybeSingle()
+    if (errorConsulta) return errorSupabase()
+    if (cotizacion) return ERROR_DIRECCION_EN_COTIZACION
+
     const { error } = await acceso.supabase
       .from('direcciones_obra')
       .delete()
       .eq('id', id)
       .eq('user_id', acceso.user.id)
+    if (error?.code === '23503') return ERROR_DIRECCION_EN_COTIZACION
     if (error) return errorSupabase()
     revalidatePath('/perfil')
     return { error: null, success: true }
