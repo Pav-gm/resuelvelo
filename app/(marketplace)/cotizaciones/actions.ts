@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { hoyISOEnSantoDomingo } from '@/lib/cotizaciones'
 import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
 import type { TipoNotificacionEmail } from '@/lib/notificaciones-email'
 import type { CotizacionActionResult, ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
@@ -51,6 +52,9 @@ export async function cotizarDesdeCarrito(
   const fechaRequerida = leerCampoOpcional(formData, 'fecha_requerida')
   if (fechaRequerida && !fechaRequeridaValida(fechaRequerida)) {
     return { error: 'La fecha requerida no es válida.' }
+  }
+  if (fechaRequerida && fechaRequerida < hoyISOEnSantoDomingo()) {
+    return { error: 'La fecha requerida no puede ser anterior a hoy.' }
   }
 
   const itemsUnicos = new Map<string, ItemCarrito>()
