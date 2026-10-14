@@ -201,4 +201,51 @@ describe('Comparador de solicitud multiproveedor', () => {
       '/solicitudes/sol-1'
     )
   })
+
+  it('el comparador muestra cantidad y unidad pedidas junto a la descripción', () => {
+    const data = {
+      solicitud,
+      cotizaciones: [
+        {
+          id: 'cot-1',
+          numero: 1,
+          comprador_id: 'buyer-1',
+          proveedor_id: 'prov-a',
+          estado: 'respondida',
+          created_at: '2026-10-02T12:00:00.000Z',
+          plazo_dias: 5,
+          valida_hasta: '2999-01-01',
+          condiciones: null,
+          proveedor: {
+            id: 'prov-a',
+            nombre_empresa: 'Proveedor A',
+            verificado: true,
+            promedio_feedback: 4.5,
+            conteo_feedback: 2,
+          },
+          items: [
+            {
+              id: 'item-free',
+              cotizacion_id: 'cot-1',
+              producto_id: null,
+              descripcion: 'Cemento',
+              unidad: 'sacos',
+              cantidad: 2,
+              cantidad_ofertada: 2,
+              precio_ofertado: 50,
+              producto: { nombre: 'Cemento' },
+              sujeta_disponibilidad: false,
+              stock_al_cotizar: null,
+            },
+          ],
+        },
+      ],
+    } as unknown as SolicitudComparador
+
+    render(<ComparadorSolicitud data={data} />)
+
+    const encabezado = screen.getByRole('rowheader', { name: /Cemento/ })
+    expect(encabezado).toHaveTextContent('Cemento')
+    expect(encabezado).toHaveTextContent('(2 sacos)')
+  })
 })

@@ -335,3 +335,19 @@ describe('CarritoDrawer — envío de cotización', () => {
     expect(form.has('fecha_requerida')).toBe(false)
   })
 })
+
+describe('CarritoDrawer — enlace multiproveedor', () => {
+  it('el enlace multiproveedor cierra el cajón del carrito al navegar', () => {
+    useCarritoStore.getState().agregar(producto(), 1)
+    abrirCarrito()
+
+    expect(screen.getByText('Mi carrito')).toBeInTheDocument()
+    const enlace = screen.getByRole('link', { name: 'Enviar el carrito a varios proveedores' })
+    expect(enlace).toHaveAttribute('href', '/solicitudes/nueva?desde=carrito')
+
+    fireEvent.click(enlace)
+
+    expect(screen.queryByText('Mi carrito')).not.toBeInTheDocument()
+    expect(enlace).toHaveAttribute('href', '/solicitudes/nueva?desde=carrito')
+  })
+})

@@ -83,6 +83,22 @@ const detalleBase = {
   items: [] as unknown[],
 }
 
+// Línea libre de una solicitud multiproveedor: sin producto, con descripción y unidad.
+const itemLibre = {
+  id: 'item-free',
+  cotizacion_id: 'cot-free',
+  producto_id: null,
+  descripcion: 'Arena fina',
+  unidad: 'm3',
+  cantidad: 3,
+  cantidad_confirmada: null,
+  precio_unitario: null,
+  precio_ofertado: null,
+  sujeta_disponibilidad: false,
+  stock_al_cotizar: null,
+  producto: null,
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   h.state.user = { id: 'buyer-1' }
@@ -941,5 +957,71 @@ describe('Página de detalle de cotización', () => {
 
     expect(screen.getAllByText('13 de octubre de 2026').length).toBeGreaterThan(0)
     expect(screen.queryByText('14 de octubre de 2026')).toBeNull()
+  })
+
+  it('el comprador ve descripción, cantidad y unidad de una línea libre en la lista', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionesDelComprador.mockResolvedValue([
+      {
+        id: 'cot-free',
+        numero: 43,
+        comprador_id: 'buyer-1',
+        proveedor_id: 'prov-1',
+        estado: 'pendiente',
+        created_at: '2026-10-10T12:00:00.000Z',
+        items: [itemLibre],
+      },
+    ])
+
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+
+    expect(screen.getByText('Arena fina')).toBeInTheDocument()
+    expect(screen.getByText('Pedido: 3 m3')).toBeInTheDocument()
+    expect(screen.queryByText('Producto no disponible')).toBeNull()
+  })
+
+  it('el detalle de cotización muestra descripción, cantidad y unidad de una línea libre', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-free',
+      numero: 43,
+      estado: 'pendiente',
+      items: [itemLibre],
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-free' }) }))
+
+    expect(screen.getByText('Arena fina')).toBeInTheDocument()
+    expect(screen.getByText('Pedido: 3 m3')).toBeInTheDocument()
+    expect(screen.queryByText('Producto no disponible')).toBeNull()
+  })
+
+  it('la bandeja del proveedor muestra descripción, cantidad y unidad de una línea libre', async () => {
+    h.state.user = { id: 'provider-user-1' }
+    h.getProveedorDelUsuario.mockResolvedValue({
+      id: 'prov-1',
+      user_id: 'provider-user-1',
+      nombre_empresa: 'Promeria',
+      verificado: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+    })
+    h.getCotizacionesDeProveedor.mockResolvedValue([
+      {
+        id: 'cot-free',
+        numero: 43,
+        comprador_id: 'buyer-1',
+        proveedor_id: 'prov-1',
+        estado: 'pendiente',
+        created_at: '2026-10-10T12:00:00.000Z',
+        items: [itemLibre],
+      },
+    ])
+
+    render(await PedidosPage())
+
+    expect(screen.getByText('Arena fina')).toBeInTheDocument()
+    expect(screen.getByText('Pedido: 3 m3')).toBeInTheDocument()
+    expect(screen.queryByText('Producto no disponible')).toBeNull()
   })
 })
