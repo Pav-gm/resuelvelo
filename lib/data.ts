@@ -161,6 +161,26 @@ export async function getProductos(filtros?: FiltrosProductos): Promise<Producto
   return filtrarProductos(productos, filtros)
 }
 
+export async function getProductosActivosPorIds(productoIds: string[]): Promise<Producto[]> {
+  if (!productoIds.length) return []
+
+  if (!SUPABASE_DISPONIBLE) {
+    const idsSolicitados = new Set(productoIds)
+    return PRODUCTOS_MOCK.filter((producto) => producto.activo && idsSolicitados.has(producto.id))
+  }
+
+  const supabase = await getServerClient()
+  const { data, error } = await supabase
+    .from('productos')
+    .select('*')
+    .in('id', productoIds)
+    .eq('activo', true)
+
+  if (error) propagarErrorLectura('getProductosActivosPorIds', error)
+  if (data === null) errorSinDatos('getProductosActivosPorIds')
+  return data as Producto[]
+}
+
 // ─── Productos de un proveedor específico ────────────────────
 
 export async function getProductosDeProveedor(proveedorId: string): Promise<Producto[]> {
