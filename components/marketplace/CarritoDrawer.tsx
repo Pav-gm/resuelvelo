@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ShoppingCart, Trash2, Plus, Minus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCarritoStore } from '@/lib/store/carrito'
+import { hoyISOEnSantoDomingo } from '@/lib/cotizaciones'
 import { cotizarDesdeCarrito } from '@/app/(marketplace)/cotizaciones/actions'
 
 const noop = () => () => {}
@@ -190,6 +191,7 @@ export default function CarritoDrawer({ direccionesObra = [] }: CarritoDrawerPro
                     <input
                       id="fechaRequerida"
                       type="date"
+                      min={hoyISOEnSantoDomingo()}
                       value={fechaRequerida}
                       onChange={(e) => setFechaRequerida(e.target.value)}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"

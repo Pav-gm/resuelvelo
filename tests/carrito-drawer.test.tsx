@@ -277,6 +277,21 @@ describe('CarritoDrawer — envío de cotización', () => {
     expect(screen.getByLabelText('Fecha requerida (opcional)')).toHaveAttribute('type', 'date')
   })
 
+  it('el campo de fecha requerida limita la selección a hoy en Santo Domingo', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    try {
+      useCarritoStore.getState().agregar(producto(), 1)
+      abrirCarrito()
+
+      const campo = screen.getByLabelText('Fecha requerida (opcional)')
+      expect(campo).toHaveAttribute('type', 'date')
+      expect(campo).toHaveAttribute('min', '2026-10-07')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('envía la dirección elegida y la fecha requerida en el FormData', async () => {
     useCarritoStore.getState().agregar(producto(), 1)
     abrirCarrito()

@@ -3,7 +3,7 @@
  * Cubren la validación previa a cualquier escritura, la fusión de duplicados
  * contra el stock actual y el flujo válido de inserción que ya existía.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ItemCarrito } from '@/types'
 
 const h = vi.hoisted(() => {
@@ -187,6 +187,10 @@ beforeEach(() => {
   h.state.ops = []
   h.state.inserts = []
   h.state.selects = []
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('cotizarDesdeCarrito — validación antes de escribir', () => {
@@ -457,7 +461,56 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
 })
 
 describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
+  it('cotizarDesdeCarrito rechaza una fecha requerida anterior a hoy en Santo Domingo sin insertar', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    h.state.productos = [productoDb()]
+    const form = formConItems([item()])
+    form.set('fecha_requerida', '2026-10-06')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({
+      kind: 'returned',
+      result: { error: 'La fecha requerida no puede ser anterior a hoy.' },
+    })
+    expect(h.createClient).not.toHaveBeenCalled()
+    expect(h.state.inserts.filter((insert) => ['cotizaciones', 'items_cotizacion'].includes(insert.table))).toEqual([])
+  })
+
+  it('cotizarDesdeCarrito acepta hoy en Santo Domingo', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    h.state.productos = [productoDb()]
+    const form = formConItems([item()])
+    form.set('fecha_requerida', '2026-10-07')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toMatchObject({
+      fecha_requerida: '2026-10-07',
+    })
+  })
+
+  it('cotizarDesdeCarrito acepta mañana en Santo Domingo', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    h.state.productos = [productoDb()]
+    const form = formConItems([item()])
+    form.set('fecha_requerida', '2026-10-08')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toMatchObject({
+      fecha_requerida: '2026-10-08',
+    })
+  })
+
   it('cotizarDesdeCarrito guarda la dirección propia y la fecha requerida en cada cotización', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
     h.state.productos = [productoDb()]
     h.state.direcciones = [{ id: 'dir-1', user_id: 'comprador-1' }]
     const form = formConItems([item()])
