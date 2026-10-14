@@ -143,6 +143,7 @@ export interface Cotizacion {
   aceptada_at?: string | null
   rechazada_motivo?: string | null
   solicitud_id?: string | null
+  proveedor?: Pick<Proveedor, 'nombre_empresa'> | null
   items?: ItemCotizacion[]
 }
 
