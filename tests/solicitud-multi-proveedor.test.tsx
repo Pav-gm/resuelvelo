@@ -107,7 +107,7 @@ describe('Comparador de solicitud multiproveedor', () => {
             promedio_feedback: 4.5,
             conteo_feedback: 2,
           },
-          items: [itemCemento({ cotizacion_id: 'cot-a', precio_ofertado: 50 })],
+          items: [itemCemento({ cotizacion_id: 'cot-a', precio_ofertado: 100 })],
         },
         {
           id: 'cot-b',
@@ -135,9 +135,9 @@ describe('Comparador de solicitud multiproveedor', () => {
 
     expect(screen.getByText('Proveedor A')).toBeInTheDocument()
     expect(screen.getByText('Proveedor B')).toBeInTheDocument()
-    expect(screen.getByText('RD$ 50.00 c/u')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 100.00 c/u')).toBeInTheDocument()
     expect(screen.getByText('RD$ 40.00 c/u')).toBeInTheDocument()
-    expect(screen.getAllByText('RD$ 100.00').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('RD$ 200.00').length).toBeGreaterThan(0)
     expect(screen.getAllByText('RD$ 80.00').length).toBeGreaterThan(0)
 
     const columnaA = screen.getByRole('columnheader', { name: /Proveedor A/ })

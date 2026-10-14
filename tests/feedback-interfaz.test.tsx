@@ -563,7 +563,7 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
           proveedor_id: 'prov-1',
           calificacion: 5,
           comentario: 'Entrega a tiempo',
-          created_at: '2026-03-01T12:00:00.000Z',
+          created_at: '2026-10-08T02:20:00.000Z',
           autor_anonimo: 'Comprador verificado',
           respuesta: null,
         },
@@ -578,6 +578,7 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     expect(seccion).toHaveTextContent('4.50')
     expect(seccion).toHaveTextContent('(1 reseña)')
     expect(seccion).toHaveTextContent('Entrega a tiempo')
+    expect(seccion).toHaveTextContent('7 de octubre de 2026')
 
     const formulario = within(seccion).getByRole('form', { name: 'Responder reseña' })
     expect(within(formulario).getByLabelText('Respuesta')).toHaveProperty('maxLength', 1000)
@@ -1373,10 +1374,10 @@ describe('Aceptación con cantidades confirmadas', () => {
       expect(within(card).getByText('1 de 3 confirmadas')).toBeInTheDocument()
       expect(within(card).getByText('Pedido: 3')).toBeInTheDocument()
       expect(within(card).getByText('x1')).toBeInTheDocument()
-      expect(within(card).getByText('$10.00')).toBeInTheDocument()
+      expect(within(card).getByText('RD$ 10.00')).toBeInTheDocument()
       expect(within(card).queryByText('x3')).not.toBeInTheDocument()
       expect(within(card).queryByText('$30.00')).not.toBeInTheDocument()
-      expect(card).toHaveTextContent('Total confirmado: $10.00')
+      expect(card).toHaveTextContent('Total confirmado: RD$ 10.00')
     }
   })
 

@@ -144,9 +144,9 @@ describe('Página de detalle de cotización', () => {
     expect(screen.getByText('1 de 3 confirmadas')).toBeInTheDocument()
     expect(screen.getByText('Pedido: 3')).toBeInTheDocument()
     expect(screen.getByText('x1')).toBeInTheDocument()
-    expect(screen.getByText('$10.00 c/u')).toBeInTheDocument()
-    expect(screen.getByText('$10.00')).toBeInTheDocument()
-    expect(screen.getByText('Total confirmado: $10.00')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 10.00 c/u')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 10.00')).toBeInTheDocument()
+    expect(screen.getByText('Total confirmado: RD$ 10.00')).toBeInTheDocument()
     expect(screen.queryByText('x3')).toBeNull()
     expect(screen.queryByText(/Total estimado/)).toBeNull()
 
@@ -200,8 +200,9 @@ describe('Página de detalle de cotización', () => {
     expect(screen.getByText('1 de 3 confirmadas')).toBeInTheDocument()
     expect(screen.getByText('Pedido: 3')).toBeInTheDocument()
     expect(screen.getByText('x1')).toBeInTheDocument()
-    expect(screen.getByText('$10.00')).toBeInTheDocument()
-    expect(screen.getByText('Total confirmado: $10.00')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 10.00 c/u')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 10.00')).toBeInTheDocument()
+    expect(screen.getByText('Total confirmado: RD$ 10.00')).toBeInTheDocument()
   })
 
   it('el nombre de un producto activo enlaza a su ficha', async () => {
@@ -320,7 +321,7 @@ describe('Página de detalle de cotización', () => {
 
     expect(screen.getByText('Catálogo: RD$ 10.00 c/u')).toBeInTheDocument()
     expect(screen.getByText('Oferta: RD$ 23.00 c/u')).toBeInTheDocument()
-    expect(screen.getByText('Total estimado: $30.00')).toBeInTheDocument()
+    expect(screen.getByText('Total estimado: RD$ 30.00')).toBeInTheDocument()
     expect(screen.getByText('Total ofertado: RD$ 46.00')).toBeInTheDocument()
     expect(screen.getByText('plazo 5 días')).toBeInTheDocument()
     expect(screen.getByText('válida hasta 20/10/2026')).toBeInTheDocument()
@@ -338,7 +339,7 @@ describe('Página de detalle de cotización', () => {
 
     expect(screen.getByText('Catálogo: RD$ 10.00 c/u')).toBeInTheDocument()
     expect(screen.getByText('Oferta: RD$ 23.00 c/u')).toBeInTheDocument()
-    expect(screen.getByText('Total estimado: $30.00')).toBeInTheDocument()
+    expect(screen.getByText('Total estimado: RD$ 30.00')).toBeInTheDocument()
     expect(screen.getByText('Total ofertado: RD$ 46.00')).toBeInTheDocument()
     expect(screen.getByText('plazo 5 días')).toBeInTheDocument()
     expect(screen.getByText('válida hasta 20/10/2026')).toBeInTheDocument()
@@ -603,7 +604,7 @@ describe('Página de detalle de cotización', () => {
       proveedor_id: 'prov-1',
       estado: 'rechazada',
       created_at: '2026-10-08T15:00:00.000Z',
-      rechazada_at: '2026-10-08T02:30:00.000Z',
+      rechazada_at: '2026-10-08T02:20:00.000Z',
       motivo_rechazo: 'No puedo abastecer este producto.',
       items: [itemRechazado],
     }
@@ -912,6 +913,33 @@ describe('Página de detalle de cotización', () => {
     expect(
       screen.getByText('Cancelada por el comprador el 13 de octubre de 2026: Cambio de pedido')
     ).toBeInTheDocument()
+    expect(screen.queryByText('14 de octubre de 2026')).toBeNull()
+
+    cleanup()
+
+    h.state.user = { id: 'provider-user-1' }
+    h.getProveedorDelUsuario.mockResolvedValue({
+      id: 'prov-1',
+      user_id: 'provider-user-1',
+      nombre_empresa: 'Promeria',
+      verificado: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+    })
+    h.getCotizacionesDeProveedor.mockResolvedValue([
+      {
+        id: 'cot-45',
+        numero: 45,
+        comprador_id: 'buyer-1',
+        proveedor_id: 'prov-1',
+        estado: 'pendiente',
+        created_at: '2026-10-14T03:40:00.000Z',
+        items: [],
+      },
+    ])
+
+    render(await PedidosPage())
+
+    expect(screen.getAllByText('13 de octubre de 2026').length).toBeGreaterThan(0)
     expect(screen.queryByText('14 de octubre de 2026')).toBeNull()
   })
 })

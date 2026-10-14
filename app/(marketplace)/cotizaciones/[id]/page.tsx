@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCotizacionDetalle, getFeedbackPorCotizacion } from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
+import { formatearPrecio, formatearFecha } from '@/lib/utils'
 import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
 import AccionesVentaProveedor from '@/components/marketplace/AccionesVentaProveedor'
@@ -31,15 +32,6 @@ const ESTADOS_CON_OFERTA = ['respondida', 'aceptada', 'despachada', 'recibida']
 // Estados en los que existe un comprobante informativo descargable para los
 // dos participantes (comprador dueño y proveedor destinatario).
 const ESTADOS_CON_COMPROBANTE = ['aceptada', 'despachada', 'recibida']
-
-function dinero(valor: number): string {
-  return `$${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
-}
-
-/** Importes de la oferta del proveedor, siempre en pesos dominicanos. */
-function dineroOferta(valor: number): string {
-  return `RD$ ${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
-}
 
 /** Fecha de validez (YYYY-MM-DD) como dd/mm/aaaa, sin desfase de zona horaria. */
 function fechaValidez(fecha: string): string {
@@ -134,10 +126,7 @@ export default async function CotizacionDetallePage({
             Cotización #{formatNumeroCotizacion(detalle.numero)}
           </h1>
           <p className="mt-1 text-xs text-gray-400">
-            {new Date(detalle.created_at).toLocaleDateString('es-DO', {
-              timeZone: 'America/Santo_Domingo',
-              year: 'numeric', month: 'long', day: 'numeric',
-            })}
+            {formatearFecha(detalle.created_at)}
           </p>
         </div>
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[detalle.estado]}`}>
@@ -281,12 +270,12 @@ export default async function CotizacionDetallePage({
                   {ofertada && item.precio_ofertado != null ? (
                     <>
                       {!confirmado && item.precio_unitario != null && (
-                        <span>{`Catálogo: ${dineroOferta(item.precio_unitario)} c/u`}</span>
+                        <span>{`Catálogo: ${formatearPrecio(item.precio_unitario)} c/u`}</span>
                       )}
-                      <span>{`Oferta: ${dineroOferta(item.precio_ofertado)} c/u`}</span>
+                      <span>{`Oferta: ${formatearPrecio(item.precio_ofertado)} c/u`}</span>
                       <span>x{unidades}</span>
                       <span className="font-medium text-gray-700">
-                        {dineroOferta(item.precio_ofertado * unidades)}
+                        {formatearPrecio(item.precio_ofertado * unidades)}
                       </span>
                     </>
                   ) : (
@@ -294,8 +283,8 @@ export default async function CotizacionDetallePage({
                       <span>x{unidades}</span>
                       {precioUnitario != null && subtotal != null && (
                         <>
-                          <span>{dinero(precioUnitario)} c/u</span>
-                          <span className="font-medium text-gray-700">{dinero(subtotal)}</span>
+                          <span>{formatearPrecio(precioUnitario)} c/u</span>
+                          <span className="font-medium text-gray-700">{formatearPrecio(subtotal)}</span>
                         </>
                       )}
                     </>
@@ -313,22 +302,22 @@ export default async function CotizacionDetallePage({
           <>
             {!confirmado && detalle.total_estimado != null && (
               <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-                {`Total estimado: ${dinero(Number(detalle.total_estimado))}`}
+                {`Total estimado: ${formatearPrecio(Number(detalle.total_estimado))}`}
               </div>
             )}
             <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-              {`Total ofertado: ${dineroOferta(Number(detalle.total_ofertado))}`}
+              {`Total ofertado: ${formatearPrecio(Number(detalle.total_ofertado))}`}
             </div>
           </>
         ) : confirmado
           ? items.length > 0 && (
               <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-                Total confirmado: {dinero(totalConfirmado)}
+                Total confirmado: {formatearPrecio(totalConfirmado)}
               </div>
             )
           : detalle.total_estimado != null && (
               <div className="flex justify-end border-t px-4 py-3 text-sm font-semibold text-gray-900 sm:px-6">
-                Total estimado: {dinero(Number(detalle.total_estimado))}
+                Total estimado: {formatearPrecio(Number(detalle.total_estimado))}
               </div>
             )}
       </div>

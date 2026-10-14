@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCategorias, getSubcategorias } from '@/lib/data'
+import { formatearPrecio, formatearFecha } from '@/lib/utils'
 import AdminProductoSubcategoria from '@/components/marketplace/AdminProductoSubcategoria'
 import AdminVerificacionAcciones from '@/components/marketplace/AdminVerificacionAcciones'
 import ToggleActivoButton from './ToggleActivoButton'
@@ -22,13 +23,6 @@ function relValue<T extends Record<string, unknown>>(
   const row = Array.isArray(rel) ? rel[0] : rel
   const value = row?.[key]
   return typeof value === 'string' && value.length > 0 ? value : '—'
-}
-
-function formatoMoneda(valor: number | string | null | undefined): string {
-  if (valor == null || valor === '') return '—'
-  const n = typeof valor === 'number' ? valor : Number(valor)
-  if (Number.isNaN(n)) return '—'
-  return `$${n.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
 }
 
 export default async function AdminPage() {
@@ -123,12 +117,7 @@ export default async function AdminPage() {
                 </dl>
                 {p.verificacion_solicitada_at && (
                   <p className="mt-1 text-xs text-gray-400">
-                    Solicitada el{' '}
-                    {new Date(p.verificacion_solicitada_at).toLocaleDateString('es-DO', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    Solicitada el {formatearFecha(p.verificacion_solicitada_at)}
                   </p>
                 )}
               </div>
@@ -182,7 +171,7 @@ export default async function AdminPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 truncate">{p.nombre}</p>
                   <p className="text-xs text-gray-400">
-                    {proveedorNombre} · {categoriaPorId.get(p.categoria_id) ?? 'Sin categoría'} · {formatoMoneda(p.precio)} · Stock: {p.stock}
+                    {proveedorNombre} · {categoriaPorId.get(p.categoria_id) ?? 'Sin categoría'} · {formatearPrecio(p.precio)} · Stock: {p.stock}
                   </p>
                 </div>
                 <span
@@ -236,7 +225,7 @@ export default async function AdminPage() {
                     {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
                   </span>
                   <p className="font-medium text-gray-900">
-                    {formatoMoneda(cot.total_estimado)}
+                    {formatearPrecio(cot.total_estimado)}
                   </p>
                 </div>
                 <p className="mt-2 text-sm text-gray-600">

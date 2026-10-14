@@ -87,7 +87,7 @@ describe('Página de notificaciones', () => {
   it('muestra la lista completa y enlaza cada aviso con su cotización', async () => {
     h.obtenerNotificaciones.mockResolvedValue({
       data: [
-        notificacion({ id: 'n-1', cotizacion_id: 'c-1', created_at: '2026-10-08T18:53:00.000Z' }),
+        notificacion({ id: 'n-1', cotizacion_id: 'c-1', created_at: '2026-10-08T02:20:00.000Z' }),
         notificacion({
           id: 'n-2',
           tipo: 'cotizacion_cancelada',
@@ -117,7 +117,7 @@ describe('Página de notificaciones', () => {
     // La fila sin cotización asociada se muestra sin enlace al detalle.
     expect(screen.getByText('Cotización cancelada #COT-000043')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Cotización cancelada #COT-000043' })).toBeNull()
-    expect(screen.getByText('8 de octubre de 2026, 02:53 p. m.')).toBeInTheDocument()
+    expect(screen.getByText('7 de octubre de 2026, 10:20 p. m.')).toBeInTheDocument()
     expect(h.obtenerNotificaciones).toHaveBeenCalledWith()
   })
 

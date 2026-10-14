@@ -14,6 +14,7 @@ import {
   getFeedbackDeProveedor,
 } from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
+import { formatearPrecio, formatearFecha } from '@/lib/utils'
 import ListaProductosProveedor from '@/components/marketplace/ListaProductosProveedor'
 import ResponderResenaForm from '@/components/marketplace/ResponderResenaForm'
 import SolicitudVerificacion from '@/components/marketplace/SolicitudVerificacion'
@@ -78,10 +79,7 @@ export default async function PanelProveedorPage() {
       valor: stats.pedidosEsteMes ?? 0,
       icono: TrendingUp,
       color: 'text-green-600 bg-green-50',
-      detalle: `Vendido: RD$ ${totalVendidoEsteMes.toLocaleString('es-DO', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`,
+      detalle: `Vendido: ${formatearPrecio(totalVendidoEsteMes)}`,
     },
     { label: 'Sin stock',           valor: stats.sinStock,                icono: AlertCircle,  color: 'text-red-600 bg-red-50' },
   ]
@@ -172,7 +170,7 @@ export default async function PanelProveedorPage() {
                     Cotización #{cot.numero != null ? formatNumeroCotizacion(cot.numero) : cot.id.slice(0, 8)}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {cantItems} producto{cantItems !== 1 ? 's' : ''} · {new Date(cot.created_at).toLocaleDateString('es-DO')}
+                    {cantItems} producto{cantItems !== 1 ? 's' : ''} · {formatearFecha(cot.created_at)}
                   </p>
                 </div>
                 <Link href={`/cotizaciones/${cot.id}`}>
@@ -216,9 +214,7 @@ export default async function PanelProveedorPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">{resena.autor_anonimo}</span>
                     <span className="text-xs text-gray-400">
-                      {new Date(resena.created_at).toLocaleDateString('es-DO', {
-                        year: 'numeric', month: 'long', day: 'numeric',
-                      })}
+                      {formatearFecha(resena.created_at)}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center gap-2">

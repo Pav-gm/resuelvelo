@@ -160,6 +160,16 @@ describe('CarritoDrawer — controles y stock', () => {
     expect(screen.getByText('Máximo en carrito: 86')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Aumentar cantidad' })).toBeDisabled()
   })
+
+  it('el carrito muestra precio unitario y total en pesos dominicanos', () => {
+    useCarritoStore
+      .getState()
+      .agregar(producto({ precio: 1234.5, unidad: 'unidad' }), 2)
+    abrirCarrito()
+
+    expect(screen.getByText('RD$ 1,234.50 / unidad')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 2,469.00')).toBeInTheDocument()
+  })
 })
 
 describe('CarritoDrawer — envío de cotización', () => {

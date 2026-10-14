@@ -146,7 +146,7 @@ describe('NavbarClient — carrito en móvil', () => {
 
     expect(screen.getByText('Mi carrito')).toBeInTheDocument()
     expect(screen.getByText('Tubo PVC 4"')).toBeInTheDocument()
-    expect(screen.getByText('$1,360.00')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 1,360.00')).toBeInTheDocument()
   })
 
   it('mantiene en escritorio el carrito delante de los controles de usuario', () => {
@@ -220,7 +220,7 @@ describe('NavbarClient — campana de notificaciones', () => {
 
     expect(await screen.findByText('Tienes una nueva solicitud.')).toBeInTheDocument()
     expect(screen.queryByText('hace 2 horas')).toBeNull()
-    expect(screen.getByText('8 de octubre de 2026, 08:00 a. m.')).toBeInTheDocument()
+    expect(screen.getByText('8 de octubre de 2026, 8:00 a. m.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Nueva solicitud #COT-000042' })).toHaveAttribute(
       'href',
       '/cotizaciones/c-1'

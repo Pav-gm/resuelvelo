@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import ToggleProductoButton from '@/components/marketplace/ToggleProductoButton'
 import EliminarProductoButton from '@/components/marketplace/EliminarProductoButton'
+import { formatearPrecio } from '@/lib/utils'
 import type { Producto } from '@/types'
 
 interface Props {
@@ -57,7 +58,7 @@ export default function ListaProductosProveedor({
               </Link>
             </p>
             <p className="text-xs text-gray-400">
-              ${p.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {p.unidad} · Stock: {p.stock}
+              {formatearPrecio(p.precio)} / {p.unidad} · Stock: {p.stock}
               {p.stock_reservado && p.stock_reservado > 0
                 ? ` (${p.stock_reservado} ${p.stock_reservado === 1 ? 'reservada' : 'reservadas'})`
                 : ''}
