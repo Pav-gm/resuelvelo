@@ -225,7 +225,7 @@ export default async function AdminPage() {
                     {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
                   </span>
                   <p className="font-medium text-gray-900">
-                    {formatearPrecio(cot.total_estimado)}
+                    {cot.total_estimado == null ? '—' : formatearPrecio(Number(cot.total_estimado))}
                   </p>
                 </div>
                 <p className="mt-2 text-sm text-gray-600">
