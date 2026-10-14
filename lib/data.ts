@@ -428,7 +428,6 @@ export async function getCotizacionesDeProveedor(proveedorId: string): Promise<C
     `)
     .eq('proveedor_id', proveedorId)
     .order('created_at', { ascending: false })
-    .limit(20)
 
   if (error) propagarErrorLectura('getCotizacionesDeProveedor', error)
   if (data === null) errorSinDatos('getCotizacionesDeProveedor')
