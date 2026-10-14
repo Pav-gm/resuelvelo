@@ -3,7 +3,7 @@
  * dominicanos unificados (`RD$ 1,234.56` y fecha en hora de Santo Domingo).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 
 const h = vi.hoisted(() => ({
   estado: { user: { id: 'admin-1' } as { id: string } | null },
@@ -122,5 +122,27 @@ describe('Panel de administración — precios y fechas', () => {
     expect(screen.getByText(/RD\$ 1,234\.50/)).toBeInTheDocument()
     expect(screen.getByText('RD$ 2,469.00')).toBeInTheDocument()
     expect(screen.getByText('Solicitada el 7 de octubre de 2026')).toBeInTheDocument()
+  })
+
+  it('admin muestra un guion cuando la cotización no tiene total estimado', async () => {
+    h.datos.cotizaciones = {
+      data: [
+        {
+          id: 'cot-2',
+          estado: 'pendiente',
+          total_estimado: null,
+          comprador: { nombre: 'Ana' },
+          proveedor: { nombre_empresa: 'Promeria' },
+          items: [],
+        },
+      ],
+      error: null,
+    }
+
+    render(await AdminPage())
+
+    expect(screen.queryByText('RD$ 0.00')).not.toBeInTheDocument()
+    const contenedorPrecio = screen.getByText('Pendiente').closest('div') as HTMLElement
+    expect(within(contenedorPrecio).getByText('—')).toBeInTheDocument()
   })
 })
