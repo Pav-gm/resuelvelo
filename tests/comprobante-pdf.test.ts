@@ -15,7 +15,7 @@ import { lineasComprobante } from '@/lib/comprobante-pdf'
 
 const fixture: DatosComprobante = {
   numero: 42,
-  aceptada_at: '2026-10-08T15:00:00.000Z',
+  aceptada_at: '2026-10-08T02:20:00.000Z',
   proveedor: {
     nombre_empresa: 'Ferretería Sol',
     rnc: '101234567',
@@ -72,12 +72,14 @@ describe('comprobante PDF de cotización', () => {
     const contenido = lineas.join('\n')
     expect(contenido).toContain('Resuélvelo')
     expect(contenido).toContain('Cotización aceptada #COT-000042')
+    expect(contenido).toContain('Fecha de aceptación: 7 de octubre de 2026')
     expect(contenido).toContain('Tubo PVC')
     expect(contenido).toContain('Cantidad: 2')
-    expect(contenido).toContain('Subtotal línea: RD$ 236,00')
-    expect(contenido).toContain('Subtotal general: RD$ 200,00')
-    expect(contenido).toContain('ITBIS (18 %): RD$ 36,00')
-    expect(contenido).toContain('Total: RD$ 236,00')
+    expect(contenido).toContain('Precio ofertado: RD$ 118.00')
+    expect(contenido).toContain('Subtotal línea: RD$ 236.00')
+    expect(contenido).toContain('Subtotal general: RD$ 200.00')
+    expect(contenido).toContain('ITBIS (18 %): RD$ 36.00')
+    expect(contenido).toContain('Total: RD$ 236.00')
     expect(contenido).toContain('Plazo de entrega: 5 días')
     expect(contenido).toContain('Válida hasta: 20/10/2026')
     expect(contenido).toContain('Condiciones: Entrega en almacén')
@@ -97,10 +99,10 @@ describe('comprobante PDF de cotización', () => {
       }],
     })
     const contenido = lineas.join('\n')
-    expect(contenido).toContain('Subtotal línea: RD$ 1.234,50')
-    expect(contenido).toContain('Subtotal general: RD$ 1.234,50')
-    expect(contenido).toContain('ITBIS (18 %): RD$ 222,21')
-    expect(contenido).toContain('Total: RD$ 1.456,71')
+    expect(contenido).toContain('Subtotal línea: RD$ 1,234.50')
+    expect(contenido).toContain('Subtotal general: RD$ 1,234.50')
+    expect(contenido).toContain('ITBIS (18 %): RD$ 222.21')
+    expect(contenido).toContain('Total: RD$ 1,456.71')
     const importesAgrupados = lineasComprobante({
       ...fixture,
       items: [1234.5, 1234567.8].map((precio) => ({
@@ -112,8 +114,8 @@ describe('comprobante PDF de cotización', () => {
         itbis_incluido: false,
       })),
     }).join('\n')
-    expect(importesAgrupados).toContain('Precio ofertado: RD$ 1.234,50')
-    expect(importesAgrupados).toContain('Precio ofertado: RD$ 1.234.567,80')
+    expect(importesAgrupados).toContain('Precio ofertado: RD$ 1,234.50')
+    expect(importesAgrupados).toContain('Precio ofertado: RD$ 1,234,567.80')
   })
 
   it('lineasComprobante muestra guion cuando falta el RNC de cualquiera de las partes', () => {
@@ -126,8 +128,8 @@ describe('comprobante PDF de cotización', () => {
   })
 
   it('lineasComprobante convierte la fecha de aceptación a la zona horaria dominicana', () => {
-    const lineas = lineasComprobante({ ...fixture, aceptada_at: '2026-10-09T02:30:00.000Z' })
-    expect(lineas).toContain('Fecha de aceptación: 08/10/2026')
+    const lineas = lineasComprobante({ ...fixture, aceptada_at: '2026-10-08T02:20:00.000Z' })
+    expect(lineas).toContain('Fecha de aceptación: 7 de octubre de 2026')
   })
 
   it('GET del comprobante devuelve 401 sin sesión', async () => {

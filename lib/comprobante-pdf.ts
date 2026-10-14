@@ -1,3 +1,5 @@
+import { formatearFecha, formatearPrecio } from '@/lib/utils'
+
 export type DatosComprobante = {
   numero: number
   aceptada_at: string | null
@@ -43,19 +45,13 @@ function opcional(valor: string | null | undefined): string {
   return valor?.trim() || '—'
 }
 
-function importe(valor: number): string {
-  const [entero, dec] = Math.abs(valor).toFixed(2).split('.')
-  const agrupado = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return `RD$ ${valor < 0 ? '-' : ''}${agrupado},${dec}`
-}
-
 const r2 = (valor: number) => Math.round((valor + Number.EPSILON) * 100) / 100
 
 export function lineasComprobante(datos: DatosComprobante): string[] {
   const lineas: string[] = [
     'Resuélvelo',
     `Cotización aceptada #COT-${String(datos.numero).padStart(6, '0')}`,
-    `Fecha de aceptación: ${fecha(datos.aceptada_at)}`,
+    `Fecha de aceptación: ${datos.aceptada_at ? formatearFecha(datos.aceptada_at) : '—'}`,
     '',
     'Proveedor',
     `Nombre: ${datos.proveedor.nombre_empresa}`,
@@ -88,16 +84,16 @@ export function lineasComprobante(datos: DatosComprobante): string[] {
     lineas.push(
       item.producto?.nombre ?? 'Producto no disponible',
       `Cantidad: ${cantidad}`,
-      `Precio ofertado: ${importe(precio)}`,
-      `Subtotal línea: ${importe(bruto)}`,
+      `Precio ofertado: ${formatearPrecio(precio)}`,
+      `Subtotal línea: ${formatearPrecio(bruto)}`,
     )
   }
 
   lineas.push(
     '',
-    `Subtotal general: ${importe(subtotalGeneral)}`,
-    `ITBIS (18 %): ${importe(itbisTotal)}`,
-    `Total: ${importe(total)}`,
+    `Subtotal general: ${formatearPrecio(subtotalGeneral)}`,
+    `ITBIS (18 %): ${formatearPrecio(itbisTotal)}`,
+    `Total: ${formatearPrecio(total)}`,
     `Plazo de entrega: ${datos.plazo_dias == null ? '—' : `${datos.plazo_dias} días`}`,
     `Válida hasta: ${fecha(datos.valida_hasta)}`,
     `Condiciones: ${opcional(datos.condiciones)}`,
