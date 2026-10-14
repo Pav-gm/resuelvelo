@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { crearFeedback } from '@/app/(marketplace)/cotizaciones/actions'
+import { formatearFecha } from '@/lib/utils'
 import type { Feedback } from '@/types'
 
 // Traducción al español de los códigos estables del contrato C-CREACION.
@@ -149,11 +150,7 @@ export default function FormularioFeedback({
 }
 
 function ResenaGuardada({ feedback }: { feedback: Feedback }) {
-  const fecha = new Date(feedback.created_at).toLocaleDateString('es-DO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  const fecha = formatearFecha(feedback.created_at)
 
   return (
     <div className="border-t bg-teal-50 px-6 py-4" aria-label="Reseña guardada">

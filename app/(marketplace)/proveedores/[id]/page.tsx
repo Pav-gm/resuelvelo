@@ -5,6 +5,7 @@ import { Building2, MapPin, Package, Clock, MessageCircle, Phone, Globe } from '
 import ErrorCarga from '@/components/marketplace/ErrorCarga'
 import InsigniaProveedorVerificado from '@/components/marketplace/InsigniaProveedorVerificado'
 import { getProveedores, getFeedbackDeProveedor } from '@/lib/data'
+import { formatearFecha } from '@/lib/utils'
 import type { FeedbackPublico } from '@/types'
 
 const TITULO_GENERICO = 'Proveedor — Resuélvelo'
@@ -192,9 +193,7 @@ export default async function ProveedorPage({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-900">{reseña.autor_anonimo}</span>
                   <span className="text-xs text-gray-400">
-                    {new Date(reseña.created_at).toLocaleDateString('es-DO', {
-                      year: 'numeric', month: 'long', day: 'numeric',
-                    })}
+                    {formatearFecha(reseña.created_at)}
                   </span>
                 </div>
                 <div className="mt-1 flex items-center gap-2">

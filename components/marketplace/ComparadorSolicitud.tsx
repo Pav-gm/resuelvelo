@@ -3,17 +3,13 @@
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { aceptarOfertaDeSolicitud } from '@/app/(marketplace)/cotizaciones/actions'
+import { formatearPrecio } from '@/lib/utils'
 import type { CotizacionComparador, ItemCotizacion, SolicitudComparador } from '@/types'
 
 type ItemComparador = ItemCotizacion
 
 interface Props {
   data: SolicitudComparador
-}
-
-/** Importes en pesos dominicanos, formato uniforme del comparador. */
-function dinero(valor: number): string {
-  return `RD$ ${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
 }
 
 /** ¿La oferta venció? Compara la fecha calendario `valida_hasta` con la de hoy. */
@@ -161,8 +157,8 @@ export default function ComparadorSolicitud({ data }: Props) {
                         <span className="text-gray-400">No disponible</span>
                       ) : (
                         <>
-                          <span>{`${dinero(linea.precio_ofertado)} c/u`}</span>
-                          <span className="ml-2 font-medium text-gray-900">{dinero(subtotal)}</span>
+                          <span>{`${formatearPrecio(linea.precio_ofertado)} c/u`}</span>
+                          <span className="ml-2 font-medium text-gray-900">{formatearPrecio(subtotal)}</span>
                         </>
                       )}
                     </td>
@@ -178,7 +174,7 @@ export default function ComparadorSolicitud({ data }: Props) {
               </th>
               {cotizaciones.map((cot) => (
                 <td key={cot.id} className="px-4 py-3 font-semibold text-gray-900">
-                  {cot.estado === 'pendiente' ? 'Pendiente' : dinero(totalOferta(cot))}
+                  {cot.estado === 'pendiente' ? 'Pendiente' : formatearPrecio(totalOferta(cot))}
                 </td>
               ))}
             </tr>

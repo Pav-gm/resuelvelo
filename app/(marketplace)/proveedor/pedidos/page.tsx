@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getProveedorDelUsuario, getCotizacionesDeProveedor } from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
+import { formatearPrecio, formatearFecha } from '@/lib/utils'
 import type { Cotizacion } from '@/types'
 import { Button } from '@/components/ui/button'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
@@ -22,11 +23,6 @@ const estadoBadge: Record<string, string> = {
 // Desde «aceptada» en adelante rige la cantidad confirmada; antes de aceptar
 // solo existe la cantidad pedida.
 const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
-
-/** Importes de la oferta del proveedor, siempre en pesos dominicanos. */
-function dineroOferta(valor: number): string {
-  return `RD$ ${valor.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`
-}
 
 /** Fecha de validez (YYYY-MM-DD) como dd/mm/aaaa, sin desfase de zona horaria. */
 function fechaValidez(fecha: string): string {
@@ -79,10 +75,7 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
             Cotización #{formatNumeroCotizacion(cot.numero)}
           </p>
           <p className="text-xs text-gray-400">
-            {new Date(cot.created_at).toLocaleDateString('es-DO', {
-              timeZone: 'America/Santo_Domingo',
-              year: 'numeric', month: 'long', day: 'numeric',
-            })}
+            {formatearFecha(cot.created_at)}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -135,12 +128,12 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
                 {ofertada && item.precio_ofertado != null ? (
                   <>
                     {item.precio_unitario != null && (
-                      <span>{`Catálogo: ${dineroOferta(item.precio_unitario)} c/u`}</span>
+                      <span>{`Catálogo: ${formatearPrecio(item.precio_unitario)} c/u`}</span>
                     )}
-                    <span>{`Oferta: ${dineroOferta(item.precio_ofertado)} c/u`}</span>
+                    <span>{`Oferta: ${formatearPrecio(item.precio_ofertado)} c/u`}</span>
                     <span>x{unidades}</span>
                     <span className="font-medium text-gray-700">
-                      {dineroOferta(item.precio_ofertado * unidades)}
+                      {formatearPrecio(item.precio_ofertado * unidades)}
                     </span>
                   </>
                 ) : (
@@ -148,11 +141,9 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
                     <span>x{unidades}</span>
                     {precioUnitario != null && (
                       <>
-                        <span>{`$${precioUnitario.toLocaleString('es-DO', { minimumFractionDigits: 2 })} c/u`}</span>
+                        <span>{`${formatearPrecio(precioUnitario)} c/u`}</span>
                         <span className="font-medium text-gray-700">
-                          {`$${(precioUnitario * unidades).toLocaleString('es-DO', {
-                            minimumFractionDigits: 2,
-                          })}`}
+                          {formatearPrecio(precioUnitario * unidades)}
                         </span>
                       </>
                     )}
@@ -182,18 +173,18 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
       {confirmado
         ? total > 0 && (
             <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
-              {`Total confirmado: $${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`}
+              {`Total confirmado: ${formatearPrecio(total)}`}
             </div>
           )
         : tieneOferta
           ? (
               <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
-                {`Total ofertado: ${dineroOferta(Number(cot.total_ofertado))}`}
+                {`Total ofertado: ${formatearPrecio(Number(cot.total_ofertado))}`}
               </div>
             )
           : total > 0 && (
               <div className="flex justify-end px-4 py-3 border-t text-sm font-semibold text-gray-900 sm:px-6">
-                {`Total estimado: $${total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`}
+                {`Total estimado: ${formatearPrecio(total)}`}
               </div>
             )}
 

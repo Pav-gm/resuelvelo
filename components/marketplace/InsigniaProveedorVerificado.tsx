@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { BadgeCheck } from 'lucide-react'
+import { formatearFecha } from '@/lib/utils'
 
 interface InsigniaProveedorVerificadoProps {
   fecha: string | null | undefined
@@ -16,14 +17,9 @@ export default function InsigniaProveedorVerificado({
 }: InsigniaProveedorVerificadoProps) {
   if (!fecha) return null
 
-  // La fecha de aprobación es un `timestamptz`; se formatea en UTC para que la
-  // insignia muestre siempre el mismo día sin depender de la zona del servidor.
-  const fechaLocalizada = new Date(fecha).toLocaleDateString('es-DO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  })
+  // La fecha de aprobación es un `timestamptz`; se muestra como día local en
+  // Santo Domingo, la zona de referencia del marketplace.
+  const fechaLocalizada = formatearFecha(fecha)
   const tooltip = `RNC y datos de contacto revisados por Resuélvelo el ${fechaLocalizada}`
 
   return (

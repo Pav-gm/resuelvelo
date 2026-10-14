@@ -6,6 +6,7 @@ import { ShoppingCart, Trash2, Plus, Minus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCarritoStore } from '@/lib/store/carrito'
 import { hoyISOEnSantoDomingo } from '@/lib/cotizaciones'
+import { formatearPrecio } from '@/lib/utils'
 import { cotizarDesdeCarrito } from '@/app/(marketplace)/cotizaciones/actions'
 
 const noop = () => () => {}
@@ -125,7 +126,7 @@ export default function CarritoDrawer({ direccionesObra = [] }: CarritoDrawerPro
                         <p className="text-sm font-medium text-gray-900 line-clamp-2">{producto.nombre}</p>
                         <p className="text-xs text-gray-400">{producto.proveedor?.nombre_empresa}</p>
                         <p className="mt-0.5 text-sm font-semibold text-orange-500">
-                          ${producto.precio.toLocaleString('es-DO', { minimumFractionDigits: 2 })} / {producto.unidad}
+                          {formatearPrecio(producto.precio)} / {producto.unidad}
                         </p>
                         {alMaximo && (
                           <p className="mt-0.5 text-xs text-gray-500">Máximo en carrito: {disponible}</p>
@@ -164,7 +165,7 @@ export default function CarritoDrawer({ direccionesObra = [] }: CarritoDrawerPro
                 <div className="border-t px-5 py-4 space-y-3">
                   <div className="flex items-center justify-between text-sm font-semibold">
                     <span>Total estimado</span>
-                    <span>${total().toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                    <span>{formatearPrecio(total())}</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label htmlFor="direccionObra" className="text-xs font-medium text-gray-600">

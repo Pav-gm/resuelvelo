@@ -1,3 +1,4 @@
+import { formatearFecha } from '@/lib/utils'
 import type { Cotizacion } from '@/types'
 
 type Props = {
@@ -11,15 +12,6 @@ type Props = {
 const ETIQUETAS_ACTOR: Record<'comprador' | 'proveedor', string> = {
   comprador: 'el comprador',
   proveedor: 'el proveedor',
-}
-
-function formatearFecha(fecha: string): string {
-  return new Date(fecha).toLocaleDateString('es-DO', {
-    timeZone: 'America/Santo_Domingo',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
 }
 
 /**

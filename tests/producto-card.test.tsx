@@ -55,6 +55,9 @@ describe('ProductoCard — diseño responsive', () => {
     // En móvil precio y botón se apilan y el botón ocupa el ancho de la tarjeta.
     expect(contenedor).toHaveClass('flex-col', 'sm:flex-row', 'min-w-0')
 
+    // El precio se muestra en pesos dominicanos.
+    expect(screen.getByText('RD$ 680.00')).toBeInTheDocument()
+
     // El texto puede partirse en móvil y el botón no se sale de la tarjeta.
     expect(boton).toHaveClass(
       'w-full',
@@ -114,7 +117,7 @@ describe('ProductoCard — insignia de proveedor verificado', () => {
             nombre_empresa: 'Promeria',
             verificado: true,
             verificacion_estado: 'verificado',
-            verificado_at: '2026-01-02T00:00:00.000Z',
+            verificado_at: '2026-01-02T12:00:00.000Z',
             created_at: '',
           },
         })}
@@ -157,7 +160,7 @@ describe('ProductoCard — nombres largos', () => {
             nombre_empresa: 'Promeria',
             verificado: true,
             verificacion_estado: 'verificado',
-            verificado_at: '2026-01-02T00:00:00.000Z',
+            verificado_at: '2026-01-02T12:00:00.000Z',
             created_at: '',
           },
         })}
