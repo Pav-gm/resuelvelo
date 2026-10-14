@@ -180,6 +180,12 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
 
       <div className="divide-y">
         {items.map((item) => {
+          // Nunca se muestra el id interno: si falta el nombre del producto se
+          // usa la descripción libre de la línea.
+          const nombreProducto = item.producto?.nombre?.trim()
+          const descripcion = item.descripcion?.trim()
+          const rotulo = nombreProducto || descripcion || 'Línea sin descripción'
+          const unidad = item.unidad?.trim()
           // Con oferta manda el precio/cantidad ofertados; desde aceptada en
           // adelante, lo confirmado; antes, lo pedido.
           const ofertada = respondida && item.precio_ofertado != null
@@ -193,18 +199,16 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
             <div key={item.id} data-testid="order-item-row" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm sm:flex-nowrap sm:px-6">
               <div className="min-w-0 flex-1">
                 <span className="min-w-0 break-words [overflow-wrap:anywhere] text-gray-700">
-                  {item.producto?.nombre ?? item.descripcion ?? item.producto_id}
+                  {rotulo}
                 </span>
                 {confirmado && (
                   <p className="text-xs text-green-700">
                     {`${unidades} de ${item.cantidad} confirmadas`}
                   </p>
                 )}
-                {confirmado && (
-                  <p className="text-xs text-gray-500">
-                    {`Pedido: ${item.cantidad}`}
-                  </p>
-                )}
+                <p className="text-xs text-gray-500">
+                  {unidad ? `Pedido: ${item.cantidad} ${unidad}` : `Pedido: ${item.cantidad}`}
+                </p>
                 {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
                   <p className="text-xs text-yellow-700">
                     {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}

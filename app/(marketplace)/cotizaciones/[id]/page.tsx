@@ -210,7 +210,10 @@ export default async function CotizacionDetallePage({
         <div className="divide-y">
           {items.map((item) => {
             const producto = item.producto
-            const nombre = producto?.nombre || item.descripcion || null
+            const nombreProducto = producto?.nombre?.trim()
+            const descripcion = item.descripcion?.trim()
+            const rotulo = nombreProducto || descripcion || 'Línea sin descripción'
+            const unidad = item.unidad?.trim()
             // Con oferta manda el precio/cantidad ofertados; desde aceptada en
             // adelante, la cantidad confirmada; antes de aceptar, la ofertada;
             // antes de responder, lo pedido.
@@ -234,20 +237,16 @@ export default async function CotizacionDetallePage({
                   data-testid="detalle-item-nombre"
                   className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]"
                 >
-                  {nombre && producto?.activo ? (
+                  {nombreProducto && producto?.activo ? (
                     <Link
                       href={`/productos/${producto.id}`}
                       className="break-words [overflow-wrap:anywhere] text-gray-700 hover:underline"
                     >
-                      {nombre}
+                      {rotulo}
                     </Link>
-                  ) : nombre ? (
-                    <span className="break-words [overflow-wrap:anywhere] text-gray-700">
-                      {nombre}
-                    </span>
                   ) : (
                     <span className="break-words [overflow-wrap:anywhere] text-gray-700">
-                      {item.producto_id}
+                      {rotulo}
                     </span>
                   )}
                   {confirmado && (
@@ -255,11 +254,9 @@ export default async function CotizacionDetallePage({
                       {`${unidades} de ${item.cantidad} confirmadas`}
                     </p>
                   )}
-                  {confirmado && (
-                    <p className="text-xs text-gray-500">
-                      {`Pedido: ${item.cantidad}`}
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-500">
+                    {unidad ? `Pedido: ${item.cantidad} ${unidad}` : `Pedido: ${item.cantidad}`}
+                  </p>
                   {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
                     <p className="text-xs text-yellow-700">
                       {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}
