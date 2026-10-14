@@ -220,7 +220,7 @@ export default async function CotizacionDetallePage({
         <div className="divide-y">
           {items.map((item) => {
             const producto = item.producto
-            const nombre = producto?.nombre
+            const nombre = producto?.nombre || item.descripcion || null
             // Con oferta manda el precio/cantidad ofertados; desde aceptada en
             // adelante, la cantidad confirmada; antes de aceptar, la ofertada;
             // antes de responder, lo pedido.

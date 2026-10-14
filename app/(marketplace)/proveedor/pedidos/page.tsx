@@ -112,7 +112,7 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
             <div key={item.id} data-testid="order-item-row" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-sm sm:flex-nowrap sm:px-6">
               <div className="min-w-0 flex-1">
                 <span className="min-w-0 break-words [overflow-wrap:anywhere] text-gray-700">
-                  {item.producto?.nombre ?? item.producto_id}
+                  {item.producto?.nombre ?? item.descripcion ?? item.producto_id}
                 </span>
                 {confirmado && (
                   <p className="text-xs text-green-700">

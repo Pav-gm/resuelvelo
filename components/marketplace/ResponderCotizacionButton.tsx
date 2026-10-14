@@ -19,8 +19,14 @@ interface Props {
 }
 
 /** Precio unitario precargado: el actual del catálogo; si falta, el solicitado. */
-function precioInicial(item: ItemCotizacion): number {
-  return item.producto?.precio ?? item.precio_unitario ?? 0
+function precioInicial(item: ItemCotizacion): number | null {
+  return item.producto?.precio ?? item.precio_unitario ?? null
+}
+
+/** Texto del precio precargado; vacío significa «No disponible». */
+function textoPrecioInicial(item: ItemCotizacion): string {
+  const precio = precioInicial(item)
+  return precio == null ? '' : String(precio)
 }
 
 /** Cantidad inicial: la pedida, sin superar el stock observado al cotizar. */
@@ -51,7 +57,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     const preciosIniciales: Record<string, string> = {}
     const cantidadesIniciales: Record<string, string> = {}
     for (const item of items) {
-      preciosIniciales[item.id] = String(precioInicial(item))
+      preciosIniciales[item.id] = textoPrecioInicial(item)
       cantidadesIniciales[item.id] = String(cantidadInicial(item))
     }
     setPrecios(preciosIniciales)
@@ -92,14 +98,24 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
 
   /** Valida los datos en español y arma el payload de la oferta. */
   function construirOferta(preciosUsados: Record<string, string>): OfertaConstruida {
-    const preciosNumericos: Record<string, number> = {}
+    // El precio vacío representa una línea no disponible; se serializa como
+    // `precioUnitario: null` y `cantidadOfertada: 0`.
+    const preciosNumericos: Record<string, number | null> = {}
     for (const item of items) {
       const texto = (preciosUsados[item.id] ?? '').trim()
-      const precio = texto === '' ? Number.NaN : Number(texto)
+      if (texto === '') {
+        preciosNumericos[item.id] = null
+        continue
+      }
+      const precio = Number(texto)
       if (!Number.isFinite(precio) || precio <= 0) {
         return { error: 'Indica el precio' }
       }
       preciosNumericos[item.id] = precio
+    }
+
+    if (!items.some((item) => preciosNumericos[item.id] !== null)) {
+      return { error: 'La oferta debe incluir al menos una línea disponible.' }
     }
 
     const plazoDias = plazo.trim() === '' ? Number.NaN : Number(plazo)
@@ -114,23 +130,24 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     const lineas: LineaOfertaInput[] = []
     let unidadesTotales = 0
     for (const item of items) {
+      const precio = preciosNumericos[item.id]
       if (item.sujeta_disponibilidad) {
         const cantidad = parseEntero(cantidades[item.id] ?? '')
         if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > item.cantidad) {
           return { error: 'Indica cuántas unidades confirmas' }
         }
-        unidadesTotales += cantidad
+        unidadesTotales += precio === null ? 0 : cantidad
         lineas.push({
           itemId: item.id,
-          precioUnitario: preciosNumericos[item.id],
-          cantidadOfertada: cantidad,
+          precioUnitario: precio,
+          cantidadOfertada: precio === null ? 0 : cantidad,
         })
       } else {
-        unidadesTotales += item.cantidad
+        unidadesTotales += precio === null ? 0 : item.cantidad
         lineas.push({
           itemId: item.id,
-          precioUnitario: preciosNumericos[item.id],
-          cantidadOfertada: null,
+          precioUnitario: precio,
+          cantidadOfertada: precio === null ? 0 : null,
         })
       }
     }
@@ -176,7 +193,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
 
   function handleAceptarCatalogo() {
     const preciosCatalogo: Record<string, string> = {}
-    for (const item of items) preciosCatalogo[item.id] = String(precioInicial(item))
+    for (const item of items) preciosCatalogo[item.id] = textoPrecioInicial(item)
     const resultado = construirOferta(preciosCatalogo)
     if ('error' in resultado) {
       setError(resultado.error)
@@ -256,10 +273,18 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
 
           <div className="mt-2 space-y-3">
             {items.map((item) => {
-              const nombre = item.producto?.nombre?.trim() || 'Producto no disponible'
+              const nombre =
+                item.producto?.nombre?.trim() ||
+                item.descripcion?.trim() ||
+                'Producto no disponible'
               return (
                 <div key={item.id} className="flex flex-col gap-2">
-                  <span className="text-sm font-medium text-gray-900">{nombre}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {nombre}
+                    {item.unidad && (
+                      <span className="ml-1 text-xs font-normal text-gray-500">{`(${item.unidad})`}</span>
+                    )}
+                  </span>
                   <div className="flex flex-wrap items-center gap-2">
                     <label htmlFor={`precio-${item.id}`} className="text-sm text-gray-700">
                       {`Precio unitario de ${nombre}`}
@@ -279,7 +304,11 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                       }}
                       className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
                     />
+                    <span className="text-xs text-gray-500">(opcional)</span>
                   </div>
+                  {(precios[item.id] ?? '').trim() === '' && (
+                    <p className="text-xs text-gray-500">No disponible</p>
+                  )}
                   {item.sujeta_disponibilidad ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <label htmlFor={`cantidad-${item.id}`} className="text-sm text-gray-700">

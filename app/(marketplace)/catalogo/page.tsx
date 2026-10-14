@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import ProductoCard from '@/components/marketplace/ProductoCard'
 import CatalogoFiltros, { type OrdenCatalogo } from '@/components/marketplace/CatalogoFiltros'
 import ErrorCarga from '@/components/marketplace/ErrorCarga'
@@ -74,11 +75,19 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Catálogo de productos</h1>
-        <p className="mt-1 text-gray-500">
-          {productos.length} producto{productos.length !== 1 ? 's' : ''} de {proveedoresUnicos} proveedor{proveedoresUnicos !== 1 ? 'es' : ''}
-        </p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Catálogo de productos</h1>
+          <p className="mt-1 text-gray-500">
+            {productos.length} producto{productos.length !== 1 ? 's' : ''} de {proveedoresUnicos} proveedor{proveedoresUnicos !== 1 ? 'es' : ''}
+          </p>
+        </div>
+        <Link
+          href="/solicitudes/nueva"
+          className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+        >
+          Pedir cotización a varios proveedores
+        </Link>
       </div>
 
       <CatalogoFiltros
