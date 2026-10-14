@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import ResponderCotizacionButton from '@/components/marketplace/ResponderCotizacionButton'
 import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
 import AccionesVentaProveedor from '@/components/marketplace/AccionesVentaProveedor'
+import FiltrosCotizaciones from '@/components/marketplace/FiltrosCotizaciones'
+import type { FiltrosCotizacionesValores } from '@/components/marketplace/FiltrosCotizaciones'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
@@ -23,6 +25,91 @@ const estadoBadge: Record<string, string> = {
 // Desde «aceptada» en adelante rige la cantidad confirmada; antes de aceptar
 // solo existe la cantidad pedida.
 const ESTADOS_CONFIRMADOS = ['aceptada', 'despachada', 'recibida', 'cancelada']
+
+/** Estados aceptados por el filtro de la URL. */
+const ESTADOS_VALIDOS = [
+  'pendiente',
+  'respondida',
+  'aceptada',
+  'rechazada',
+  'despachada',
+  'recibida',
+  'cancelada',
+]
+
+/** Cotizaciones por página en la bandeja del proveedor. */
+const PAGE_SIZE = 20
+
+/** Día calendario (YYYY-MM-DD) en Santo Domingo de un instante ISO. */
+function fechaISOEnSantoDomingo(instante: string): string {
+  return new Date(instante).toLocaleDateString('en-CA', { timeZone: 'America/Santo_Domingo' })
+}
+
+/** Normaliza el texto de búsqueda al número visible: sin `#`, en mayúsculas. */
+function normalizarNumeroBusqueda(texto: string): string {
+  return texto.trim().replace(/^#/, '').toUpperCase()
+}
+
+/** Aplica estado, rango de fechas y número visible. */
+function filtrarCotizaciones(
+  cotizaciones: Cotizacion[],
+  filtros: FiltrosCotizacionesValores
+): Cotizacion[] {
+  let resultado = cotizaciones
+  if (filtros.estado && ESTADOS_VALIDOS.includes(filtros.estado)) {
+    resultado = resultado.filter((cot) => cot.estado === filtros.estado)
+  }
+  if (filtros.desde) {
+    const desde = filtros.desde
+    resultado = resultado.filter((cot) => fechaISOEnSantoDomingo(cot.created_at) >= desde)
+  }
+  if (filtros.hasta) {
+    const hasta = filtros.hasta
+    resultado = resultado.filter((cot) => fechaISOEnSantoDomingo(cot.created_at) <= hasta)
+  }
+  const busqueda = filtros.busqueda ? normalizarNumeroBusqueda(filtros.busqueda) : ''
+  if (busqueda) {
+    resultado = resultado.filter((cot) =>
+      formatNumeroCotizacion(cot.numero).toUpperCase().includes(busqueda)
+    )
+  }
+  return resultado
+}
+
+/** Orden por fecha de creación: descendente por defecto, ascendente con `antiguas`. */
+function ordenarCotizaciones(cotizaciones: Cotizacion[], orden?: string): Cotizacion[] {
+  const ascendente = orden === 'antiguas'
+  return cotizaciones.slice().sort((a, b) => {
+    const diferencia = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    return ascendente ? diferencia : -diferencia
+  })
+}
+
+/** Página válida y sus 20 resultados; las páginas fuera de rango se ajustan. */
+function paginar(lista: Cotizacion[], paginaParam?: string): {
+  pagina: number
+  totalPaginas: number
+  visibles: Cotizacion[]
+} {
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / PAGE_SIZE))
+  const solicitada = Number.parseInt(paginaParam ?? '', 10)
+  const pagina =
+    !Number.isInteger(solicitada) || solicitada < 1 ? 1 : Math.min(solicitada, totalPaginas)
+  const inicio = (pagina - 1) * PAGE_SIZE
+  return { pagina, totalPaginas, visibles: lista.slice(inicio, inicio + PAGE_SIZE) }
+}
+
+/** Query de los enlaces de paginación, conservando los filtros actuales. */
+function queryConPagina(filtros: FiltrosCotizacionesValores, pagina: number): string {
+  const params = new URLSearchParams()
+  if (filtros.estado) params.set('estado', filtros.estado)
+  if (filtros.desde) params.set('desde', filtros.desde)
+  if (filtros.hasta) params.set('hasta', filtros.hasta)
+  if (filtros.busqueda) params.set('busqueda', filtros.busqueda)
+  if (filtros.orden) params.set('orden', filtros.orden)
+  params.set('pagina', String(pagina))
+  return params.toString()
+}
 
 /** Fecha de validez (YYYY-MM-DD) como dd/mm/aaaa, sin desfase de zona horaria. */
 function fechaValidez(fecha: string): string {
@@ -212,23 +299,20 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
   )
 }
 
-/** Sección de la bandeja con su encabezado y su estado vacío propio. */
-function Seccion({ titulo, cotizaciones }: { titulo: string; cotizaciones: Cotizacion[] }) {
-  return (
-    <section className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-900">{titulo}</h2>
-      {cotizaciones.length === 0 ? (
-        <div className="rounded-2xl bg-white border px-4 py-8 text-center text-sm text-gray-400 sm:px-6">
-          Sin cotizaciones en esta sección.
-        </div>
-      ) : (
-        cotizaciones.map((cot) => <TarjetaCotizacion key={cot.id} cot={cot} />)
-      )}
-    </section>
-  )
+interface ParamsPedidos {
+  estado?: string
+  desde?: string
+  hasta?: string
+  busqueda?: string
+  orden?: string
+  pagina?: string
 }
 
-export default async function PedidosPage() {
+export default async function PedidosPage({
+  searchParams,
+}: {
+  searchParams?: Promise<ParamsPedidos>
+} = {}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -237,6 +321,27 @@ export default async function PedidosPage() {
   if (!proveedor) redirect('/register?rol=proveedor')
 
   const cotizaciones = await getCotizacionesDeProveedor(proveedor.id)
+  const params: ParamsPedidos = searchParams ? await searchParams : {}
+
+  const filtros: FiltrosCotizacionesValores = {
+    estado: params.estado,
+    desde: params.desde,
+    hasta: params.hasta,
+    busqueda: params.busqueda,
+    orden: params.orden,
+  }
+
+  // El resumen se calcula sobre todas las cotizaciones, antes de filtrar.
+  const resumen = {
+    pendientes: cotizaciones.filter((cot) => cot.estado === 'pendiente').length,
+    respondidas: cotizaciones.filter((cot) => cot.estado === 'respondida').length,
+    aceptadas: cotizaciones.filter((cot) => cot.estado === 'aceptada').length,
+    enCurso: cotizaciones.filter((cot) => cot.estado === 'despachada').length,
+  }
+
+  const filtradas = filtrarCotizaciones(cotizaciones, filtros)
+  const ordenadas = ordenarCotizaciones(filtradas, filtros.orden)
+  const { pagina, totalPaginas, visibles } = paginar(ordenadas, params.pagina)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -248,32 +353,68 @@ export default async function PedidosPage() {
           <p className="mt-1 text-sm">Las solicitudes de los compradores aparecerán aquí.</p>
         </div>
       ) : (
-        <div className="space-y-8">
-          <Seccion
-            titulo="Pedidos aceptados o despachados"
-            cotizaciones={cotizaciones.filter(
-              (cot) => cot.estado === 'aceptada' || cot.estado === 'despachada'
-            )}
+        <>
+          <div
+            data-testid="resumen-cotizaciones"
+            className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4"
+          >
+            <span className="rounded-xl border bg-white px-4 py-3 text-sm font-medium text-gray-700">
+              {`Pendientes ${resumen.pendientes}`}
+            </span>
+            <span className="rounded-xl border bg-white px-4 py-3 text-sm font-medium text-gray-700">
+              {`Respondidas ${resumen.respondidas}`}
+            </span>
+            <span className="rounded-xl border bg-white px-4 py-3 text-sm font-medium text-gray-700">
+              {`Aceptadas ${resumen.aceptadas}`}
+            </span>
+            <span className="rounded-xl border bg-white px-4 py-3 text-sm font-medium text-gray-700">
+              {`En curso ${resumen.enCurso}`}
+            </span>
+          </div>
+
+          <FiltrosCotizaciones
+            pathname="/proveedor/pedidos"
+            filtros={filtros}
+            estados={ESTADOS_VALIDOS}
+            tabs
           />
-          <Seccion
-            titulo="Pendientes de responder"
-            cotizaciones={cotizaciones.filter((cot) => cot.estado === 'pendiente')}
-          />
-          <Seccion
-            titulo="Respondidas"
-            cotizaciones={cotizaciones.filter((cot) => cot.estado === 'respondida')}
-          />
-          <Seccion
-            titulo="Otros pedidos en seguimiento"
-            cotizaciones={cotizaciones.filter(
-              (cot) =>
-                cot.estado !== 'pendiente' &&
-                cot.estado !== 'respondida' &&
-                cot.estado !== 'aceptada' &&
-                cot.estado !== 'despachada'
-            )}
-          />
-        </div>
+
+          {visibles.length === 0 ? (
+            <div className="rounded-2xl bg-white border px-4 py-8 text-center text-sm text-gray-400 sm:px-6">
+              Sin cotizaciones que coincidan con los filtros.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {visibles.map((cot) => <TarjetaCotizacion key={cot.id} cot={cot} />)}
+            </div>
+          )}
+
+          {totalPaginas > 1 && (
+            <div className="mt-6 flex items-center justify-between gap-3">
+              {pagina > 1 ? (
+                <Link
+                  href={`/proveedor/pedidos?${queryConPagina(filtros, pagina - 1)}`}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Anteriores
+                </Link>
+              ) : (
+                <span />
+              )}
+              <span className="text-sm text-gray-500">{`Página ${pagina} de ${totalPaginas}`}</span>
+              {pagina < totalPaginas ? (
+                <Link
+                  href={`/proveedor/pedidos?${queryConPagina(filtros, pagina + 1)}`}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Siguientes
+                </Link>
+              ) : (
+                <span />
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

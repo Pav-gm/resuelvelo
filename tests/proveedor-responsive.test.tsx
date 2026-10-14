@@ -59,6 +59,7 @@ vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
 vi.mock('next/navigation', () => ({
   redirect: mocks.redirect,
   notFound: vi.fn(),
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
 vi.mock('next/link', async () => {
@@ -274,7 +275,7 @@ describe('Bandeja de cotizaciones — adaptación a móvil', () => {
       },
     ])
 
-    render(await PedidosPage())
+    render(await PedidosPage({ searchParams: Promise.resolve({}) }))
 
     expect(screen.getByTestId('order-header').className).toContain('flex-wrap')
 
