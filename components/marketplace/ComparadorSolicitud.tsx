@@ -142,9 +142,11 @@ export default function ComparadorSolicitud({ data }: Props) {
               <tr key={itemBase.id || indice}>
                 <th scope="row" className="px-4 py-3 font-normal text-gray-700">
                   {nombreLinea(itemBase, indice)}
-                  {itemBase.unidad && (
-                    <span className="ml-1 text-xs text-gray-400">{`(${itemBase.unidad})`}</span>
-                  )}
+                  <span className="ml-1 text-xs text-gray-400">
+                    {itemBase.unidad?.trim()
+                      ? `(${itemBase.cantidad} ${itemBase.unidad.trim()})`
+                      : `(${itemBase.cantidad})`}
+                  </span>
                 </th>
                 {cotizaciones.map((cot) => {
                   const linea = (cot.items ?? [])[indice] as ItemComparador | undefined

@@ -326,9 +326,12 @@ export default async function MisCotizacionesPage({
                 <div className="divide-y">
                   {items.map((item) => {
                     // El comprador nunca debe ver el id interno: si la relación
-                    // con el producto falta (o el nombre viene vacío) mostramos
-                    // un texto de indisponibilidad.
+                    // con el producto falta (o el nombre viene vacío) usamos la
+                    // descripción libre de la línea.
                     const nombreProducto = item.producto?.nombre?.trim()
+                    const descripcion = item.descripcion?.trim()
+                    const rotulo = nombreProducto || descripcion || 'Línea sin descripción'
+                    const unidad = item.unidad?.trim()
                     // Con oferta manda el precio ofertado; desde aceptada en
                     // adelante rige la cantidad confirmada; antes, lo pedido.
                     const ofertada = tieneOferta && item.precio_ofertado != null
@@ -342,18 +345,16 @@ export default async function MisCotizacionesPage({
                       <div key={item.id} className="flex items-center justify-between px-6 py-3 text-sm">
                         <div className="min-w-0">
                           <span className="text-gray-700">
-                            {nombreProducto || 'Producto no disponible'}
+                            {rotulo}
                           </span>
                           {confirmado && (
                             <p className="text-xs text-green-700">
                               {`${unidades} de ${item.cantidad} confirmadas`}
                             </p>
                           )}
-                          {confirmado && (
-                            <p className="text-xs text-gray-500">
-                              {`Pedido: ${item.cantidad}`}
-                            </p>
-                          )}
+                          <p className="text-xs text-gray-500">
+                            {unidad ? `Pedido: ${item.cantidad} ${unidad}` : `Pedido: ${item.cantidad}`}
+                          </p>
                           {item.sujeta_disponibilidad && item.stock_al_cotizar !== null && (
                             <p className="text-xs text-yellow-700">
                               {`Sujeta a disponibilidad: pediste ${item.cantidad}, hay ${item.stock_al_cotizar}`}

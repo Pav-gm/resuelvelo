@@ -217,6 +217,7 @@ export default function CarritoDrawer({ direccionesObra = [] }: CarritoDrawerPro
                   </Button>
                   <Link
                     href="/solicitudes/nueva?desde=carrito"
+                    onClick={() => setAbierto(false)}
                     className="block w-full rounded-lg border border-orange-200 px-4 py-2 text-center text-sm font-medium text-orange-600 hover:bg-orange-50"
                   >
                     Enviar el carrito a varios proveedores
