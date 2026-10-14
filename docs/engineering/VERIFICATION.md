@@ -68,6 +68,22 @@ Si falta cualquiera, el workflow muestra un aviso y omite la ejecución. El chec
 
 El producto que queda con historial de cotización se archiva: así sale del catálogo y el historial de la cotización se conserva.
 
+## Entrada de QA en Preview
+
+`GET /api/qa-login` inicia sesión de prueba por rol en Preview y redirige al destino correspondiente: `/catalogo` para el comprador y `/proveedor` para el proveedor. La solicitud usa `rol` (`comprador` o `proveedor`) y `t` (el token).
+
+Estas cinco variables se definen solo en Vercel Preview y nunca en Production:
+
+- `QA_LOGIN_TOKEN`, de al menos 32 caracteres
+- `QA_COMPRADOR_EMAIL`
+- `QA_COMPRADOR_PASSWORD`
+- `QA_PROVEEDOR_EMAIL`
+- `QA_PROVEEDOR_PASSWORD`
+
+En Production la ruta siempre responde 404 con cuerpo vacío. Si falta la configuración requerida —el token de al menos 32 caracteres o el correo y la contraseña del rol pedido—, para QA la ruta no está disponible.
+
+El límite es de 10 solicitudes por IP por minuto.
+
 ## Mantener la documentación ligera
 
 `npm run docs:check` valida los enlaces de las entradas, las guías operativas y el índice; exige que todos los documentos Markdown bajo `docs/` estén indexados (excepto el índice mismo y logs). Sus presupuestos locales son 120 líneas/8 KB para `AGENTS.md`, 512 bytes para `CLAUDE.md` y 1.5 KB por adaptador de Cursor. Son límites de mantenimiento del proyecto, no una estimación de tokens ni un límite del producto.
