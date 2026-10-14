@@ -104,8 +104,26 @@ export default async function MisCotizacionesPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">Mis cotizaciones</h1>
-      <p className="mb-6 text-sm text-gray-500">Seguimiento de tus solicitudes a proveedores.</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-2 text-2xl font-bold text-gray-900">Mis cotizaciones</h1>
+          <p className="text-sm text-gray-500">Seguimiento de tus solicitudes a proveedores.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/solicitudes"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Mis solicitudes
+          </Link>
+          <Link
+            href="/solicitudes/nueva"
+            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+          >
+            Nueva solicitud
+          </Link>
+        </div>
+      </div>
 
       {params.enviada && (
         <>

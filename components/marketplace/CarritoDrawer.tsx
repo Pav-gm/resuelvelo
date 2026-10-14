@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useSyncExternalStore, useTransition } from 'react'
+import Link from 'next/link'
 import { ShoppingCart, Trash2, Plus, Minus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCarritoStore } from '@/lib/store/carrito'
@@ -204,6 +205,12 @@ export default function CarritoDrawer({ direccionesObra = [] }: CarritoDrawerPro
                   >
                     {pending ? 'Enviando...' : 'Solicitar cotización'}
                   </Button>
+                  <Link
+                    href="/solicitudes/nueva?desde=carrito"
+                    className="block w-full rounded-lg border border-orange-200 px-4 py-2 text-center text-sm font-medium text-orange-600 hover:bg-orange-50"
+                  >
+                    Enviar el carrito a varios proveedores
+                  </Link>
                   <Button
                     variant="ghost"
                     size="sm"

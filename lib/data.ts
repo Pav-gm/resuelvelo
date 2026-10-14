@@ -1,6 +1,7 @@
 import type {
   Categoria,
   Cotizacion,
+  CotizacionComparador,
   CotizacionDetalle,
   Feedback,
   FeedbackPublico,
@@ -8,6 +9,8 @@ import type {
   PerfilProveedor,
   Proveedor,
   ResumenFeedbackProveedor,
+  Solicitud,
+  SolicitudComparador,
   Subcategoria,
 } from '@/types'
 import { CATEGORIAS_MOCK, FEEDBACK_MOCK, PRODUCTOS_MOCK, SUBCATEGORIAS_MOCK } from '@/lib/mock'
@@ -456,6 +459,87 @@ export async function getCotizacionesDelComprador(compradorId: string): Promise<
   return data as unknown as Cotizacion[]
 }
 
+export async function getSolicitudesDelComprador(compradorId: string): Promise<Solicitud[]> {
+  if (!SUPABASE_DISPONIBLE) return []
+
+  const supabase = await getServerClient()
+  const { data, error } = await supabase
+    .from('solicitudes')
+    .select('*')
+    .eq('comprador_id', compradorId)
+    .order('created_at', { ascending: false })
+
+  if (error) propagarErrorLectura('getSolicitudesDelComprador', error)
+  if (data === null) errorSinDatos('getSolicitudesDelComprador')
+  return data as Solicitud[]
+}
+
+export async function getSolicitudComparador(solicitudId: string): Promise<SolicitudComparador | null> {
+  if (!SUPABASE_DISPONIBLE) return null
+
+  const supabase = await getServerClient()
+  const { data: solicitud, error: solicitudError } = await supabase
+    .from('solicitudes')
+    .select('*')
+    .eq('id', solicitudId)
+    .maybeSingle()
+
+  if (solicitudError) propagarErrorLectura('getSolicitudComparador', solicitudError)
+  if (!solicitud) return null
+
+  const { data: cotizaciones, error: cotizacionesError } = await supabase
+    .from('cotizaciones')
+    .select(`
+      *,
+      proveedor:proveedores(id, nombre_empresa, verificado),
+      items:items_cotizacion(
+        id, cotizacion_id, producto_id, cantidad, precio_ofertado, cantidad_ofertada,
+        descripcion, unidad,
+        producto:productos(nombre)
+      )
+    `)
+    .eq('solicitud_id', solicitudId)
+    .order('created_at', { ascending: true })
+
+  if (cotizacionesError) propagarErrorLectura('getSolicitudComparador', cotizacionesError)
+  const filas = cotizaciones ?? []
+  const proveedorIds = [...new Set(filas.map((cotizacion) => cotizacion.proveedor_id))]
+  const promedios = new Map<string, { promedio_feedback: number; conteo_feedback: number }>()
+
+  if (proveedorIds.length) {
+    const { data: feedback, error: feedbackError } = await supabase
+      .from('feedback_publico')
+      .select('proveedor_id, calificacion')
+      .in('proveedor_id', proveedorIds)
+
+    if (feedbackError) propagarErrorLectura('getSolicitudComparador', feedbackError)
+    for (const proveedorId of proveedorIds) {
+      const calificaciones = (feedback ?? [])
+        .filter((fila) => fila.proveedor_id === proveedorId)
+        .map((fila) => fila.calificacion)
+      promedios.set(proveedorId, {
+        promedio_feedback: calificaciones.length
+          ? calificaciones.reduce((suma, calificacion) => suma + calificacion, 0) / calificaciones.length
+          : 0,
+        conteo_feedback: calificaciones.length,
+      })
+    }
+  }
+
+  const cotizacionesConFeedback = filas.map((cotizacion) => ({
+    ...cotizacion,
+    proveedor: {
+      ...cotizacion.proveedor,
+      ...(promedios.get(cotizacion.proveedor_id) ?? { promedio_feedback: 0, conteo_feedback: 0 }),
+    },
+  }))
+
+  return {
+    solicitud: solicitud as Solicitud,
+    cotizaciones: cotizacionesConFeedback as unknown as CotizacionComparador[],
+  }
+}
+
 // ─── Detalle compartido de una cotización ────────────────────
 
 export async function getCotizacionDetalle(cotizacionId: string): Promise<CotizacionDetalle | null> {
@@ -478,7 +562,7 @@ export async function getCotizacionDetalle(cotizacionId: string): Promise<Cotiza
 
   const productoIds = Array.from(new Set(
     detalle.items
-      .filter((item) => item.producto != null)
+      .filter((item) => item.producto != null && item.producto_id != null)
       .map((item) => item.producto_id)
   ))
   let productos: { id: string; stock: number; stock_reservado: number | null }[] | null
@@ -500,7 +584,7 @@ export async function getCotizacionDetalle(cotizacionId: string): Promise<Cotiza
   const detalleConInventario = {
     ...detalle,
     items: detalle.items.map((item) => {
-      if (item.producto == null) return item
+      if (item.producto == null || item.producto_id == null) return item
       const productoActual = productoPorId.get(item.producto_id)
       if (!productoActual) return item
       return {
