@@ -14,6 +14,13 @@ const accionesPerfil = vi.hoisted(() => ({
 
 vi.mock('@/app/(marketplace)/perfil/actions', () => accionesPerfil)
 
+// `PerfilComprador` usa `useRouter().refresh()` al añadir direcciones; se
+// sustituye para no exigir un App Router montado en jsdom.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+  usePathname: () => '/',
+}))
+
 const accionesProveedor = vi.hoisted(() => ({
   solicitarVerificacionProveedor: vi.fn(),
   toggleProducto: vi.fn(),
