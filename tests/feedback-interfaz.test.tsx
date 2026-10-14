@@ -404,9 +404,20 @@ describe('Mis cotizaciones — acción solo en elegibles', () => {
     const ui = await MisCotizacionesPage({ searchParams: Promise.resolve({}) })
     render(ui)
 
+    // El selector de estado de los filtros comparte los nombres de estado con
+    // las tarjetas, así que el badge se busca dentro de la tarjeta de cada una.
+    const prefijoPorEstado: Record<string, string> = {
+      pendiente: '11111111',
+      respondida: '22222222',
+      aceptada: '33333333',
+      rechazada: '44444444',
+      despachada: '55555555',
+      recibida: 'FFFFFFFF',
+      cancelada: '66666666',
+    }
     for (const [estado, clases] of Object.entries(BADGES)) {
       const etiqueta = estado.charAt(0).toUpperCase() + estado.slice(1)
-      const badge = screen.getAllByText(etiqueta)[0]
+      const badge = within(tarjeta(prefijoPorEstado[estado])).getAllByText(etiqueta)[0]
       for (const clase of clases.split(' ')) {
         expect(badge.className).toContain(clase)
       }
@@ -670,9 +681,11 @@ describe('Perfil público y bandejas — badges sin acción de reseña', () => {
     const ui = await PedidosPage()
     render(ui)
 
-    expect(screen.getByText('Recibida').className).toContain('bg-teal-100')
-    expect(screen.getByText('Pendiente').className).toContain('bg-yellow-100')
-    expect(screen.getByText('Aceptada').className).toContain('bg-green-100')
+    // Las pestañas de estado comparten los nombres con los badges, así que el
+    // badge se busca dentro de la tarjeta correspondiente.
+    expect(within(tarjeta('FFFFFFFF')).getAllByText('Recibida')[0].className).toContain('bg-teal-100')
+    expect(within(tarjeta('11111111')).getAllByText('Pendiente')[0].className).toContain('bg-yellow-100')
+    expect(within(tarjeta('33333333')).getAllByText('Aceptada')[0].className).toContain('bg-green-100')
     expect(screen.getByRole('button', { name: 'Responder con oferta' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Enviar reseña' })).not.toBeInTheDocument()
     expect(screen.queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
@@ -1414,8 +1427,10 @@ describe('Aceptación con cantidades confirmadas', () => {
 
     render(await PedidosPage())
 
-    expect(screen.getByRole('heading', { name: 'Pendientes de responder' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Respondidas' })).toBeInTheDocument()
+    // La bandeja separa los estados por pestañas y resume los conteos sobre
+    // todas las cotizaciones, no sobre las filtradas.
+    expect(screen.getByText('Pendientes 1')).toBeInTheDocument()
+    expect(screen.getByText('Respondidas 1')).toBeInTheDocument()
 
     const botones = screen.getAllByRole('button', { name: 'Responder con oferta' })
     expect(botones).toHaveLength(1)

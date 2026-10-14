@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useSyncExternalStore, useTransition } from 'react'
+import { useEffect, useState, useSyncExternalStore, useTransition } from 'react'
 import Link from 'next/link'
 import { ShoppingCart, Trash2, Plus, Minus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -53,6 +53,13 @@ export default function CarritoDrawer({ direccionesObra = [] }: CarritoDrawerPro
   // es false en el server y true en el cliente, evitando el mismatch de SSR.
   const montado = useSyncExternalStore(noop, () => true, () => false)
   const { items, quitar, actualizarCantidad, vaciar, total, cantidadTotal } = useCarritoStore()
+
+  // «Volver a pedir» avisa mediante un evento global que el carrito debe abrirse.
+  useEffect(() => {
+    const abrir = () => setAbierto(true)
+    window.addEventListener('resuelvelo:abrir-carrito', abrir)
+    return () => window.removeEventListener('resuelvelo:abrir-carrito', abrir)
+  }, [])
 
   function handleCotizar() {
     if (!items.length) return
