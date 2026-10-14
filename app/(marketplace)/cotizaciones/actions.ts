@@ -5,8 +5,17 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { hoyISOEnSantoDomingo } from '@/lib/cotizaciones'
 import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
+import { getProductosActivosPorIds } from '@/lib/data'
 import type { TipoNotificacionEmail } from '@/lib/notificaciones-email'
-import type { CotizacionActionResult, CrearSolicitudInput, CrearSolicitudResultado, ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion } from '@/types'
+import type { CotizacionActionResult, CrearSolicitudInput, CrearSolicitudResultado, ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion, Producto } from '@/types'
+
+export async function obtenerProductosActivosParaReordenar(productoIds: string[]): Promise<Producto[]> {
+  if (!Array.isArray(productoIds) || !productoIds.every((id) => typeof id === 'string')) return []
+
+  const idsUnicos = [...new Set(productoIds.filter((id) => id.trim() !== ''))]
+  if (!idsUnicos.length) return []
+  return getProductosActivosPorIds(idsUnicos)
+}
 
 // ─── Crear cotización(es) desde el carrito ───────────────────
 // Agrupa los items por proveedor y crea una cotización por cada uno.
