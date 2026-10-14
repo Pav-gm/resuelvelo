@@ -102,6 +102,12 @@ export default function PerfilComprador({
   const [esPrincipal, setEsPrincipal] = useState(false)
   const [guardandoDireccion, setGuardandoDireccion] = useState(false)
   const [mensajeDireccion, setMensajeDireccion] = useState<Mensaje>(null)
+  // Error de borrado asociado a la tarjeta de una dirección concreta; nunca se
+  // muestra en el formulario de alta o edición.
+  const [errorAlQuitar, setErrorAlQuitar] = useState<{
+    direccionId: string
+    texto: string
+  } | null>(null)
 
   async function handlePerfil(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -163,11 +169,14 @@ export default function PerfilComprador({
     setReferencia(d.referencia ?? '')
     setEsPrincipal(d.es_principal)
     setMensajeDireccion(null)
+    setErrorAlQuitar(null)
   }
 
   async function handleDireccion(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (guardandoDireccion) return
+
+    setErrorAlQuitar(null)
 
     if (!etiqueta.trim() || !direccion.trim() || !provincia.trim()) {
       setMensajeDireccion({ tipo: 'error', texto: ERROR_CAMPOS_DIRECCION })
@@ -214,13 +223,15 @@ export default function PerfilComprador({
 
   async function quitarDireccion(id: string) {
     if (guardandoDireccion) return
+    setErrorAlQuitar(null)
     setMensajeDireccion(null)
     setGuardandoDireccion(true)
     const resultado = await eliminarDireccionObra(id)
     setGuardandoDireccion(false)
 
     if (resultado.error) {
-      setMensajeDireccion({ tipo: 'error', texto: resultado.error })
+      // El error de borrado se ancla a la tarjeta de esa dirección.
+      setErrorAlQuitar({ direccionId: id, texto: resultado.error })
       return
     }
     setListaDirecciones((previas) => previas.filter((d) => d.id !== id))
@@ -351,6 +362,11 @@ export default function PerfilComprador({
                     Quitar
                   </button>
                 </div>
+                {errorAlQuitar?.direccionId === d.id && (
+                  <p role="alert" className="mt-2 text-sm text-red-600">
+                    {errorAlQuitar.texto}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

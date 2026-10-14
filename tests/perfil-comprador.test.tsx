@@ -2,7 +2,7 @@
  * Tests de PerfilComprador: datos de empresa y contacto editables, guardado y
  * flujo completo de direcciones de obra con Server Actions simuladas.
  */
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const h = vi.hoisted(() => ({
@@ -209,6 +209,46 @@ describe('PerfilComprador', () => {
     await waitFor(() => expect(h.eliminarDireccionObra).toHaveBeenCalledWith('dir-1'))
     expect(await screen.findByText('Dirección eliminada.')).toBeInTheDocument()
     expect(screen.queryByText('Obra Norte')).toBeNull()
+  })
+
+  it('muestra el error al quitar dentro de la tarjeta afectada y lo limpia al intentar editar otra', async () => {
+    h.eliminarDireccionObra.mockResolvedValue({
+      error: 'Esta dirección se usó en una cotización y no se puede quitar.',
+      success: false,
+    })
+
+    render(
+      <PerfilComprador
+        perfil={PERFIL}
+        direcciones={[
+          { ...DIRECCION, id: 'dir-1', etiqueta: 'Obra Centro' },
+          { ...DIRECCION, id: 'dir-2', etiqueta: 'Obra Norte' },
+        ]}
+        errorCargaDirecciones={null}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar Obra Norte' }))
+
+    await waitFor(() => expect(h.eliminarDireccionObra).toHaveBeenCalledWith('dir-2'))
+
+    const alerta = await screen.findByRole('alert')
+    expect(alerta).toHaveTextContent(
+      'Esta dirección se usó en una cotización y no se puede quitar.'
+    )
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+
+    const tarjetaNorte = screen.getByText('Obra Norte').closest('li')
+    const tarjetaCentro = screen.getByText('Obra Centro').closest('li')
+    expect(tarjetaNorte).toContainElement(alerta)
+    expect(tarjetaCentro).not.toContainElement(alerta)
+
+    const formularioAlta = screen.getByRole('form', { name: 'Añadir dirección de obra' })
+    expect(within(formularioAlta).queryByRole('alert')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Obra Centro' }))
+
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('sincroniza la lista con las direcciones que entrega el servidor', () => {
