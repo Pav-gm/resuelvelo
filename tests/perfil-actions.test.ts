@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type MockQuery = {
-  select(): MockQuery
-  maybeSingle(): Promise<{ data: { rol: string } | null; error: null }>
+  select(columns?: string): MockQuery
+  maybeSingle(): Promise<{ data: { rol?: string; id?: string } | null; error: unknown }>
+  limit(count: number): MockQuery
   update(value: unknown): MockQuery
-  insert(value: unknown): Promise<{ error: null }>
+  insert(value: unknown): Promise<{ error: unknown }>
   delete(): MockQuery
   then(
-    resolve: (value: { error: null }) => unknown,
+    resolve: (value: { error: unknown }) => unknown,
     reject?: (reason: unknown) => unknown
   ): Promise<unknown>
   eq(column: string, value: unknown): MockQuery
@@ -17,7 +18,11 @@ const h = vi.hoisted(() => {
   const state = {
     user: null as { id: string } | null,
     rol: null as string | null,
+    cotizacion: null as { id: string } | null,
+    cotizacionReadError: null as unknown,
+    deleteError: null as unknown,
     writes: [] as Array<{ table: string; operation: string; value?: unknown }>,
+    operations: [] as Array<{ table: string; operation: string; value?: unknown }>,
     filters: [] as Array<{ table: string; column: string; value: unknown }>,
     readFilters: [] as Array<{ table: string; column: string; value: unknown }>,
   }
@@ -25,27 +30,43 @@ const h = vi.hoisted(() => {
   const createClient = vi.fn(async () => ({
     auth: { getUser: async () => ({ data: { user: state.user }, error: null }) },
     from(table: string) {
+      let operation = 'read'
       const query: MockQuery = {
-        select: () => query,
-        maybeSingle: async () => ({ data: state.rol ? { rol: state.rol } : null, error: null }),
+        select(columns?: string) {
+          state.operations.push({ table, operation: 'select', value: columns })
+          return query
+        },
+        maybeSingle: async () => table === 'cotizaciones'
+          ? { data: state.cotizacion, error: state.cotizacionReadError }
+          : { data: state.rol ? { rol: state.rol } : null, error: null },
+        limit(count: number) {
+          state.operations.push({ table, operation: 'limit', value: count })
+          return query
+        },
         update(value: unknown) {
+          operation = 'update'
           state.writes.push({ table, operation: 'update', value })
+          state.operations.push({ table, operation: 'update', value })
           return query
         },
         insert(value: unknown) {
+          state.operations.push({ table, operation: 'insert', value })
           state.writes.push({ table, operation: 'insert', value })
           return Promise.resolve({ error: null })
         },
         delete() {
+          operation = 'delete'
           state.writes.push({ table, operation: 'delete' })
+          state.operations.push({ table, operation: 'delete' })
           return query
         },
-        then(resolve: (value: { error: null }) => unknown, reject?: (reason: unknown) => unknown) {
-          return Promise.resolve({ error: null }).then(resolve, reject)
+        then(resolve: (value: { error: unknown }) => unknown, reject?: (reason: unknown) => unknown) {
+          return Promise.resolve({ error: table === 'direcciones_obra' && operation === 'delete' ? state.deleteError : null }).then(resolve, reject)
         },
         eq(column: string, value: unknown) {
           const filter = { table, column, value }
-          if (table === 'profiles' && state.writes.at(-1)?.table !== table) {
+          state.operations.push({ table, operation: 'eq', value: filter })
+          if ((table === 'profiles' || table === 'cotizaciones') && operation === 'read') {
             state.readFilters.push(filter)
           } else {
             state.filters.push(filter)
@@ -74,7 +95,11 @@ import { esTelefonoDoValido, normalizarTelefonoDo } from '@/lib/validaciones-per
 beforeEach(() => {
   h.state.user = { id: 'u-1' }
   h.state.rol = 'comprador'
+  h.state.cotizacion = null
+  h.state.cotizacionReadError = null
+  h.state.deleteError = null
   h.state.writes.length = 0
+  h.state.operations.length = 0
   h.state.filters.length = 0
   h.state.readFilters.length = 0
   h.createClient.mockClear()
@@ -189,7 +214,7 @@ describe('acciones de perfil del comprador', () => {
     ])
   })
 
-  it('eliminarDireccionObra limita la eliminación a la dirección del comprador', async () => {
+  it('eliminarDireccionObra borra una dirección sin cotizaciones', async () => {
     const result = await eliminarDireccionObra('dir-1')
 
     expect(result).toEqual({ error: null, success: true })
@@ -198,6 +223,32 @@ describe('acciones de perfil del comprador', () => {
       { table: 'direcciones_obra', column: 'id', value: 'dir-1' },
       { table: 'direcciones_obra', column: 'user_id', value: 'u-1' },
     ])
+  })
+
+  it('eliminarDireccionObra rechaza una dirección usada por una cotización sin borrarla', async () => {
+    h.state.cotizacion = { id: 'cot-1' }
+
+    const result = await eliminarDireccionObra('dir-1')
+
+    expect(result).toEqual({
+      error: 'Esta dirección se usó en una cotización y no se puede quitar.',
+      success: false,
+    })
+    expect(h.state.writes).toEqual([])
+    expect(h.state.operations).toContainEqual({ table: 'cotizaciones', operation: 'eq', value: {
+      table: 'cotizaciones', column: 'direccion_obra_id', value: 'dir-1',
+    } })
+  })
+
+  it('eliminarDireccionObra informa uso en cotización si la clave foránea falla por carrera', async () => {
+    h.state.deleteError = { code: '23503' }
+
+    const result = await eliminarDireccionObra('dir-1')
+
+    expect(result).toEqual({
+      error: 'Esta dirección se usó en una cotización y no se puede quitar.',
+      success: false,
+    })
   })
 
   it('las acciones del perfil rechazan usuarios sin sesión o con otro rol', async () => {
