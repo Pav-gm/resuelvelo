@@ -50,6 +50,7 @@ export default async function ProveedoresPage() {
             const whatsapp = numeroWhatsApp(prov.whatsapp)
             const telefono = numeroTelefono(prov.telefono)
             const zonas = prov.zonas_cobertura ?? []
+            const cobertura = zonas.length
             return (
             <div key={prov.id} className="rounded-2xl bg-white border shadow-sm p-6 flex flex-col">
               <div className="flex items-start gap-4">
@@ -110,7 +111,7 @@ export default async function ProveedoresPage() {
               )}
 
               <p className="mt-1 text-xs text-gray-500">
-                {`Entrega en ${prov.zonas_cobertura?.length ?? 0} provincias`}
+                {`Entrega en ${cobertura} provincia${cobertura === 1 ? '' : 's'}`}
               </p>
 
               {prov.horario && (

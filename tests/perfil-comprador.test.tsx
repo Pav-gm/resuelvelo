@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   crearDireccionObra: vi.fn(),
   actualizarDireccionObra: vi.fn(),
   eliminarDireccionObra: vi.fn(),
+  refresh: vi.fn(),
 }))
 
 vi.mock('@/app/(marketplace)/perfil/actions', () => ({
@@ -17,6 +18,10 @@ vi.mock('@/app/(marketplace)/perfil/actions', () => ({
   crearDireccionObra: h.crearDireccionObra,
   actualizarDireccionObra: h.actualizarDireccionObra,
   eliminarDireccionObra: h.eliminarDireccionObra,
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: h.refresh }),
 }))
 
 import PerfilComprador from '@/components/marketplace/PerfilComprador'
@@ -47,6 +52,7 @@ beforeEach(() => {
   h.actualizarDireccionObra.mockResolvedValue({ error: null, success: true })
   h.eliminarDireccionObra.mockReset()
   h.eliminarDireccionObra.mockResolvedValue({ error: null, success: true })
+  h.refresh.mockReset()
 })
 
 afterEach(() => {
@@ -174,8 +180,29 @@ describe('PerfilComprador', () => {
       })
     )
     expect(await screen.findByText('Dirección añadida.')).toBeInTheDocument()
-    expect(screen.getByText('Obra Norte')).toBeInTheDocument()
     expect(screen.getByText('Av. 2')).toBeInTheDocument()
+    expect(screen.getAllByText('Obra Norte')).toHaveLength(1)
+    expect(h.refresh).toHaveBeenCalledTimes(1)
+
+    // Un alta con error no agrega la dirección ni solicita refrescar.
+    cleanup()
+    h.refresh.mockClear()
+    h.crearDireccionObra.mockResolvedValue({
+      error: 'No se pudo guardar la dirección.',
+      success: false,
+    })
+
+    render(<PerfilComprador perfil={PERFIL} direcciones={[]} errorCargaDirecciones={null} />)
+
+    fireEvent.change(screen.getByLabelText('Etiqueta'), { target: { value: 'Obra Sur' } })
+    fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Calle 9' } })
+    fireEvent.change(screen.getByLabelText('Provincia'), { target: { value: 'Santiago' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir dirección' }))
+
+    expect(await screen.findByText('No se pudo guardar la dirección.')).toBeInTheDocument()
+    expect(screen.queryByText('Obra Sur')).toBeNull()
+    expect(h.refresh).not.toHaveBeenCalled()
   })
 
   it('permite editar y quitar una dirección de obra', async () => {
