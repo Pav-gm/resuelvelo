@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   actualizarDireccionObra,
   crearDireccionObra,
@@ -77,6 +78,7 @@ export default function PerfilComprador({
   direcciones,
   errorCargaDirecciones,
 }: PerfilCompradorProps) {
+  const router = useRouter()
   const [nombre, setNombre] = useState(perfil.nombre)
   const [razonSocial, setRazonSocial] = useState(perfil.razon_social ?? '')
   const [rnc, setRnc] = useState(perfil.rnc ?? '')
@@ -219,6 +221,9 @@ export default function PerfilComprador({
       setMensajeDireccion({ tipo: 'exito', texto: 'Dirección añadida.' })
     }
     limpiarFormularioDireccion()
+    // Sustituye el id temporal por el persistido al revalidar el servidor; la
+    // sincronización por props reemplaza la lista local sin duplicar.
+    if (!idEnEdicion) router.refresh()
   }
 
   async function quitarDireccion(id: string) {

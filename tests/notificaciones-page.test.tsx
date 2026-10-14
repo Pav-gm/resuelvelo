@@ -32,15 +32,33 @@ vi.mock('next/link', () => ({
 }))
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({ push: h.push }),
 }))
 
 vi.mock('@/app/(marketplace)/notificaciones/actions', () => ({
   obtenerNotificaciones: h.obtenerNotificaciones,
   marcarNotificacionLeida: h.marcarNotificacionLeida,
+  marcarTodasLasNotificacionesLeidas: vi.fn(),
+}))
+
+// `NavbarClient` monta el carrito y el cierre de sesión; se sustituyen para no
+// arrastrar sus Server Actions reales al entorno de pruebas.
+vi.mock('@/components/marketplace/CarritoDrawer', () => ({
+  default: () => null,
+}))
+
+vi.mock('@/app/(auth)/actions', () => ({
+  cerrarSesion: vi.fn(),
+}))
+
+// El logo usa `next/image`; se sustituye para no depender de su runtime en jsdom.
+vi.mock('@/components/layout/Logo', () => ({
+  default: () => null,
 }))
 
 import NotificacionesPage from '@/app/(marketplace)/notificaciones/page'
+import NavbarClient from '@/components/layout/NavbarClient'
 
 function notificacion(overrides: Partial<Notificacion> = {}): Notificacion {
   return {
@@ -137,5 +155,37 @@ describe('Página de notificaciones', () => {
 
     await waitFor(() => expect(h.marcarNotificacionLeida).toHaveBeenCalledWith('n-1'))
     await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-1'))
+  })
+
+  it('marca la notificación del proveedor como leída, baja el contador y abre la cotización', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({
+      data: [
+        notificacion({
+          id: 'n-45',
+          cotizacion_id: 'c-45',
+          titulo: 'Nueva solicitud #COT-000045',
+          leida_at: null,
+        }),
+      ],
+      noLeidas: 1,
+      error: null,
+    })
+
+    render(
+      <NavbarClient usuario={{ nombre: 'Promeria', rol: 'proveedor' }} direccionesObra={[]} />
+    )
+
+    fireEvent.click(screen.getByLabelText('Notificaciones'))
+
+    const enlace = await screen.findByRole('link', { name: 'Nueva solicitud #COT-000045' })
+    expect(enlace).toHaveAttribute('href', '/cotizaciones/c-45')
+
+    fireEvent.click(enlace)
+
+    await waitFor(() => expect(h.marcarNotificacionLeida).toHaveBeenCalledWith('n-45'))
+    await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-45'))
+
+    expect(screen.getByLabelText('Notificaciones')).toHaveAttribute('data-no-leidas', '0')
+    expect(screen.getByTestId('notificacion')).toHaveAttribute('data-leida', 'true')
   })
 })

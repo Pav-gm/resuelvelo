@@ -228,6 +228,23 @@ describe('tarjetas públicas de proveedores', () => {
     expect(screen.queryByText('(0 reseñas)')).toBeNull()
     expect(screen.queryByText('0.00')).toBeNull()
   })
+
+  it('usa singular cuando el proveedor cubre una provincia', async () => {
+    h.getProveedores.mockResolvedValue([
+      {
+        ...proveedorBase({ id: 'prov-3', nombre_empresa: 'Ferretería Uno' }),
+        productos_count: 0,
+        zonas_cobertura: ['Santiago'],
+        promedio_feedback: 0,
+        conteo_feedback: 0,
+      },
+    ])
+
+    render(await ProveedoresPage())
+
+    expect(screen.getByText('Entrega en 1 provincia')).toBeInTheDocument()
+    expect(screen.queryByText('Entrega en 1 provincias')).toBeNull()
+  })
 })
 
 describe('ficha pública del proveedor', () => {

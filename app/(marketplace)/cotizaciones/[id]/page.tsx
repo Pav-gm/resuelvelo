@@ -135,6 +135,7 @@ export default async function CotizacionDetallePage({
           </h1>
           <p className="mt-1 text-xs text-gray-400">
             {new Date(detalle.created_at).toLocaleDateString('es-DO', {
+              timeZone: 'America/Santo_Domingo',
               year: 'numeric', month: 'long', day: 'numeric',
             })}
           </p>

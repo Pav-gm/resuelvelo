@@ -76,11 +76,16 @@ function CampanaNotificaciones() {
   }
 
   function marcarUnaComoLeida(id: string) {
+    // Solo baja el contador si el aviso existe en el estado y sigue sin leerse;
+    // así un aviso ya leído o ausente no descuadra el contador.
+    const aviso = notificaciones.find((n) => n.id === id)
+    if (aviso && !aviso.leida_at) {
+      setNoLeidas((previas) => Math.max(0, previas - 1))
+    }
     const ahora = new Date().toISOString()
     setNotificaciones((previas) =>
       previas.map((n) => (n.id === id ? { ...n, leida_at: ahora } : n))
     )
-    setNoLeidas((previas) => Math.max(0, previas - 1))
   }
 
   return (

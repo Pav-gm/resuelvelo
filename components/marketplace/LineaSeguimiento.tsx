@@ -15,6 +15,7 @@ const ETIQUETAS_ACTOR: Record<'comprador' | 'proveedor', string> = {
 
 function formatearFecha(fecha: string): string {
   return new Date(fecha).toLocaleDateString('es-DO', {
+    timeZone: 'America/Santo_Domingo',
     year: 'numeric',
     month: 'long',
     day: 'numeric',

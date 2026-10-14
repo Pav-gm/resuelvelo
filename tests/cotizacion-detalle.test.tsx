@@ -891,4 +891,27 @@ describe('Página de detalle de cotización', () => {
 
     expect(screen.queryByText('Entrega solicitada')).toBeNull()
   })
+
+  it('formatea la fecha de creación y cancelación en Santo Domingo cerca de medianoche UTC', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-45',
+      numero: 45,
+      estado: 'cancelada',
+      created_at: '2026-10-14T03:40:00.000Z',
+      cancelada_por: 'comprador',
+      cancelada_at: '2026-10-14T03:40:00.000Z',
+      cancelada_motivo: 'Cambio de pedido',
+      items: [],
+    })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-45' }) }))
+
+    expect(screen.getAllByText('13 de octubre de 2026').length).toBeGreaterThan(0)
+    expect(
+      screen.getByText('Cancelada por el comprador el 13 de octubre de 2026: Cambio de pedido')
+    ).toBeInTheDocument()
+    expect(screen.queryByText('14 de octubre de 2026')).toBeNull()
+  })
 })

@@ -80,6 +80,7 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
           </p>
           <p className="text-xs text-gray-400">
             {new Date(cot.created_at).toLocaleDateString('es-DO', {
+              timeZone: 'America/Santo_Domingo',
               year: 'numeric', month: 'long', day: 'numeric',
             })}
           </p>
@@ -258,6 +259,12 @@ export default async function PedidosPage() {
       ) : (
         <div className="space-y-8">
           <Seccion
+            titulo="Pedidos aceptados o despachados"
+            cotizaciones={cotizaciones.filter(
+              (cot) => cot.estado === 'aceptada' || cot.estado === 'despachada'
+            )}
+          />
+          <Seccion
             titulo="Pendientes de responder"
             cotizaciones={cotizaciones.filter((cot) => cot.estado === 'pendiente')}
           />
@@ -266,9 +273,13 @@ export default async function PedidosPage() {
             cotizaciones={cotizaciones.filter((cot) => cot.estado === 'respondida')}
           />
           <Seccion
-            titulo="Pedidos en seguimiento"
+            titulo="Otros pedidos en seguimiento"
             cotizaciones={cotizaciones.filter(
-              (cot) => cot.estado !== 'pendiente' && cot.estado !== 'respondida'
+              (cot) =>
+                cot.estado !== 'pendiente' &&
+                cot.estado !== 'respondida' &&
+                cot.estado !== 'aceptada' &&
+                cot.estado !== 'despachada'
             )}
           />
         </div>
