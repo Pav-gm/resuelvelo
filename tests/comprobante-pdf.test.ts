@@ -86,6 +86,27 @@ describe('comprobante PDF de cotización', () => {
     expect(contenido).toContain('Documento informativo. No es un comprobante fiscal (sin NCF) y no sustituye la factura del proveedor.')
   })
 
+  it('lineasComprobante muestra descripción y unidad de una línea libre', () => {
+    const datos = {
+      ...fixture,
+      items: [{
+        cantidad: 3,
+        cantidad_confirmada: 3,
+        precio_unitario: 20,
+        precio_ofertado: null,
+        producto: null,
+        descripcion: 'Arena fina',
+        unidad: 'm3',
+        itbis_incluido: false,
+      }],
+    }
+    const contenido = lineasComprobante(datos).join('\n')
+
+    expect(contenido).toContain('Arena fina')
+    expect(contenido).toContain('Cantidad: 3 m3')
+    expect(contenido).not.toContain('Producto no disponible')
+  })
+
   it('lineasComprobante calcula ITBIS no incluido y agrupa importes en formato dominicano', () => {
     const lineas = lineasComprobante({
       ...fixture,

@@ -24,6 +24,8 @@ export type DatosComprobante = {
     precio_unitario: number | null
     precio_ofertado: number | null
     producto: { nombre: string } | null
+    descripcion?: string | null
+    unidad?: string | null
     itbis_incluido: boolean | null
   }>
 }
@@ -81,9 +83,11 @@ export function lineasComprobante(datos: DatosComprobante): string[] {
     subtotalGeneral += base
     itbisTotal += impuesto
     total += importeTotal
+    const nombre = item.producto?.nombre?.trim() || item.descripcion?.trim() || 'Línea sin descripción'
+    const unidad = item.unidad?.trim()
     lineas.push(
-      item.producto?.nombre ?? 'Producto no disponible',
-      `Cantidad: ${cantidad}`,
+      nombre,
+      `Cantidad: ${cantidad}${unidad ? ` ${unidad}` : ''}`,
       `Precio ofertado: ${formatearPrecio(precio)}`,
       `Subtotal línea: ${formatearPrecio(bruto)}`,
     )
