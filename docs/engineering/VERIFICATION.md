@@ -49,6 +49,25 @@ Los secretos `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` son op
 
 El check todavía no es obligatorio. La decisión sobre protección de ramas queda pendiente de Pavel. Esta ejecución no altera el inventario ni el comportamiento de `npm run verify`.
 
+### Extremo a extremo
+
+El workflow de extremo a extremo recorre el ciclo entre las cuentas demo del proveedor y del comprador: publicación de un producto, solicitud de cotización, oferta, aceptación, despacho y confirmación de recepción. Corre en cada push a `dev`, aparte del workflow `CI`.
+
+`npm run e2e` requiere una compilación previa con `npm run build` y arranca la aplicación ya compilada con `next start`. La prueba usa la base de desarrollo.
+
+El workflow necesita estos seis secretos:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `E2E_PROVEEDOR_EMAIL`
+- `E2E_PROVEEDOR_PASSWORD`
+- `E2E_COMPRADOR_EMAIL`
+- `E2E_COMPRADOR_PASSWORD`
+
+Si falta cualquiera, el workflow muestra un aviso y omite la ejecución. El check no es obligatorio por ahora.
+
+El producto que queda con historial de cotización se archiva: así sale del catálogo y el historial de la cotización se conserva.
+
 ## Mantener la documentación ligera
 
 `npm run docs:check` valida los enlaces de las entradas, las guías operativas y el índice; exige que todos los documentos Markdown bajo `docs/` estén indexados (excepto el índice mismo y logs). Sus presupuestos locales son 120 líneas/8 KB para `AGENTS.md`, 512 bytes para `CLAUDE.md` y 1.5 KB por adaptador de Cursor. Son límites de mantenimiento del proyecto, no una estimación de tokens ni un límite del producto.

@@ -1,0 +1,73 @@
+name: E2E
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: secrets
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          E2E_PROVEEDOR_EMAIL: ${{ secrets.E2E_PROVEEDOR_EMAIL }}
+          E2E_PROVEEDOR_PASSWORD: ${{ secrets.E2E_PROVEEDOR_PASSWORD }}
+          E2E_COMPRADOR_EMAIL: ${{ secrets.E2E_COMPRADOR_EMAIL }}
+          E2E_COMPRADOR_PASSWORD: ${{ secrets.E2E_COMPRADOR_PASSWORD }}
+        run: |
+          missing=""
+          for name in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY E2E_PROVEEDOR_EMAIL E2E_PROVEEDOR_PASSWORD E2E_COMPRADOR_EMAIL E2E_COMPRADOR_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              missing="$missing $name"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::warning title=E2E omitido::Faltan secretos del repositorio:$missing. Se omite el ciclo E2E."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.secrets.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: steps.secrets.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.secrets.outputs.ready == 'true'
+        run: npm ci
+
+      - name: Build
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - name: Install Chromium
+        if: steps.secrets.outputs.ready == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          E2E_PROVEEDOR_EMAIL: ${{ secrets.E2E_PROVEEDOR_EMAIL }}
+          E2E_PROVEEDOR_PASSWORD: ${{ secrets.E2E_PROVEEDOR_PASSWORD }}
+          E2E_COMPRADOR_EMAIL: ${{ secrets.E2E_COMPRADOR_EMAIL }}
+          E2E_COMPRADOR_PASSWORD: ${{ secrets.E2E_COMPRADOR_PASSWORD }}
+        run: npm run e2e
