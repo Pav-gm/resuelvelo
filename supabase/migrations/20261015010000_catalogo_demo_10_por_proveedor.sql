@@ -45,17 +45,7 @@ insert into public.proveedor_zonas (proveedor_id,provincia) values
 ('b0000000-0000-0000-0000-000000000009','Duarte'),
 ('b0000000-0000-0000-0000-000000000010','San Pedro de Macorís'),
 ('b0000000-0000-0000-0000-000000000010','Santo Domingo'),
-('b0000000-0000-0000-0000-000000000010','Hato Mayor'),
-('b0000000-0000-0000-0000-000000000001','Santo Domingo'),
-('b0000000-0000-0000-0000-000000000001','Santiago'),
-('b0000000-0000-0000-0000-000000000002','Santiago'),
-('b0000000-0000-0000-0000-000000000002','Santo Domingo'),
-('b0000000-0000-0000-0000-000000000003','La Vega'),
-('b0000000-0000-0000-0000-000000000003','Santo Domingo'),
-('b0000000-0000-0000-0000-000000000004','Puerto Plata'),
-('b0000000-0000-0000-0000-000000000004','Santiago'),
-('b0000000-0000-0000-0000-000000000005','Santiago'),
-('b0000000-0000-0000-0000-000000000005','Santo Domingo')
+('b0000000-0000-0000-0000-000000000010','Hato Mayor')
 on conflict do nothing;
 insert into public.productos (id,proveedor_id,categoria_id,nombre,descripcion,precio,unidad,stock,imagen_url,sku,especificaciones,activo,subcategoria_id) values
 ('d0000000-0000-0000-0000-000000000021','b0000000-0000-0000-0000-000000000001','c1000000-0000-0000-0000-000000000003','Filtro de agua doméstico 10 pulgadas','Promeria: producto de plomería seleccionado para instalación confiable. Presentación unidad; garantía y disponibilidad sujetas a confirmación.',2860.00,'unidad',18,'/productos/d0000000-0000-0000-0000-000000000021.svg','PRO-021','Presentación: unidad

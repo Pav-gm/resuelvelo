@@ -391,16 +391,20 @@ describe('catálogo demo', () => {
     for (const patron of PATRONES_DESTRUCTIVOS) expect(migracion).not.toMatch(patron)
   })
 
-  it('el rollback solo elimina productos nuevos sin cotizaciones', () => {
-    expect(rollback.match(/\bdelete\s+from\b/gi)).toHaveLength(1)
+  it('el rollback es la inversa exacta: productos nuevos sin cotizaciones y cuentas demo nuevas sin uso', () => {
+    expect(rollback.match(/\bdelete\s+from\b/gi)).toHaveLength(2)
     expect(rollback).toMatch(/delete\s+from\s+public\.productos\b/i)
     expect(rollback).toMatch(
       /between\s+'d0000000-0000-0000-0000-000000000021'::uuid\s+and\s+'d0000000-0000-0000-0000-000000000100'::uuid/i,
     )
     expect(rollback).toMatch(/not\s+exists\s*\(\s*select\s+1\s+from\s+public\.items_cotizacion\b/i)
+    expect(rollback).toMatch(/delete\s+from\s+auth\.users\b/i)
     expect(rollback).not.toMatch(
-      /\bdelete\s+from\s+(?:auth\.users|auth\.identities|public\.profiles|public\.proveedores|public\.proveedor_zonas)\b/i,
+      /\bdelete\s+from\s+(?:auth\.identities|public\.profiles|public\.proveedores|public\.proveedor_zonas)\b/i,
     )
+    for (let numero = 8; numero <= 12; numero += 1) {
+      expect(rollback).toContain(`a0000000-0000-0000-0000-${String(numero).padStart(12, '0')}`)
+    }
     for (let numero = 1; numero <= 20; numero += 1) {
       expect(rollback).not.toContain(idProducto(numero))
     }
