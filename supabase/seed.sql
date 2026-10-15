@@ -341,7 +341,7 @@ insert into public.proveedor_zonas (proveedor_id,provincia) values
 ('b0000000-0000-0000-0000-000000000009','Duarte'),
 ('b0000000-0000-0000-0000-000000000010','San Pedro de Macorís'),
 ('b0000000-0000-0000-0000-000000000010','Santo Domingo'),
-('b0000000-0000-0000-0000-000000000010','Hato Mayor'),
+('b0000000-0000-0000-0000-000000000010','La Romana'),
 ('b0000000-0000-0000-0000-000000000001','Santo Domingo'),
 ('b0000000-0000-0000-0000-000000000001','Santiago'),
 ('b0000000-0000-0000-0000-000000000002','Santiago'),
@@ -387,7 +387,7 @@ Proveedor: Ferretería López',true,'ferreteria-brochas-y-accesorios'),
 ('d0000000-0000-0000-0000-000000000031','b0000000-0000-0000-0000-000000000002','c1000000-0000-0000-0000-000000000004','Taladro percutor 1/2"','Ferretería López: artículo de ferretería para uso profesional. Presentación unidad; garantía y disponibilidad sujetas a confirmación.',4850.00,'unidad',30,'/productos/d0000000-0000-0000-0000-000000000031.svg','LOP-031','Presentación: unidad
 Uso: Taladro percutor 1/2"
 Proveedor: Ferretería López',true,'ferreteria-herramientas-electricas'),
-('d0000000-0000-0000-0000-000000000032','b0000000-0000-0000-0000-000000000002','c1000000-0000-0000-0000-000000000004','Juego de destornilladores 6 piezas','Ferretería López: artículo de ferretería para uso profesional. Presentación juego; garantía y disponibilidad sujetas a confirmación.',890.00,'juego',2,'/productos/d0000000-0000-0000-0000-000000000032.svg','LOP-032','Presentación: juego
+('d0000000-0000-0000-0000-000000000032','b0000000-0000-0000-0000-000000000002','c1000000-0000-0000-0000-000000000004','Juego de destornilladores 6 piezas','Ferretería López: artículo de ferretería para uso profesional. Presentación juego; garantía y disponibilidad sujetas a confirmación.',890.00,'juego',22,'/productos/d0000000-0000-0000-0000-000000000032.svg','LOP-032','Presentación: juego
 Uso: Juego de destornilladores 6 piezas
 Proveedor: Ferretería López',true,'ferreteria-herramientas-manuales'),
 ('d0000000-0000-0000-0000-000000000033','b0000000-0000-0000-0000-000000000002','c1000000-0000-0000-0000-000000000004','Tornillo para madera 2"','Ferretería López: artículo de ferretería para uso profesional. Presentación caja; garantía y disponibilidad sujetas a confirmación.',375.00,'caja',34,'/productos/d0000000-0000-0000-0000-000000000033.svg','LOP-033','Presentación: caja
@@ -543,7 +543,7 @@ Proveedor: Hidrosanitarios del Cibao',true,'plomeria-tuberias'),
 ('d0000000-0000-0000-0000-000000000083','b0000000-0000-0000-0000-000000000009','c1000000-0000-0000-0000-000000000003','Llave de paso esférica 1/2" (bronce)','Hidrosanitarios del Cibao: solución hidráulica seleccionada para instalación segura. Presentación unidad; garantía y disponibilidad sujetas a confirmación.',355.00,'unidad',143,'/productos/d0000000-0000-0000-0000-000000000003.jpg','HID-083','Presentación: unidad
 Uso: Llave de paso esférica 1/2" (bronce)
 Proveedor: Hidrosanitarios del Cibao',true,'plomeria-griferia'),
-('d0000000-0000-0000-0000-000000000084','b0000000-0000-0000-0000-000000000009','c1000000-0000-0000-0000-000000000003','Pegamento PVC Tangit 237ml','Hidrosanitarios del Cibao: solución hidráulica seleccionada para instalación segura. Presentación frasco; garantía y disponibilidad sujetas a confirmación.',325.00,'frasco',144,'/productos/d0000000-0000-0000-0000-000000000004.jpg','HID-084','Presentación: frasco
+('d0000000-0000-0000-0000-000000000084','b0000000-0000-0000-0000-000000000009','c1000000-0000-0000-0000-000000000003','Pegamento PVC Tangit 237ml','Hidrosanitarios del Cibao: solución hidráulica seleccionada para instalación segura. Presentación frasco; garantía y disponibilidad sujetas a confirmación.',325.00,'frasco',144,'/productos/d0000000-0000-0000-0000-000000000084.svg','HID-084','Presentación: frasco
 Uso: Pegamento PVC Tangit 237ml
 Proveedor: Hidrosanitarios del Cibao',true,'plomeria-conexiones-y-accesorios'),
 ('d0000000-0000-0000-0000-000000000085','b0000000-0000-0000-0000-000000000009','c1000000-0000-0000-0000-000000000003','Filtro de agua doméstico 10 pulgadas','Hidrosanitarios del Cibao: solución hidráulica seleccionada para instalación segura. Presentación unidad; garantía y disponibilidad sujetas a confirmación.',3100.00,'unidad',145,'/productos/d0000000-0000-0000-0000-000000000021.svg','HID-085','Presentación: unidad
