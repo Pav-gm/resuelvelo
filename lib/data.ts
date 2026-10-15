@@ -184,6 +184,28 @@ export async function getProductosActivosPorIds(productoIds: string[]): Promise<
   }))
 }
 
+export async function getUnidadesDeProductos(productoIds: string[]): Promise<Record<string, string>> {
+  if (!productoIds.length) return {}
+
+  if (!SUPABASE_DISPONIBLE) {
+    const idsSolicitados = new Set(productoIds)
+    return Object.fromEntries(
+      PRODUCTOS_MOCK
+        .filter((producto) => idsSolicitados.has(producto.id))
+        .map((producto) => [producto.id, producto.unidad])
+    )
+  }
+
+  const supabase = await getServerClient()
+  const { data, error } = await supabase
+    .from('productos')
+    .select('id, unidad')
+    .in('id', [...new Set(productoIds)])
+
+  if (error || data === null) return {}
+  return Object.fromEntries((data as Array<{ id: string; unidad: string }>).map(({ id, unidad }) => [id, unidad]))
+}
+
 // ─── Productos de un proveedor específico ────────────────────
 
 export async function getProductosDeProveedor(proveedorId: string): Promise<Producto[]> {
@@ -446,7 +468,7 @@ export async function getCotizacionesDeProveedor(proveedorId: string): Promise<C
       *,
       items:items_cotizacion(
         *,
-        producto:productos(nombre, precio, stock, stock_reservado)
+        producto:productos(nombre, precio, stock, stock_reservado, unidad)
       )
     `)
     .eq('proveedor_id', proveedorId)
@@ -470,7 +492,7 @@ export async function getCotizacionesDelComprador(compradorId: string): Promise<
       proveedor:proveedores(nombre_empresa),
       items:items_cotizacion(
         *,
-        producto:productos(nombre, precio)
+        producto:productos(nombre, precio, unidad)
       )
     `)
     .eq('comprador_id', compradorId)
@@ -517,7 +539,7 @@ export async function getSolicitudComparador(solicitudId: string): Promise<Solic
       items:items_cotizacion(
         id, cotizacion_id, producto_id, cantidad, precio_ofertado, cantidad_ofertada,
         descripcion, unidad,
-        producto:productos(nombre)
+        producto:productos(nombre, unidad)
       )
     `)
     .eq('solicitud_id', solicitudId)
