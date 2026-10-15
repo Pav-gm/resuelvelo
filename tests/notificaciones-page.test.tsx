@@ -193,4 +193,40 @@ describe('Página de notificaciones', () => {
     expect(screen.getByLabelText('Notificaciones')).toHaveAttribute('data-no-leidas', '0')
     expect(screen.getByTestId('notificacion')).toHaveAttribute('data-leida', 'true')
   })
+
+  it('la tarjeta de despacho navega desde el cuerpo y desde el espacio interior', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({
+      data: [
+        notificacion({
+          id: 'n-85',
+          tipo: 'cotizacion_despachada',
+          cotizacion_id: 'c-85',
+          titulo: 'Tu pedido fue despachado.',
+          cuerpo: 'El proveedor despachó tu pedido.',
+          leida_at: null,
+        }),
+      ],
+      noLeidas: 1,
+      error: null,
+    })
+
+    // Primer render: clic en el cuerpo del aviso.
+    const primero = render(await NotificacionesPage())
+    fireEvent.click(screen.getByText('El proveedor despachó tu pedido.'))
+    await waitFor(() => expect(h.marcarNotificacionLeida).toHaveBeenCalledWith('n-85'))
+    await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-85'))
+    primero.unmount()
+
+    h.marcarNotificacionLeida.mockClear()
+    h.push.mockClear()
+
+    // Segundo render: el padding de la tarjeta pertenece al enlace, así que
+    // toda su superficie interior es clicable y navega igual.
+    render(await NotificacionesPage())
+    const tarjeta = screen.getByRole('link', { name: /Tu pedido fue despachado./ })
+    expect(tarjeta.className).toContain('p-4')
+    fireEvent.click(tarjeta)
+    await waitFor(() => expect(h.marcarNotificacionLeida).toHaveBeenCalledWith('n-85'))
+    await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-85'))
+  })
 })

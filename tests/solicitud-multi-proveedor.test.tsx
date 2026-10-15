@@ -514,4 +514,67 @@ describe('Comparador de solicitud multiproveedor', () => {
     const encabezado = screen.getByRole('rowheader', { name: /Bloque/ })
     expect(encabezado).toHaveTextContent('(3 unidad)')
   })
+
+  it('la oferta elegida muestra su estado en el encabezado y en Decisión', () => {
+    function cotizacion(
+      id: string,
+      proveedorId: string,
+      nombre: string,
+      estado: string,
+      precio: number
+    ) {
+      return {
+        id,
+        numero: 1,
+        comprador_id: 'buyer-1',
+        proveedor_id: proveedorId,
+        estado,
+        created_at: '2026-10-02T12:00:00.000Z',
+        plazo_dias: 5,
+        valida_hasta: '2999-01-01',
+        condiciones: null,
+        proveedor: {
+          id: proveedorId,
+          nombre_empresa: nombre,
+          verificado: true,
+          promedio_feedback: 4.5,
+          conteo_feedback: 2,
+        },
+        items: [itemCemento({ cotizacion_id: id, precio_ofertado: precio })],
+      }
+    }
+
+    const data = {
+      solicitud,
+      cotizaciones: [
+        cotizacion('cot-a', 'prov-a', 'Proveedor A', 'aceptada', 100),
+        cotizacion('cot-b', 'prov-b', 'Proveedor B', 'despachada', 40),
+        cotizacion('cot-c', 'prov-c', 'Proveedor C', 'recibida', 60),
+      ],
+    } as unknown as SolicitudComparador
+
+    render(<ComparadorSolicitud data={data} />)
+
+    const columnas: Array<[string, string]> = [
+      ['Proveedor A', 'Aceptada'],
+      ['Proveedor B', 'Despachada'],
+      ['Proveedor C', 'Recibida'],
+    ]
+    for (const [nombre, etiqueta] of columnas) {
+      const columna = screen.getByRole('columnheader', { name: new RegExp(nombre) })
+      expect(within(columna).getByText(etiqueta)).toBeInTheDocument()
+    }
+
+    const filaDecision = screen
+      .getByRole('rowheader', { name: 'Decisión' })
+      .closest('tr') as HTMLElement
+    const celdas = within(filaDecision).getAllByRole('cell')
+    expect(celdas).toHaveLength(3)
+    expect(celdas[0]).toHaveTextContent('Aceptada')
+    expect(celdas[1]).toHaveTextContent('Despachada')
+    expect(celdas[2]).toHaveTextContent('Recibida')
+    for (const celda of celdas) {
+      expect(celda).not.toHaveTextContent('—')
+    }
+  })
 })
