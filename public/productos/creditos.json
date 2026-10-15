@@ -1,4 +1,13 @@
 {
+ "_generados": {
+  "url": "scripts/generar-imagenes-productos.mjs",
+  "titulo": "Imágenes de relleno deterministas (SVG 800×600)",
+  "licencia": "Generada localmente, sin fuente externa ni crédito de terceros",
+  "autor": "Script local generar-imagenes-productos.mjs",
+  "pagina": "scripts/generar-imagenes-productos.mjs",
+  "archivo": "/productos/<id>.svg",
+  "bytes": 0
+ },
  "d0000000-0000-0000-0000-000000000001": {
   "url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/PVC_nonpressure.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
   "titulo": "PVC nonpressure.jpg",
