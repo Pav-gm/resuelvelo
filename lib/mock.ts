@@ -50,7 +50,7 @@ const PROVEEDORES_MOCK: Proveedor[] = [
 function crearProducto(
   id: string, proveedorNumero: number, categoriaNumero: number, subcategoriaSlug: string,
   nombre: string, descripcion: string | undefined, precio: number, unidad: string, stock: number,
-  imagen_url: string, sku: string, especificaciones: string,
+  imagen_url: string | undefined, sku: string, especificaciones: string,
 ): Producto {
   const categoria = CATEGORIAS_MOCK[categoriaNumero - 1]
   return {
@@ -64,7 +64,7 @@ export const PRODUCTOS_MOCK: Producto[] = [
   crearProducto('1', 1, 3, 'plomeria-tuberias', 'Tubo PVC 4" x 6m (sanitario)', 'Tubería PVC sanitaria cédula 40, para desagüe y alcantarillado.', 680, 'unidad', 120, '/productos/d0000000-0000-0000-0000-000000000001.jpg', 'PRO-PVC-4S-6', 'Material: PVC rígido, cédula 40. Diámetro 4 pulgadas; largo 6 m.'),
   crearProducto('2', 1, 3, 'plomeria-tuberias', 'Tubo PVC 1/2" x 6m (presión)', undefined, 180, 'unidad', 350, '/productos/d0000000-0000-0000-0000-000000000002.jpg', 'PRO-PVC-12P-6', 'PVC SDR 13.5; diámetro 1/2 pulgada; largo 6 m.'),
   crearProducto('3', 1, 3, 'plomeria-griferia', 'Llave de paso esférica 1/2" (bronce)', undefined, 320, 'unidad', 200, '/productos/d0000000-0000-0000-0000-000000000003.jpg', 'PRO-LLE-12B', 'Bronce; paso total; rosca 1/2 pulgada NPT.'),
-  crearProducto('4', 1, 3, 'plomeria-conexiones-y-accesorios', 'Pegamento PVC Tangit 237ml', undefined, 290, 'frasco', 0, '/productos/d0000000-0000-0000-0000-000000000004.jpg', 'PRO-PEG-TAN-237', 'Marca Tangit; contenido 237 ml; incluye aplicador.'),
+  crearProducto('4', 1, 3, 'plomeria-conexiones-y-accesorios', 'Pegamento PVC Tangit 237ml', undefined, 290, 'frasco', 0, undefined, 'PRO-PEG-TAN-237', 'Marca Tangit; contenido 237 ml; incluye aplicador.'),
   crearProducto('5', 2, 2, 'electricidad-cables-y-conductores', 'Cable eléctrico THHN 12 AWG (rollo 100m)', undefined, 3200, 'rollo', 45, '/productos/d0000000-0000-0000-0000-000000000005.jpg', 'LOP-THHN-12-100', 'Cobre 12 AWG; 600 V; rollo de 100 m.'),
   crearProducto('6', 2, 2, 'electricidad-breakers-y-paneles', 'Breaker Square D 20A 1 polo', undefined, 580, 'unidad', 80, '/productos/d0000000-0000-0000-0000-000000000006.jpg', 'LOP-BRK-SQD-20-1', 'Square D; 20 A; un polo; 120/240 V.'),
   crearProducto('7', 2, 4, 'ferreteria-pinturas-y-esmaltes', 'Pintura acrílica interior (cubo 5 galones)', undefined, 2800, 'cubo', 25, '/productos/d0000000-0000-0000-0000-000000000007.jpg', 'LOP-PIN-ACR-5G', 'Acrílica mate; 5 galones; rendimiento 35 a 40 m² por galón.'),
