@@ -14,6 +14,12 @@ describe('fotos del catálogo', () => {
     expect(creditoFoto('00000000-0000-0000-0000-000000000000', '/productos/x.jpg')).toBeNull()
   })
 
+  it('acredita la foto también en otro producto que la reutiliza', () => {
+    const otroProducto = 'd0000000-0000-0000-0000-000000000091'
+    expect(creditoFoto(otroProducto, `/productos/${ID}.jpg`)).toMatchObject({ licencia: 'CC BY 3.0', archivo: `/productos/${ID}.jpg` })
+    expect(creditoFoto(otroProducto, `/productos/${otroProducto}.svg`)).toBeNull()
+  })
+
   it('cada crédito apunta a un archivo que existe y la migración asigna los mismos', () => {
     const migraciones = join(process.cwd(), 'supabase/migrations')
     // Por nombre, sin la versión: el servidor puede renumerar la migración.
