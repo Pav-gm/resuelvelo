@@ -23,7 +23,7 @@ export type DatosComprobante = {
     cantidad_confirmada: number | null
     precio_unitario: number | null
     precio_ofertado: number | null
-    producto: { nombre: string } | null
+    producto: { nombre: string; unidad?: string | null } | null
     descripcion?: string | null
     unidad?: string | null
     itbis_incluido: boolean | null
@@ -84,7 +84,7 @@ export function lineasComprobante(datos: DatosComprobante): string[] {
     itbisTotal += impuesto
     total += importeTotal
     const nombre = item.producto?.nombre?.trim() || item.descripcion?.trim() || 'Línea sin descripción'
-    const unidad = item.unidad?.trim()
+    const unidad = item.unidad?.trim() || item.producto?.unidad?.trim()
     lineas.push(
       nombre,
       `Cantidad: ${cantidad}${unidad ? ` ${unidad}` : ''}`,
