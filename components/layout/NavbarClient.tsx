@@ -385,11 +385,10 @@ function MenuCuenta({ usuario, noLeidas }: { usuario: NavbarUser; noLeidas: numb
 
           <div role="separator" className="my-1 border-t" />
 
-          <form action={cerrarSesion}>
+          <form action={cerrarSesion} onSubmit={() => setAbierto(false)}>
             <button
               type="submit"
               role="menuitem"
-              onClick={() => setAbierto(false)}
               className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
             >
               <LogOut className="h-4 w-4" />
