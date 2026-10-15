@@ -174,7 +174,10 @@ describe('Página de notificaciones', () => {
     })
 
     render(
-      <NavbarClient usuario={{ nombre: 'Promeria', rol: 'proveedor' }} direccionesObra={[]} />
+      <NavbarClient
+        usuario={{ nombre: 'Promeria', email: 'ventas@promeria.com', rol: 'proveedor' }}
+        direccionesObra={[]}
+      />
     )
 
     fireEvent.click(screen.getByLabelText('Notificaciones'))
