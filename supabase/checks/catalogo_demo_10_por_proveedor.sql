@@ -1,4 +1,6 @@
--- Verifica cobertura mínima del catálogo demo sin impedir productos temporales de QA.
+-- Verifica que la migración dejó sus productos demo (ids 21 a 100) activos en cada proveedor, sin depender de los 20
+-- productos originales (en producción alguno puede estar archivado) ni impedir productos temporales de QA.
+-- Mínimo por proveedor = productos que añade la migración: 6, 7, 7, 5 y 5 a los cinco existentes y 10 a cada nuevo.
 do $$
 declare
   proveedor record;
@@ -6,24 +8,26 @@ declare
 begin
   for proveedor in
     select * from (values
-      ('b0000000-0000-0000-0000-000000000001'::uuid, 'a0000000-0000-0000-0000-000000000002'::uuid, 'Promeria'),
-      ('b0000000-0000-0000-0000-000000000002'::uuid, 'a0000000-0000-0000-0000-000000000003'::uuid, 'Ferretería López'),
-      ('b0000000-0000-0000-0000-000000000003'::uuid, 'a0000000-0000-0000-0000-000000000004'::uuid, 'Materiales del Norte'),
-      ('b0000000-0000-0000-0000-000000000004'::uuid, 'a0000000-0000-0000-0000-000000000005'::uuid, 'SolarTech RD'),
-      ('b0000000-0000-0000-0000-000000000005'::uuid, 'a0000000-0000-0000-0000-000000000006'::uuid, 'AutoChequeo RD'),
-      ('b0000000-0000-0000-0000-000000000006'::uuid, 'a0000000-0000-0000-0000-000000000008'::uuid, 'Pinturas Caribe'),
-      ('b0000000-0000-0000-0000-000000000007'::uuid, 'a0000000-0000-0000-0000-000000000009'::uuid, 'EcoSolar Dominicana'),
-      ('b0000000-0000-0000-0000-000000000008'::uuid, 'a0000000-0000-0000-0000-000000000010'::uuid, 'MecaniExpress RD'),
-      ('b0000000-0000-0000-0000-000000000009'::uuid, 'a0000000-0000-0000-0000-000000000011'::uuid, 'Hidrosanitarios del Cibao'),
-      ('b0000000-0000-0000-0000-000000000010'::uuid, 'a0000000-0000-0000-0000-000000000012'::uuid, 'Aceros y Cemento del Este')
-    ) as demo(proveedor_id, user_id, nombre)
+      ('b0000000-0000-0000-0000-000000000001'::uuid, 'a0000000-0000-0000-0000-000000000002'::uuid, 'Promeria', 6),
+      ('b0000000-0000-0000-0000-000000000002'::uuid, 'a0000000-0000-0000-0000-000000000003'::uuid, 'Ferretería López', 7),
+      ('b0000000-0000-0000-0000-000000000003'::uuid, 'a0000000-0000-0000-0000-000000000004'::uuid, 'Materiales del Norte', 7),
+      ('b0000000-0000-0000-0000-000000000004'::uuid, 'a0000000-0000-0000-0000-000000000005'::uuid, 'SolarTech RD', 5),
+      ('b0000000-0000-0000-0000-000000000005'::uuid, 'a0000000-0000-0000-0000-000000000006'::uuid, 'AutoChequeo RD', 5),
+      ('b0000000-0000-0000-0000-000000000006'::uuid, 'a0000000-0000-0000-0000-000000000008'::uuid, 'Pinturas Caribe', 10),
+      ('b0000000-0000-0000-0000-000000000007'::uuid, 'a0000000-0000-0000-0000-000000000009'::uuid, 'EcoSolar Dominicana', 10),
+      ('b0000000-0000-0000-0000-000000000008'::uuid, 'a0000000-0000-0000-0000-000000000010'::uuid, 'MecaniExpress RD', 10),
+      ('b0000000-0000-0000-0000-000000000009'::uuid, 'a0000000-0000-0000-0000-000000000011'::uuid, 'Hidrosanitarios del Cibao', 10),
+      ('b0000000-0000-0000-0000-000000000010'::uuid, 'a0000000-0000-0000-0000-000000000012'::uuid, 'Aceros y Cemento del Este', 10)
+    ) as demo(proveedor_id, user_id, nombre, minimo)
   loop
     if not exists (select 1 from public.proveedores p where p.id = proveedor.proveedor_id and p.user_id = proveedor.user_id and p.nombre_empresa = proveedor.nombre) then
       raise exception 'Falta el proveedor demo % con relación usuario/proveedor esperada.', proveedor.nombre;
     end if;
-    select count(*) into cantidad from public.productos p where p.proveedor_id = proveedor.proveedor_id and p.activo;
-    if cantidad < 10 then
-      raise exception 'El proveedor demo % tiene % productos activos; requiere al menos 10.', proveedor.nombre, cantidad;
+    select count(*) into cantidad from public.productos p
+    where p.proveedor_id = proveedor.proveedor_id and p.activo
+      and p.id between 'd0000000-0000-0000-0000-000000000021'::uuid and 'd0000000-0000-0000-0000-000000000100'::uuid;
+    if cantidad < proveedor.minimo then
+      raise exception 'El proveedor demo % tiene % productos demo activos añadidos por la migración; requiere al menos %.', proveedor.nombre, cantidad, proveedor.minimo;
     end if;
   end loop;
 
