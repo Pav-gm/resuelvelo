@@ -261,7 +261,7 @@ export default function ComparadorSolicitud({ data }: Props) {
               </th>
               {cotizaciones.map((cot) => {
                 const vencida = ofertaVencida(cot.valida_hasta)
-                const puedeAceptar = cot.estado === 'respondida' && !vencida
+                const puedeAceptar = cot.estado === 'respondida' && !vencida && tienePrecio(cot)
                 return (
                   <td key={cot.id} className="px-4 py-3">
                     {puedeAceptar ? (

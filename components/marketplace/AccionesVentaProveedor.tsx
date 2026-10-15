@@ -91,6 +91,10 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
     )
   }
 
+  // Los controles de venta solo aplican a una venta aceptada; en despachada o
+  // cualquier otro estado no se muestra la banda de acciones.
+  if (estado !== 'aceptada') return null
+
   return (
     <div className="border-t bg-gray-50 px-6 py-4" aria-label="Acciones de venta">
       <div className="flex items-center gap-2">
