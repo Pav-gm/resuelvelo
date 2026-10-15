@@ -7,7 +7,8 @@ type DetalleComprobante = Omit<DatosComprobante, 'items'> & {
   estado: string
   comprador_id: string
   items: Array<DatosComprobante['items'][number] & {
-    producto: ({ nombre: string; itbis_incluido?: boolean | null } | null)
+    producto: ({ nombre: string; unidad?: string | null; itbis_incluido?: boolean | null } | null)
+    producto_id?: string | null
     itbis_incluido?: boolean | null
   }>
 }
@@ -42,6 +43,23 @@ export async function GET(
     return respuestaError(404)
   }
 
+  const productoIds = [...new Set(
+    detalle.items
+      .filter((item) => !item.unidad?.trim() && item.producto_id)
+      .map((item) => item.producto_id!),
+  )]
+  const unidadesPorProducto = new Map<string, string | null>()
+  if (productoIds.length > 0) {
+    const { data: productos, error: productosError } = await supabase
+      .from('productos')
+      .select('id, unidad')
+      .in('id', productoIds)
+    if (productosError) return respuestaError(500)
+    for (const producto of productos ?? []) {
+      unidadesPorProducto.set(producto.id, producto.unidad)
+    }
+  }
+
   const numero = `COT-${String(detalle.numero).padStart(6, '0')}`
   const documento = await PDFDocument.create()
   documento.setTitle(`Cotización aceptada #${numero}`)
@@ -54,6 +72,7 @@ export async function GET(
     ...detalle,
     items: detalle.items.map((item) => ({
       ...item,
+      unidad: item.unidad?.trim() || unidadesPorProducto.get(item.producto_id ?? '') || item.unidad,
       itbis_incluido: item.producto?.itbis_incluido ?? item.itbis_incluido ?? null,
     })),
   })

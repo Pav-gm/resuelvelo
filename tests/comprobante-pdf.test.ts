@@ -36,7 +36,7 @@ const fixture: DatosComprobante = {
     cantidad_confirmada: 2,
     precio_unitario: 118,
     precio_ofertado: null,
-    producto: { nombre: 'Tubo PVC' },
+    producto: { nombre: 'Tubo PVC', unidad: 'saco' },
     itbis_incluido: true,
   }],
 }
@@ -74,7 +74,7 @@ describe('comprobante PDF de cotización', () => {
     expect(contenido).toContain('Cotización aceptada #COT-000042')
     expect(contenido).toContain('Fecha de aceptación: 7 de octubre de 2026')
     expect(contenido).toContain('Tubo PVC')
-    expect(contenido).toContain('Cantidad: 2')
+    expect(contenido).toContain('Cantidad: 2 saco')
     expect(contenido).toContain('Precio ofertado: RD$ 118.00')
     expect(contenido).toContain('Subtotal línea: RD$ 236.00')
     expect(contenido).toContain('Subtotal general: RD$ 200.00')
@@ -84,6 +84,23 @@ describe('comprobante PDF de cotización', () => {
     expect(contenido).toContain('Válida hasta: 20/10/2026')
     expect(contenido).toContain('Condiciones: Entrega en almacén')
     expect(contenido).toContain('Documento informativo. No es un comprobante fiscal (sin NCF) y no sustituye la factura del proveedor.')
+  })
+
+  it('lineasComprobante muestra cantidad y unidad en cada línea del comprobante', () => {
+    const lineas = lineasComprobante({
+      ...fixture,
+      items: [
+        { ...fixture.items[0], cantidad: 2, cantidad_confirmada: 2, unidad: 'saco' },
+        { ...fixture.items[0], cantidad: 3, cantidad_confirmada: 3, unidad: 'unidad' },
+        { ...fixture.items[0], cantidad: 2, cantidad_confirmada: 2, unidad: 'm3' },
+      ],
+    })
+
+    expect(lineas.filter((linea) => linea.startsWith('Cantidad:'))).toEqual([
+      'Cantidad: 2 saco',
+      'Cantidad: 3 unidad',
+      'Cantidad: 2 m3',
+    ])
   })
 
   it('lineasComprobante muestra descripción y unidad de una línea libre', () => {
@@ -182,6 +199,36 @@ describe('comprobante PDF de cotización', () => {
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-')
     const pdf = await PDFDocument.load(bytes)
     expect(pdf.getTitle()).toContain('COT-000042')
+  })
+
+  it('GET completa la unidad de una línea de catálogo para el comprobante', async () => {
+    const inQuery = vi.fn().mockResolvedValue({ data: [{ id: 'prod-1', unidad: 'saco' }], error: null })
+    const select = vi.fn(() => ({ in: inQuery }))
+    const from = vi.fn(() => ({ select }))
+    mocks.createClient.mockResolvedValue({
+      auth: { getUser: mocks.getUser },
+      rpc: mocks.rpc,
+      from,
+    })
+    mocks.rpc.mockResolvedValue({
+      data: {
+        ...detalle('aceptada'),
+        items: [{
+          ...fixture.items[0],
+          producto_id: 'prod-1',
+          unidad: null,
+          producto: { nombre: 'Tubo PVC' },
+        }],
+      },
+      error: null,
+    })
+
+    const response = await solicitud()
+
+    expect(response.status).toBe(200)
+    expect(from).toHaveBeenCalledWith('productos')
+    expect(select).toHaveBeenCalledWith('id, unidad')
+    expect(inQuery).toHaveBeenCalledWith('id', ['prod-1'])
   })
 
   it('GET del comprobante admite texto multilínea y caracteres fuera de WinAnsi', async () => {

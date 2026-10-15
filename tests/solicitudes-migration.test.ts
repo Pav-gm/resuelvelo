@@ -3,6 +3,20 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 describe('migración de solicitudes multi proveedor', () => {
+  it('aceptar_oferta_de_solicitud cierra pendientes y respondidas con el motivo de elección', () => {
+    const migracion = readFileSync(
+      path.join(process.cwd(), 'supabase/migrations/20261013202000_solicitudes_multiproveedor.sql'),
+      'utf8',
+    )
+    const inicio = migracion.indexOf('create or replace function public.aceptar_oferta_de_solicitud')
+    const fin = migracion.indexOf('$$;', migracion.indexOf('as $$', inicio))
+    const funcion = migracion.slice(inicio, fin)
+
+    expect(funcion).toContain("rechazada_motivo = 'Se eligió otra oferta'")
+    expect(funcion).toMatch(/where solicitud_id = v_solicitud_id and id <> p_cotizacion_id/i)
+    expect(funcion).toContain("estado in ('pendiente', 'respondida')")
+  })
+
   it('la migración de solicitudes incluye su rollback e invariante de líneas', () => {
     const migracionesDir = path.join(process.cwd(), 'supabase/migrations')
     const rollbacksDir = path.join(process.cwd(), 'supabase/rollbacks')
