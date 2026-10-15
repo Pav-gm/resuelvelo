@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useSyncExternalStore, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   ofertarCotizacion,
@@ -17,6 +17,8 @@ interface Props {
   /** Líneas de la cotización; definen precios y cantidades de la oferta. */
   items: ItemCotizacion[]
 }
+
+const noop = () => () => {}
 
 /** Precio unitario precargado: el actual del catálogo; si falta, el solicitado. */
 function precioInicial(item: ItemCotizacion): number | null {
@@ -54,6 +56,9 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   const [plazo, setPlazo] = useState('')
   const [validaHasta, setValidaHasta] = useState('')
   const [condiciones, setCondiciones] = useState('')
+  // El botón solo es interactivo tras hidratar: evita un primer clic perdido
+  // cuando la página aún no ha montado los manejadores del cliente.
+  const montado = useSyncExternalStore(noop, () => true, () => false)
 
   function abrirDialogo() {
     setError(null)
@@ -233,7 +238,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
         <Button
           size="sm"
           className="bg-green-500 hover:bg-green-600 text-white"
-          disabled={pending}
+          disabled={pending || !montado}
           onClick={abrirDialogo}
         >
           Responder con oferta

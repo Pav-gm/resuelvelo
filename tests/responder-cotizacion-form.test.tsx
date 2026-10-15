@@ -374,6 +374,25 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     expect(screen.getByText('Cantidad solicitada: 2 m3')).toBeInTheDocument()
   })
 
+  it('el primer clic abre el diálogo y muestra la unidad del producto cuando falta en la línea', () => {
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        producto_id: 'prod-1',
+        cantidad: 2,
+        unidad: null,
+        sujeta_disponibilidad: false,
+        producto: { nombre: 'Cemento', unidad: 'saco' } as Producto,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    expect(screen.getByRole('dialog', { name: 'Responder con oferta' })).toBeInTheDocument()
+    expect(screen.getByText('Cantidad solicitada: 2 saco')).toBeInTheDocument()
+  })
+
   it('marcar No disponible deshabilita el precio y envía cantidad cero', async () => {
     h.ofertarCotizacion.mockResolvedValue(null)
     const items: ItemCotizacion[] = [

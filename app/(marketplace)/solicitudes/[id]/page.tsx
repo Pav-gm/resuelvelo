@@ -28,10 +28,18 @@ export default async function SolicitudComparadorPage({
   if (!data) notFound()
 
   const { solicitud } = data
+  const cerrada = data.cotizaciones.some((cot) => cot.estado === 'aceptada')
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <h1 className="break-words text-2xl font-bold text-gray-900">{solicitud.titulo}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="break-words text-2xl font-bold text-gray-900">{solicitud.titulo}</h1>
+        {cerrada && (
+          <span className="rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-600">
+            Cerrada
+          </span>
+        )}
+      </div>
       {solicitud.notas && (
         <p className="mt-2 break-words [overflow-wrap:anywhere] text-sm text-gray-700">
           {solicitud.notas}

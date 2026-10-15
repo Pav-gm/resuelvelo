@@ -23,9 +23,9 @@ const OPCIONES: OpcionMotivoCancelacion[] = [
 ]
 
 /**
- * Controles de venta del proveedor: despacho (solo aceptada) y cancelación
- * (aceptada o despachada). El despacho y la cancelación exigen confirmación
- * previa; la cancelación además exige un motivo (con detalle si es «Otro»).
+ * Controles de venta del proveedor: despacho y cancelación, ambos solo en
+ * estado aceptada. El despacho y la cancelación exigen confirmación previa; la
+ * cancelación además exige un motivo (con detalle si es «Otro»).
  * Los controles se deshabilitan durante la acción y se muestran los errores
  * devueltos por las RPC. «Volver» cierra sin mutación.
  */
@@ -107,7 +107,7 @@ export default function AccionesVentaProveedor({ cotizacionId, estado }: Props) 
             Marcar como despachada
           </Button>
         )}
-        {(estado === 'aceptada' || estado === 'despachada') && (
+        {estado === 'aceptada' && (
           <Button
             size="sm"
             variant="outline"

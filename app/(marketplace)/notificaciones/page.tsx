@@ -21,23 +21,14 @@ export default async function NotificacionesPage() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {data.map((n) => (
-            <li
-              key={n.id}
-              data-testid="notificacion"
-              className="rounded-2xl bg-white border p-4 shadow-sm"
-            >
+          {data.map((n) => {
+            // La tarjeta completa es el enlace cuando el aviso tiene cotización:
+            // cualquier clic marca como leída y luego navega al detalle.
+            const contenido = (
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   {n.cotizacion_id ? (
-                    <NotificacionLink
-                      id={n.id}
-                      leida={Boolean(n.leida_at)}
-                      href={`/cotizaciones/${n.cotizacion_id}`}
-                      className="font-semibold text-gray-900 hover:underline"
-                    >
-                      {n.titulo}
-                    </NotificacionLink>
+                    <span className="font-semibold text-gray-900">{n.titulo}</span>
                   ) : (
                     <p className="font-semibold text-gray-900">{n.titulo}</p>
                   )}
@@ -57,8 +48,29 @@ export default async function NotificacionesPage() {
                   {n.leida_at ? 'Leída' : 'No leída'}
                 </span>
               </div>
-            </li>
-          ))}
+            )
+
+            return (
+              <li
+                key={n.id}
+                data-testid="notificacion"
+                className="rounded-2xl bg-white border p-4 shadow-sm"
+              >
+                {n.cotizacion_id ? (
+                  <NotificacionLink
+                    id={n.id}
+                    leida={Boolean(n.leida_at)}
+                    href={`/cotizaciones/${n.cotizacion_id}`}
+                    className="block"
+                  >
+                    {contenido}
+                  </NotificacionLink>
+                ) : (
+                  contenido
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>
