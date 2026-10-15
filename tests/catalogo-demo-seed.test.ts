@@ -1,6 +1,16 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+
+function leerSqlUnico(carpeta: string, coincidencias: string[]): string {
+  const nombre = coincidencias[0]
+  if (coincidencias.length !== 1 || nombre === undefined) {
+    throw new Error(
+      `Se esperaba exactamente un archivo _catalogo_demo_10_por_proveedor.sql en ${carpeta}; encontrados ${coincidencias.length}: ${coincidencias.join(', ') || 'ninguno'}`,
+    )
+  }
+  return readFileSync(join(process.cwd(), carpeta, nombre), 'utf8')
+}
 
 type ValorSql = string | number | boolean | null
 
@@ -18,13 +28,14 @@ type ProductoDemo = {
 }
 
 const seed = readFileSync(join(process.cwd(), 'supabase/seed.sql'), 'utf8')
-const migracion = readFileSync(
-  join(process.cwd(), 'supabase/migrations/20261015010000_catalogo_demo_10_por_proveedor.sql'),
-  'utf8',
+// Por nombre, sin la versión: el servidor puede renumerar la migración.
+const migracion = leerSqlUnico(
+  'supabase/migrations',
+  readdirSync(join(process.cwd(), 'supabase/migrations')).filter((f) => f.endsWith('_catalogo_demo_10_por_proveedor.sql')),
 )
-const rollback = readFileSync(
-  join(process.cwd(), 'supabase/rollbacks/20261015010000_catalogo_demo_10_por_proveedor.sql'),
-  'utf8',
+const rollback = leerSqlUnico(
+  'supabase/rollbacks',
+  readdirSync(join(process.cwd(), 'supabase/rollbacks')).filter((f) => f.endsWith('_catalogo_demo_10_por_proveedor.sql')),
 )
 
 const PATRONES_DESTRUCTIVOS = [
