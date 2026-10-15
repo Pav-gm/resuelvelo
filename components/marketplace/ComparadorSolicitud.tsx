@@ -143,9 +143,15 @@ export default function ComparadorSolicitud({ data }: Props) {
                 <th scope="row" className="px-4 py-3 font-normal text-gray-700">
                   {nombreLinea(itemBase, indice)}
                   <span className="ml-1 text-xs text-gray-400">
-                    {itemBase.unidad?.trim()
-                      ? `(${itemBase.cantidad} ${itemBase.unidad.trim()})`
-                      : `(${itemBase.cantidad})`}
+                    {(() => {
+                      // Unidad efectiva: la de la línea o, si falta, la del producto.
+                      const unidad =
+                        itemBase.unidad?.trim() ||
+                        (itemBase.producto as { unidad?: string | null } | null | undefined)?.unidad?.trim()
+                      return unidad
+                        ? `(${itemBase.cantidad} ${unidad})`
+                        : `(${itemBase.cantidad})`
+                    })()}
                   </span>
                 </th>
                 {cotizaciones.map((cot) => {

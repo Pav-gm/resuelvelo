@@ -1,7 +1,11 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getCotizacionDetalle, getFeedbackPorCotizacion } from '@/lib/data'
+import {
+  getCotizacionDetalle,
+  getFeedbackPorCotizacion,
+  getUnidadesDeProductos,
+} from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import { formatearPrecio, formatearFecha } from '@/lib/utils'
 import LineaSeguimiento from '@/components/marketplace/LineaSeguimiento'
@@ -107,6 +111,15 @@ export default async function CotizacionDetallePage({
     : null
 
   const items = detalle.items ?? []
+  // La RPC devuelve `producto` sin `unidad` y las líneas de catálogo creadas
+  // desde el carrito traen `item.unidad = null`; se leen aparte las unidades de
+  // los productos referenciados por líneas que no la aportan por sí mismas.
+  const ids = items
+    .filter((item) => Boolean(item.producto_id) && !item.unidad?.trim())
+    .map((item) => item.producto_id as string)
+  const unidadesProducto: Record<string, string> = ids.length
+    ? await getUnidadesDeProductos(ids)
+    : {}
   const confirmado = ESTADOS_CONFIRMADOS.includes(detalle.estado)
   const respondida = detalle.estado === 'respondida'
   const tieneOferta = ESTADOS_CON_OFERTA.includes(detalle.estado) && detalle.total_ofertado != null
@@ -213,7 +226,12 @@ export default async function CotizacionDetallePage({
             const nombreProducto = producto?.nombre?.trim()
             const descripcion = item.descripcion?.trim()
             const rotulo = nombreProducto || descripcion || 'Línea sin descripción'
-            const unidad = item.unidad?.trim()
+            // Unidad efectiva: la de la línea, la del producto asociado o la
+            // leída aparte cuando el RPC no la trae.
+            const unidad =
+              item.unidad?.trim() ||
+              (item.producto as { unidad?: string | null } | null)?.unidad?.trim() ||
+              (item.producto_id ? unidadesProducto[item.producto_id]?.trim() : undefined)
             // Con oferta manda el precio/cantidad ofertados; desde aceptada en
             // adelante, la cantidad confirmada; antes de aceptar, la ofertada;
             // antes de responder, lo pedido.
