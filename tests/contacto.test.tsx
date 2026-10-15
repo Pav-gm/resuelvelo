@@ -106,7 +106,11 @@ describe('ContactoPage', () => {
 
     expect(screen.getByText('WhatsApp de ejemplo del seed')).toBeInTheDocument()
     expect(screen.getByText('Correo de ejemplo del seed')).toBeInTheDocument()
-    expect(screen.getByText('Horario de atención de ejemplo del seed')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Lunes a viernes, de 8:00 a. m. a 6:00 p. m.; sábados, de 9:00 a. m. a 1:00 p. m. (hora de República Dominicana).'
+      )
+    ).toBeInTheDocument()
 
     const enlaces = Array.from(container.querySelectorAll('a')).map(
       (enlace) => enlace.getAttribute('href') ?? ''
