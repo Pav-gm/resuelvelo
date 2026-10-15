@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PDFDocument } from 'pdf-lib'
 import type { DatosComprobante } from '@/lib/comprobante-pdf'
+import { formatearPrecio } from '@/lib/utils'
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -154,6 +155,52 @@ describe('comprobante PDF de cotización', () => {
     }).join('\n')
     expect(importesAgrupados).toContain('Precio ofertado: RD$ 1,234.50')
     expect(importesAgrupados).toContain('Precio ofertado: RD$ 1,234,567.80')
+  })
+
+  it('lineasComprobante conserva el total de pantalla para cotizaciones de catálogo, libres y mixtas', () => {
+    const catalogo: DatosComprobante['items'] = [
+      {
+        cantidad: 2,
+        cantidad_confirmada: 2,
+        precio_unitario: 850,
+        precio_ofertado: null,
+        producto: { nombre: 'Tubo PVC' },
+        itbis_incluido: true,
+      },
+      {
+        cantidad: 2,
+        cantidad_confirmada: 2,
+        precio_unitario: 300,
+        precio_ofertado: null,
+        producto: { nombre: 'Bloque' },
+        itbis_incluido: true,
+      },
+    ]
+    const libre: DatosComprobante['items'] = [{
+      cantidad: 3,
+      cantidad_confirmada: 3,
+      precio_unitario: 420,
+      precio_ofertado: null,
+      producto: null,
+      descripcion: 'Arena fina',
+      itbis_incluido: false,
+    }]
+    const casos = [
+      { items: catalogo, totalEsperado: 'RD$ 2,300.00' },
+      { items: libre, totalEsperado: 'RD$ 1,260.00' },
+      { items: [...catalogo, ...libre], totalEsperado: 'RD$ 3,560.00' },
+    ]
+
+    for (const { items, totalEsperado } of casos) {
+      const totalPantalla = items.reduce((suma, item) => (
+        suma + (item.cantidad_confirmada ?? item.cantidad) * (item.precio_unitario ?? item.precio_ofertado ?? 0)
+      ), 0)
+      const lineaTotal = lineasComprobante({ ...fixture, items })
+        .find((linea) => linea.startsWith('Total:'))
+
+      expect(lineaTotal).toBe(`Total: ${formatearPrecio(totalPantalla)}`)
+      expect(lineaTotal).toBe(`Total: ${totalEsperado}`)
+    }
   })
 
   it('lineasComprobante muestra guion cuando falta el RNC de cualquiera de las partes', () => {
