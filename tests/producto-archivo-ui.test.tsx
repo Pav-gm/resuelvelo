@@ -218,8 +218,10 @@ describe('Panel del proveedor — estadísticas', () => {
 
     render(await PanelProveedorPage())
 
-    const tarjeta = screen.getByText('Pedidos este mes').closest('div') as HTMLElement
-    expect(within(tarjeta).getByText('0')).toBeInTheDocument()
-    expect(within(tarjeta).getByText('Vendido: RD$ 0.00')).toBeInTheDocument()
+    const tarjetaPedidos = screen.getByTestId('stat-pedidos-mes')
+    expect(within(tarjetaPedidos).getByText('0')).toBeInTheDocument()
+
+    const tarjetaVendido = screen.getByTestId('stat-total-vendido')
+    expect(within(tarjetaVendido).getByText('RD$ 0.00')).toBeInTheDocument()
   })
 })
