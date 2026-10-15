@@ -24,6 +24,7 @@ const h = vi.hoisted(() => ({
   getProductosDeProveedor: vi.fn(),
   getCotizacionesDelComprador: vi.fn(),
   getFeedbackDeProveedor: vi.fn(),
+  getUnidadesDeProductos: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -66,6 +67,7 @@ vi.mock('@/lib/data', () => ({
   getProductosDeProveedor: h.getProductosDeProveedor,
   getCotizacionesDelComprador: h.getCotizacionesDelComprador,
   getFeedbackDeProveedor: h.getFeedbackDeProveedor,
+  getUnidadesDeProductos: h.getUnidadesDeProductos,
 }))
 
 const detalleBase = {
@@ -110,6 +112,7 @@ beforeEach(() => {
   h.getProductosDeProveedor.mockResolvedValue([])
   h.getCotizacionesDelComprador.mockResolvedValue([])
   h.getFeedbackDeProveedor.mockResolvedValue(null)
+  h.getUnidadesDeProductos.mockResolvedValue({})
 })
 
 afterEach(() => {
@@ -1076,5 +1079,31 @@ describe('Página de detalle de cotización', () => {
     render(await PedidosPage())
     expect(screen.getByText('Pedido: 2 saco')).toBeInTheDocument()
     expect(screen.queryByText('Pedido: 2')).toBeNull()
+  })
+
+  it('el detalle muestra la unidad del producto leída aparte cuando el RPC no la trae', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'pendiente',
+      items: [
+        {
+          id: 'item-1',
+          producto_id: 'prod-1',
+          unidad: null,
+          cantidad: 2,
+          producto: { id: 'prod-1', nombre: 'Cemento', activo: true },
+        },
+      ],
+    })
+    h.getUnidadesDeProductos.mockResolvedValue({ 'prod-1': 'saco' })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.getByText('Pedido: 2 saco')).toBeInTheDocument()
+    expect(screen.queryByText('Pedido: 2')).toBeNull()
+    expect(h.getUnidadesDeProductos).toHaveBeenCalledWith(['prod-1'])
   })
 })
