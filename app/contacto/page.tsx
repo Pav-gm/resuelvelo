@@ -6,7 +6,8 @@ export const metadata: Metadata = {
 
 const WHATSAPP_EJEMPLO = 'WhatsApp de ejemplo del seed'
 const CORREO_EJEMPLO = 'Correo de ejemplo del seed'
-const HORARIO_EJEMPLO = 'Horario de atención de ejemplo del seed'
+const HORARIO_ATENCION =
+  'Lunes a viernes, de 8:00 a. m. a 6:00 p. m.; sábados, de 9:00 a. m. a 1:00 p. m. (hora de República Dominicana).'
 
 /** Deja el número internacional en el formato que exige `wa.me`: solo dígitos. */
 function numeroParaWaMe(valor: string): string {
@@ -68,7 +69,7 @@ export default function ContactoPage(): React.JSX.Element {
 
         <section>
           <h2 className="text-base font-semibold text-gray-900">Horario de atención</h2>
-          <p className="mt-2 leading-relaxed">{HORARIO_EJEMPLO}</p>
+          <p className="mt-2 leading-relaxed">{HORARIO_ATENCION}</p>
         </section>
       </div>
     </div>
