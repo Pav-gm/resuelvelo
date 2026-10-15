@@ -3,7 +3,7 @@
  * de la cotización, estado vacío y error de lectura devuelto por el servidor.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { MouseEventHandler, ReactNode } from 'react'
 import type { Notificacion } from '@/types'
 
@@ -104,20 +104,22 @@ describe('Página de notificaciones', () => {
 
     render(await NotificacionesPage())
 
-    expect(screen.getByText('Tienes una nueva solicitud.')).toBeInTheDocument()
     expect(
       screen.getByText('La cotización fue cancelada por falta de stock.')
     ).toBeInTheDocument()
 
-    expect(screen.getByRole('link', { name: 'Nueva solicitud #COT-000042' })).toHaveAttribute(
-      'href',
-      '/cotizaciones/c-1'
-    )
+    // La tarjeta con cotización es un único enlace que engloba título, cuerpo,
+    // fecha y estado de lectura.
+    const enlace = screen.getByRole('link', { name: /Nueva solicitud #COT-000042/ })
+    expect(enlace).toHaveAttribute('href', '/cotizaciones/c-1')
+    expect(within(enlace).getByText('Nueva solicitud #COT-000042')).toBeInTheDocument()
+    expect(within(enlace).getByText('Tienes una nueva solicitud.')).toBeInTheDocument()
+    expect(within(enlace).getByText('7 de octubre de 2026, 10:20 p. m.')).toBeInTheDocument()
+    expect(within(enlace).getByText('No leída')).toBeInTheDocument()
 
     // La fila sin cotización asociada se muestra sin enlace al detalle.
     expect(screen.getByText('Cotización cancelada #COT-000043')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Cotización cancelada #COT-000043' })).toBeNull()
-    expect(screen.getByText('7 de octubre de 2026, 10:20 p. m.')).toBeInTheDocument()
     expect(h.obtenerNotificaciones).toHaveBeenCalledWith()
   })
 
@@ -151,7 +153,7 @@ describe('Página de notificaciones', () => {
 
     render(await NotificacionesPage())
 
-    fireEvent.click(screen.getByRole('link', { name: 'Nueva solicitud #COT-000042' }))
+    fireEvent.click(screen.getByText('Tienes una nueva solicitud.'))
 
     await waitFor(() => expect(h.marcarNotificacionLeida).toHaveBeenCalledWith('n-1'))
     await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-1'))

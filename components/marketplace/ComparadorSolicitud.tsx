@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { aceptarOfertaDeSolicitud } from '@/app/(marketplace)/cotizaciones/actions'
 import { formatearPrecio } from '@/lib/utils'
@@ -52,6 +53,17 @@ function tienePrecio(cotizacion: CotizacionComparador): boolean {
   return (cotizacion.items ?? []).some((item) => item.precio_ofertado != null)
 }
 
+/** ¿Es una respuesta sin ninguna línea con precio? Se resume como «Sin oferta». */
+function sinOferta(cotizacion: CotizacionComparador): boolean {
+  return cotizacion.estado === 'respondida' && !tienePrecio(cotizacion)
+}
+
+/** Motivo de una oferta hermana cerrada por la elección de otra oferta. */
+function motivoEleccion(cotizacion: CotizacionComparador): string | null {
+  if (cotizacion.estado !== 'rechazada') return null
+  return cotizacion.rechazada_motivo === 'Se eligió otra oferta' ? cotizacion.rechazada_motivo : null
+}
+
 /**
  * Comparador del comprador: tabla por proveedor con las líneas alineadas por
  * índice de la solicitud, el total ofertado y los términos. Resalta el total
@@ -61,9 +73,12 @@ function tienePrecio(cotizacion: CotizacionComparador): boolean {
  */
 export default function ComparadorSolicitud({ data }: Props) {
   const { cotizaciones } = data
+  const router = useRouter()
   const [, startTransition] = useTransition()
   const [pendiente, setPendiente] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Oferta elegida pendiente de confirmación; null cuando no hay diálogo. */
+  const [porConfirmar, setPorConfirmar] = useState<CotizacionComparador | null>(null)
 
   const itemsBase = cotizaciones.find((cot) => (cot.items?.length ?? 0) > 0)?.items ?? []
 
@@ -81,7 +96,12 @@ export default function ComparadorSolicitud({ data }: Props) {
     startTransition(async () => {
       try {
         const resultado = await aceptarOfertaDeSolicitud(cotizacionId)
-        if (resultado?.error) setError(resultado.error)
+        if (resultado?.error) {
+          setError(resultado.error)
+          return
+        }
+        setPorConfirmar(null)
+        router.refresh()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'No se pudo aceptar la oferta.')
       } finally {
@@ -132,6 +152,14 @@ export default function ComparadorSolicitud({ data }: Props) {
                         Plazo más corto
                       </span>
                     )}
+                    {sinOferta(cot) && (
+                      <span className="mt-1 block text-xs font-medium text-gray-500">Sin oferta</span>
+                    )}
+                    {motivoEleccion(cot) && (
+                      <span className="mt-1 block text-xs font-medium text-red-600">
+                        {motivoEleccion(cot)}
+                      </span>
+                    )}
                   </th>
                 )
               })}
@@ -161,6 +189,8 @@ export default function ComparadorSolicitud({ data }: Props) {
                     <td key={cot.id} className="px-4 py-3 text-gray-700">
                       {cot.estado === 'pendiente' ? (
                         <span className="text-gray-400">Pendiente</span>
+                      ) : sinOferta(cot) || motivoEleccion(cot) ? (
+                        <span className="text-gray-400">—</span>
                       ) : subtotal === null || linea?.precio_ofertado == null ? (
                         <span className="text-gray-400">No disponible</span>
                       ) : (
@@ -182,7 +212,11 @@ export default function ComparadorSolicitud({ data }: Props) {
               </th>
               {cotizaciones.map((cot) => (
                 <td key={cot.id} className="px-4 py-3 font-semibold text-gray-900">
-                  {cot.estado === 'pendiente' ? 'Pendiente' : formatearPrecio(totalOferta(cot))}
+                  {cot.estado === 'pendiente'
+                    ? 'Pendiente'
+                    : sinOferta(cot) || motivoEleccion(cot)
+                      ? '—'
+                      : formatearPrecio(totalOferta(cot))}
                 </td>
               ))}
             </tr>
@@ -227,7 +261,7 @@ export default function ComparadorSolicitud({ data }: Props) {
               </th>
               {cotizaciones.map((cot) => {
                 const vencida = ofertaVencida(cot.valida_hasta)
-                const puedeAceptar = cot.estado === 'respondida' && !vencida
+                const puedeAceptar = cot.estado === 'respondida' && !vencida && tienePrecio(cot)
                 return (
                   <td key={cot.id} className="px-4 py-3">
                     {puedeAceptar ? (
@@ -235,7 +269,10 @@ export default function ComparadorSolicitud({ data }: Props) {
                         size="sm"
                         className="bg-teal-600 text-white hover:bg-teal-700"
                         disabled={pendiente}
-                        onClick={() => aceptar(cot.id)}
+                        onClick={() => {
+                          setError(null)
+                          setPorConfirmar(cot)
+                        }}
                       >
                         Aceptar esta oferta
                       </Button>
@@ -251,6 +288,38 @@ export default function ComparadorSolicitud({ data }: Props) {
           </tfoot>
         </table>
       </div>
+
+      {porConfirmar && (
+        <div
+          role="dialog"
+          aria-label="Confirmar aceptación de la oferta"
+          className="mt-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3"
+        >
+          <p className="text-sm text-gray-900">
+            {`¿Aceptar la oferta de ${porConfirmar.proveedor.nombre_empresa} por ${formatearPrecio(
+              totalOferta(porConfirmar)
+            )}? Las demás ofertas de esta solicitud se cerrarán.`}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              className="bg-teal-600 text-white hover:bg-teal-700"
+              disabled={pendiente}
+              onClick={() => aceptar(porConfirmar.id)}
+            >
+              Confirmar aceptación
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pendiente}
+              onClick={() => setPorConfirmar(null)}
+            >
+              Volver
+            </Button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="mt-3 text-sm text-red-600" role="alert">

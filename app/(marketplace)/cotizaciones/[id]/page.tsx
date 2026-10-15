@@ -120,6 +120,15 @@ export default async function CotizacionDetallePage({
   const unidadesProducto: Record<string, string> = ids.length
     ? await getUnidadesDeProductos(ids)
     : {}
+  // El diálogo de oferta no recibe `unidadesProducto`; se completan las unidades
+  // de las líneas de catálogo antes de pasárselas.
+  const itemsConUnidad = items.map((item) => ({
+    ...item,
+    unidad:
+      item.unidad?.trim() ||
+      (item.producto_id ? unidadesProducto[item.producto_id]?.trim() : undefined) ||
+      item.unidad,
+  }))
   const confirmado = ESTADOS_CONFIRMADOS.includes(detalle.estado)
   const respondida = detalle.estado === 'respondida'
   const tieneOferta = ESTADOS_CON_OFERTA.includes(detalle.estado) && detalle.total_ofertado != null
@@ -380,7 +389,7 @@ export default async function CotizacionDetallePage({
 
       {!esComprador && detalle.estado === 'pendiente' && (
         <div className="mt-4">
-          <ResponderCotizacionButton cotizacionId={detalle.id} items={items} />
+          <ResponderCotizacionButton cotizacionId={detalle.id} items={itemsConUnidad} />
         </div>
       )}
 
