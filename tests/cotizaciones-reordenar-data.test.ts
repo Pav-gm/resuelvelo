@@ -61,13 +61,27 @@ describe('getProductosActivosPorIds', () => {
   })
 
   it('getProductosActivosPorIds devuelve solo los productos activos solicitados', async () => {
-    const activo = { id: 'prod-1', activo: true }
+    const activo = { id: 'prod-1', activo: true, proveedor: null }
     const inactivo = { id: 'prod-2', activo: false }
     h.state.result = { data: [activo, inactivo], error: null }
 
-    await expect(getProductosActivosPorIds(['prod-1', 'prod-2'])).resolves.toEqual([activo])
+    await expect(getProductosActivosPorIds(['prod-1', 'prod-2'])).resolves.toEqual([
+      { id: 'prod-1', activo: true, proveedor: undefined },
+    ])
     expect(h.state.from).toEqual(['productos'])
+    expect(h.state.select).toEqual(['*, proveedor:proveedores(*)'])
     expect(h.state.in).toEqual([['id', ['prod-1', 'prod-2']]])
+    expect(h.state.eq).toEqual([['activo', true]])
+  })
+
+  it('getProductosActivosPorIds normaliza la relación proveedor nula a undefined', async () => {
+    h.state.result = { data: [{ id: 'prod-1', activo: true, proveedor: null }], error: null }
+
+    await expect(getProductosActivosPorIds(['prod-1'])).resolves.toEqual([
+      { id: 'prod-1', activo: true, proveedor: undefined },
+    ])
+    expect(h.state.from).toEqual(['productos'])
+    expect(h.state.select).toEqual(['*, proveedor:proveedores(*)'])
     expect(h.state.eq).toEqual([['activo', true]])
   })
 

@@ -172,13 +172,16 @@ export async function getProductosActivosPorIds(productoIds: string[]): Promise<
   const supabase = await getServerClient()
   const { data, error } = await supabase
     .from('productos')
-    .select('*')
+    .select('*, proveedor:proveedores(*)')
     .in('id', productoIds)
     .eq('activo', true)
 
   if (error) propagarErrorLectura('getProductosActivosPorIds', error)
   if (data === null) errorSinDatos('getProductosActivosPorIds')
-  return data as Producto[]
+  return (data as Array<Producto & { proveedor: Producto['proveedor'] | null }>).map((fila) => ({
+    ...fila,
+    proveedor: fila.proveedor ?? undefined,
+  }))
 }
 
 // ─── Productos de un proveedor específico ────────────────────

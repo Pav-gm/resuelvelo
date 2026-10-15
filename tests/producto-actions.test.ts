@@ -16,6 +16,7 @@ import {
   archivarOEliminarProducto,
   crearProducto,
   restaurarProducto,
+  toggleProductoConResultado,
 } from '@/app/(marketplace)/proveedor/actions'
 
 function productoFormData(id?: string): FormData {
@@ -60,6 +61,29 @@ function configurarAccionProducto({
         maybeSingle: () => { query.method = 'maybeSingle'; return chain },
         update: (value: unknown) => { query.method = 'update'; query.value = value; return chain },
         delete: () => { query.method = 'delete'; return chain },
+        then: (resolve: (value: unknown) => unknown) => {
+          mocks.queries.push(query)
+          return Promise.resolve(responses.shift() ?? { data: null, error: null }).then(resolve)
+        },
+      }
+      return chain
+    }),
+  }
+  mocks.createClient.mockResolvedValue(client)
+  return client
+}
+
+function configurarToggleProducto(escritura: { data: unknown; error: unknown }) {
+  const responses = [{ data: { id: 'prov-1' }, error: null }, escritura]
+  const client = {
+    auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } }, error: null })) },
+    from: vi.fn((table: string) => {
+      const query = { table, method: undefined as string | undefined, value: undefined as unknown, calls: {} as Record<string, unknown[]> }
+      const chain = {
+        select: (value: unknown) => { query.calls.select = [value]; return chain },
+        eq: (...args: unknown[]) => { query.calls.eq = [...(query.calls.eq ?? []), args]; return chain },
+        single: () => { query.method = 'single'; return chain },
+        update: (value: unknown) => { query.method = 'update'; query.value = value; return chain },
         then: (resolve: (value: unknown) => unknown) => {
           mocks.queries.push(query)
           return Promise.resolve(responses.shift() ?? { data: null, error: null }).then(resolve)
@@ -140,6 +164,24 @@ describe('acciones de producto', () => {
     configurarAccionProducto({ consultarItems: false, escritura: { data: null, error: { message: 'update failed' } } })
 
     await expect(restaurarProducto('prod-1')).resolves.toEqual({ error: 'update failed' })
+    expect(mocks.revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it('toggleProductoConResultado actualiza el producto propio y devuelve éxito', async () => {
+    configurarToggleProducto({ data: null, error: null })
+
+    await expect(toggleProductoConResultado('prod-1', false)).resolves.toEqual({ success: true })
+    const write = mocks.queries.find((query) => query.method === 'update')
+    expect(write?.value).toEqual({ activo: false })
+    expect(write?.calls.eq).toEqual([['id', 'prod-1'], ['proveedor_id', 'prov-1']])
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/proveedor')
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/catalogo')
+  })
+
+  it('toggleProductoConResultado devuelve el error de escritura', async () => {
+    configurarToggleProducto({ data: null, error: { message: 'update failed' } })
+
+    await expect(toggleProductoConResultado('prod-1', false)).resolves.toEqual({ error: 'update failed' })
     expect(mocks.revalidatePath).not.toHaveBeenCalled()
   })
 })
