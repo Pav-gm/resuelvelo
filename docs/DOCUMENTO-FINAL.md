@@ -327,7 +327,7 @@ Los siete objetivos específicos definidos en la sección 4.3 se cumplieron y ve
 
 1. Esquema de datos con RLS implementado y aplicado a un proyecto Supabase real.
 2. Autenticación completa (registro, login, logout, recuperación de contraseña) funcionando contra Supabase en producción.
-3. Catálogo funcional con 20 productos reales de 5 proveedores, con búsqueda y filtro por categoría.
+3. Catálogo funcional con 100 productos reales de 10 proveedores, con búsqueda y filtro por categoría.
 4. Flujo de carrito y cotizaciones verificado de punta a punta: se creó una cotización real agrupando productos de dos proveedores distintos, y el proveedor la recibió y aceptó correctamente.
 5. Panel de proveedor con estadísticas reales, CRUD de productos completo (incluyendo eliminar, que se agregó durante la fase de cierre).
 6. Verificación end-to-end realizada con cuentas reales de comprador y proveedor contra la base de datos de producción.
