@@ -53,6 +53,7 @@ vi.mock('next/image', () => ({
 }))
 
 import NavbarClient from '@/components/layout/NavbarClient'
+import { cerrarSesion } from '@/app/(auth)/actions'
 import { useCarritoStore } from '@/lib/store/carrito'
 import type { Notificacion, Producto } from '@/types'
 
@@ -99,6 +100,7 @@ beforeEach(() => {
   h.marcarTodasLasNotificacionesLeidas.mockResolvedValue({ error: null })
   h.marcarNotificacionLeida.mockReset()
   h.marcarNotificacionLeida.mockResolvedValue({ error: null })
+  vi.mocked(cerrarSesion).mockReset()
 })
 
 afterEach(() => {
@@ -328,6 +330,26 @@ describe('NavbarClient — menú de cuenta y navegación', () => {
 
     fireEvent.click(miCuenta)
 
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('elegir Cerrar sesión en el menú de cuenta ejecuta cerrarSesion y cierra el menú', async () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    const boton = screen.getByRole('button', { name: 'Ana' })
+    fireEvent.click(boton)
+
+    fireEvent.click(
+      within(screen.getByRole('menu')).getByRole('menuitem', { name: /Cerrar sesión/ })
+    )
+
+    await waitFor(() => expect(vi.mocked(cerrarSesion)).toHaveBeenCalledTimes(1))
     expect(screen.queryByRole('menu')).toBeNull()
     expect(boton).toHaveAttribute('aria-expanded', 'false')
   })
