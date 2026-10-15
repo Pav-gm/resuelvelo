@@ -4,7 +4,7 @@
  */
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { MouseEventHandler, ReactNode } from 'react'
+import type { AnchorHTMLAttributes, ReactNode } from 'react'
 
 const h = vi.hoisted(() => ({
   pathname: '/catalogo',
@@ -33,15 +33,9 @@ vi.mock('next/link', () => ({
   default: ({
     href,
     children,
-    onClick,
-    className,
-  }: {
-    href: string
-    children?: ReactNode
-    onClick?: MouseEventHandler<HTMLAnchorElement>
-    className?: string
-  }) => (
-    <a href={href} onClick={onClick} className={className}>
+    ...rest
+  }: { href: string; children?: ReactNode } & AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a href={href} {...rest}>
       {children}
     </a>
   ),
@@ -158,7 +152,7 @@ describe('NavbarClient — carrito en móvil', () => {
 
     const grupoAcciones = barra?.lastElementChild as HTMLElement
     const botonCarrito = within(grupoAcciones).getByRole('button', { name: 'Carrito' })
-    const enlaceIngresar = within(grupoAcciones).getByRole('link', { name: 'Ingresar' })
+    const enlaceIngresar = within(grupoAcciones).getByRole('link', { name: 'Iniciar sesión' })
 
     // El carrito se conserva por delante de los controles de cuenta.
     expect(
@@ -167,23 +161,348 @@ describe('NavbarClient — carrito en móvil', () => {
   })
 })
 
-describe('NavbarClient — acceso del comprador', () => {
-  it('el acceso del comprador lleva a perfil y conserva Mis cotizaciones en el menú', () => {
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+describe('NavbarClient — menú de cuenta y navegación', () => {
+  it('el menú del comprador muestra sus opciones en el orden definido y la identidad de la cuenta', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({ data: [], noLeidas: 2, error: null })
+
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Constructora Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Constructora Ana' }))
+    const menu = screen.getByRole('menu')
+
+    expect(within(menu).getByText('Constructora Ana')).toBeInTheDocument()
+    expect(within(menu).getByText('ana@example.com')).toBeInTheDocument()
+    expect(within(menu).getByText('Comprador')).toBeInTheDocument()
+
+    const items = within(menu).getAllByRole('menuitem')
+    expect(items.slice(0, 6).map((item) => item.getAttribute('href'))).toEqual([
+      '/cuenta',
+      '/mis-cotizaciones',
+      '/solicitudes',
+      '/solicitudes/nueva',
+      '/notificaciones',
+      '/perfil',
+    ])
+
+    const notificaciones = within(menu).getByRole('menuitem', { name: /Notificaciones/ })
+    await waitFor(() => expect(within(notificaciones).getByText('2')).toBeInTheDocument())
+
+    expect(within(menu).getByRole('separator')).toBeInTheDocument()
+    expect(items[items.length - 1]).toHaveTextContent('Cerrar sesión')
+  })
+
+  it('el menú del proveedor muestra sus opciones en el orden definido', () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ferretería Norte', email: 'ventas@example.com', rol: 'proveedor' }}
+        direccionesObra={[]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ferretería Norte' }))
+    const menu = screen.getByRole('menu')
+
+    expect(within(menu).getByText('Ferretería Norte')).toBeInTheDocument()
+    expect(within(menu).getByText('ventas@example.com')).toBeInTheDocument()
+    expect(within(menu).getByText('Proveedor')).toBeInTheDocument()
+
+    const items = within(menu).getAllByRole('menuitem')
+    expect(items.slice(0, 7).map((item) => item.getAttribute('href'))).toEqual([
+      '/proveedor',
+      '/proveedor/pedidos',
+      '/proveedor/productos',
+      '/proveedor/productos?tab=archivados',
+      '/proveedor/productos/nuevo',
+      '/notificaciones',
+      '/proveedor/perfil',
+    ])
+
+    expect(within(menu).getByRole('separator')).toBeInTheDocument()
+    expect(items[items.length - 1]).toHaveTextContent('Cerrar sesión')
+  })
+
+  it('el menú del administrador conserva Administración y añade Notificaciones', () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Admin', email: 'admin@example.com', rol: 'admin' }}
+        direccionesObra={[]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Admin' }))
+    const menu = screen.getByRole('menu')
+
+    expect(within(menu).getByText('Admin')).toBeInTheDocument()
+    expect(within(menu).getByText('admin@example.com')).toBeInTheDocument()
+    expect(within(menu).getByText('Administrador')).toBeInTheDocument()
+
+    const items = within(menu).getAllByRole('menuitem')
+    expect(items.slice(0, 2).map((item) => item.getAttribute('href'))).toEqual([
+      '/admin',
+      '/notificaciones',
+    ])
+
+    expect(within(menu).getByRole('separator')).toBeInTheDocument()
+    expect(items[items.length - 1]).toHaveTextContent('Cerrar sesión')
+  })
+
+  it('el botón de cuenta expone los atributos ARIA y abre el menú', () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    const boton = screen.getByRole('button', { name: 'Ana' })
+    expect(boton).toHaveAttribute('aria-haspopup', 'menu')
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(boton)
+
+    expect(boton).toHaveAttribute('aria-expanded', 'true')
+    const menu = document.getElementById(boton.getAttribute('aria-controls') ?? '') as HTMLElement
+    expect(menu).toHaveAttribute('role', 'menu')
+    expect(within(menu).getAllByRole('menuitem')[0]).toHaveFocus()
+  })
+
+  it('Escape cierra el menú y devuelve el foco al botón de cuenta', () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    const boton = screen.getByRole('button', { name: 'Ana' })
+    fireEvent.click(boton)
+
+    const menu = screen.getByRole('menu')
+    const primero = within(menu).getAllByRole('menuitem')[0]
+    expect(primero).toHaveFocus()
+
+    fireEvent.keyDown(primero, { key: 'Escape' })
+
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+    expect(boton).toHaveFocus()
+  })
+
+  it('un clic fuera cierra el menú de cuenta', () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    const boton = screen.getByRole('button', { name: 'Ana' })
+    fireEvent.click(boton)
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+
+    fireEvent.mouseDown(document.body)
+
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('elegir una opción cierra el menú de cuenta', () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    const boton = screen.getByRole('button', { name: 'Ana' })
+    fireEvent.click(boton)
+
+    const menu = screen.getByRole('menu')
+    const miCuenta = within(menu).getByRole('menuitem', { name: 'Mi cuenta' })
+    expect(miCuenta).toHaveAttribute('href', '/cuenta')
+
+    fireEvent.click(miCuenta)
+
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(boton).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('el menú permite recorrer opciones con flechas, Home y End', () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ana' }))
+    const items = within(screen.getByRole('menu')).getAllByRole('menuitem')
+    expect(items[0]).toHaveFocus()
+
+    items[0].focus()
+    fireEvent.keyDown(items[0], { key: 'ArrowDown' })
+    expect(items[1]).toHaveFocus()
+
+    items[0].focus()
+    fireEvent.keyDown(items[0], { key: 'ArrowUp' })
+    expect(items[items.length - 1]).toHaveFocus()
+
+    items[items.length - 1].focus()
+    fireEvent.keyDown(items[items.length - 1], { key: 'Home' })
+    expect(items[0]).toHaveFocus()
+
+    items[0].focus()
+    fireEvent.keyDown(items[0], { key: 'End' })
+    expect(items[items.length - 1]).toHaveFocus()
+  })
+
+  it('la barra sin sesión muestra navegación pública e Iniciar sesión', () => {
+    render(<NavbarClient usuario={null} direccionesObra={[]} />)
+
+    const principal = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(within(principal).getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/catalogo')
+    expect(within(principal).getByRole('link', { name: 'Proveedores' })).toHaveAttribute('href', '/proveedores')
+    expect(within(principal).getByRole('link', { name: 'Cómo funciona' })).toHaveAttribute('href', '/como-funciona')
 
     fireEvent.click(screen.getByRole('button', { name: 'Menú' }))
+    const movil = screen.getByRole('navigation', { name: 'Navegación móvil' })
+    expect(within(movil).getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/catalogo')
+    expect(within(movil).getByRole('link', { name: 'Proveedores' })).toHaveAttribute('href', '/proveedores')
+    expect(within(movil).getByRole('link', { name: 'Cómo funciona' })).toHaveAttribute('href', '/como-funciona')
+    expect(within(movil).getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login')
 
-    const enlacesAna = screen.getAllByRole('link', { name: 'Ana' })
-    expect(enlacesAna.length).toBeGreaterThan(0)
-    for (const enlace of enlacesAna) {
-      expect(enlace).toHaveAttribute('href', '/perfil')
+    const iniciar = screen.getAllByRole('link', { name: 'Iniciar sesión' })
+    expect(iniciar.length).toBeGreaterThan(0)
+    for (const enlace of iniciar) {
+      expect(enlace).toHaveAttribute('href', '/login')
     }
 
-    const enlacesCotizaciones = screen.getAllByRole('link', { name: 'Mis cotizaciones' })
-    expect(enlacesCotizaciones.length).toBeGreaterThan(0)
-    for (const enlace of enlacesCotizaciones) {
-      expect(enlace).toHaveAttribute('href', '/mis-cotizaciones')
-    }
+    expect(screen.queryByRole('link', { name: 'Registrarse' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Mis cotizaciones' })).toBeNull()
+    expect(document.querySelector('[aria-haspopup="menu"]')).toBeNull()
+  })
+
+  it('la navegación superior del comprador muestra Catálogo, Proveedores, cotizaciones y solicitudes', () => {
+    h.pathname = '/solicitudes'
+
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    const principal = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(within(principal).getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/catalogo')
+    expect(within(principal).getByRole('link', { name: 'Proveedores' })).toHaveAttribute('href', '/proveedores')
+    expect(within(principal).getByRole('link', { name: 'Mis cotizaciones' })).toHaveAttribute('href', '/mis-cotizaciones')
+    expect(within(principal).getByRole('link', { name: 'Mis solicitudes' })).toHaveAttribute('href', '/solicitudes')
+
+    const activos = within(principal)
+      .getAllByRole('link')
+      .filter((enlace) => enlace.getAttribute('aria-current') === 'page')
+    expect(activos).toHaveLength(1)
+    expect(activos[0]).toHaveAttribute('href', '/solicitudes')
+  })
+
+  it('la navegación superior del proveedor muestra Panel, Pedidos y Productos', () => {
+    h.pathname = '/proveedor/productos'
+
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ferretería Norte', email: 'ventas@example.com', rol: 'proveedor' }}
+        direccionesObra={[]}
+      />
+    )
+
+    const principal = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(within(principal).getByRole('link', { name: 'Panel' })).toHaveAttribute('href', '/proveedor')
+    expect(within(principal).getByRole('link', { name: 'Pedidos' })).toHaveAttribute('href', '/proveedor/pedidos')
+    expect(within(principal).getByRole('link', { name: 'Productos' })).toHaveAttribute('href', '/proveedor/productos')
+
+    const activos = within(principal)
+      .getAllByRole('link')
+      .filter((enlace) => enlace.getAttribute('aria-current') === 'page')
+    expect(activos).toHaveLength(1)
+    expect(activos[0]).toHaveAttribute('href', '/proveedor/productos')
+  })
+
+  it('el menú móvil agrupa los accesos del comprador bajo su nombre y deja Cerrar sesión al final', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({ data: [], noLeidas: 3, error: null })
+
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }}
+        direccionesObra={[]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menú' }))
+    const movil = screen.getByRole('navigation', { name: 'Navegación móvil' })
+
+    expect(within(movil).getByRole('link', { name: 'Catálogo' })).toBeInTheDocument()
+    expect(within(movil).getByRole('link', { name: 'Proveedores' })).toBeInTheDocument()
+    expect(within(movil).getByText('Ana')).toBeInTheDocument()
+
+    const opciones = within(movil)
+      .getAllByRole('link')
+      .map((enlace) => enlace.getAttribute('href'))
+      .filter((href) =>
+        ['/cuenta', '/mis-cotizaciones', '/solicitudes', '/solicitudes/nueva', '/notificaciones', '/perfil'].includes(
+          href ?? ''
+        )
+      )
+    expect(opciones).toEqual([
+      '/cuenta',
+      '/mis-cotizaciones',
+      '/solicitudes',
+      '/solicitudes/nueva',
+      '/notificaciones',
+      '/perfil',
+    ])
+
+    const notificaciones = within(movil).getByRole('link', { name: /Notificaciones/ })
+    await waitFor(() => expect(within(notificaciones).getByText('3')).toBeInTheDocument())
+
+    const interactivos = movil.querySelectorAll('a, button')
+    expect(interactivos[interactivos.length - 1] as HTMLElement).toHaveTextContent('Cerrar sesión')
+  })
+
+  it('el menú móvil del proveedor incluye Catálogo y las opciones de cuenta agrupadas bajo la empresa', () => {
+    render(
+      <NavbarClient
+        usuario={{ nombre: 'Ferretería Norte', email: 'ventas@example.com', rol: 'proveedor' }}
+        direccionesObra={[]}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menú' }))
+    const movil = screen.getByRole('navigation', { name: 'Navegación móvil' })
+
+    expect(within(movil).getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/catalogo')
+    expect(within(movil).getByText('Ferretería Norte')).toBeInTheDocument()
+
+    const opciones = within(movil)
+      .getAllByRole('link')
+      .map((enlace) => enlace.getAttribute('href'))
+      .filter((href) => href === '/notificaciones' || (href?.startsWith('/proveedor') ?? false))
+    expect(opciones).toEqual([
+      '/proveedor',
+      '/proveedor/pedidos',
+      '/proveedor/productos',
+      '/proveedor/productos?tab=archivados',
+      '/proveedor/productos/nuevo',
+      '/notificaciones',
+      '/proveedor/perfil',
+    ])
+
+    const interactivos = movil.querySelectorAll('a, button')
+    expect(interactivos[interactivos.length - 1] as HTMLElement).toHaveTextContent('Cerrar sesión')
   })
 })
 
@@ -191,7 +510,7 @@ describe('NavbarClient — campana de notificaciones', () => {
   it('muestra la campana con el contador para un usuario con sesión también en móvil', async () => {
     h.obtenerNotificaciones.mockResolvedValue({ data: [], noLeidas: 3, error: null })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     await waitFor(() => expect(within(boton).getByText('3')).toBeInTheDocument())
@@ -213,7 +532,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: null,
     })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     fireEvent.click(boton)
@@ -235,7 +554,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: null,
     })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     fireEvent.click(boton)
@@ -258,7 +577,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: null,
     })
 
-    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     fireEvent.click(boton)
@@ -270,7 +589,7 @@ describe('NavbarClient — campana de notificaciones', () => {
     await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-1'))
 
     h.pathname = '/cotizaciones/c-1'
-    rerender(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    rerender(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
 
     expect(screen.queryByTestId('notificacion')).toBeNull()
   })
@@ -285,7 +604,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: 'No se pudo marcar la notificación como leída.',
     })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     fireEvent.click(boton)
@@ -305,13 +624,13 @@ describe('NavbarClient — campana de notificaciones', () => {
       .mockResolvedValueOnce({ data: [], noLeidas: 4, error: null })
       .mockResolvedValueOnce({ data: [], noLeidas: 1, error: null })
 
-    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    const { rerender } = render(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     await waitFor(() => expect(within(boton).getByText('2')).toBeInTheDocument())
 
     h.pathname = '/proveedores'
-    rerender(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    rerender(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
     await waitFor(() => expect(within(boton).getByText('4')).toBeInTheDocument())
 
     fireEvent.click(boton)
@@ -325,7 +644,7 @@ describe('NavbarClient — campana de notificaciones', () => {
       error: null,
     })
 
-    render(<NavbarClient usuario={{ nombre: 'Ana', rol: 'comprador' }} direccionesObra={[]} />)
+    render(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
 
     const boton = await screen.findByRole('button', { name: 'Notificaciones' })
     await waitFor(() => expect(within(boton).getByText('2')).toBeInTheDocument())
