@@ -237,6 +237,26 @@ export async function toggleProducto(productoId: string, activo: boolean): Promi
   revalidatePath('/catalogo')
 }
 
+export async function toggleProductoConResultado(
+  productoId: string,
+  activo: boolean
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient()
+  const proveedor_id = await getProveedorId(supabase)
+
+  const { error } = await supabase
+    .from('productos')
+    .update({ activo })
+    .eq('id', productoId)
+    .eq('proveedor_id', proveedor_id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/proveedor')
+  revalidatePath('/catalogo')
+  return { success: true }
+}
+
 // ─── Eliminar producto ───────────────────────────────────────
 
 export async function eliminarProducto(productoId: string): Promise<void> {
