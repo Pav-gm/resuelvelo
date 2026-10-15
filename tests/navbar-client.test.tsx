@@ -694,4 +694,35 @@ describe('NavbarClient — campana de notificaciones', () => {
     expect(screen.queryByRole('button', { name: 'Notificaciones' })).toBeNull()
     expect(h.obtenerNotificaciones).not.toHaveBeenCalled()
   })
+
+  it('el aviso de despacho baja la campana al leerse y abre su cotización sin recargar', async () => {
+    h.obtenerNotificaciones.mockResolvedValue({
+      data: [
+        notificacion({
+          id: 'n-85',
+          tipo: 'cotizacion_despachada',
+          cotizacion_id: 'c-85',
+          titulo: 'Tu pedido fue despachado.',
+          leida_at: null,
+        }),
+      ],
+      noLeidas: 1,
+      error: null,
+    })
+
+    render(<NavbarClient usuario={{ nombre: 'Ana', email: 'ana@example.com', rol: 'comprador' }} direccionesObra={[]} />)
+
+    const boton = await screen.findByRole('button', { name: 'Notificaciones' })
+    fireEvent.click(boton)
+
+    const enlace = await screen.findByRole('link', { name: 'Tu pedido fue despachado.' })
+    fireEvent.click(enlace)
+
+    await waitFor(() => expect(h.marcarNotificacionLeida).toHaveBeenCalledWith('n-85'))
+    await waitFor(() => expect(boton).toHaveAttribute('data-no-leidas', '0'))
+    await waitFor(() =>
+      expect(screen.getByTestId('notificacion')).toHaveAttribute('data-leida', 'true')
+    )
+    await waitFor(() => expect(h.push).toHaveBeenCalledWith('/cotizaciones/c-85'))
+  })
 })

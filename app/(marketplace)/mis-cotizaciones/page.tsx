@@ -457,7 +457,12 @@ export default async function MisCotizacionesPage({
 
                 {cot.estado === 'respondida' && (
                   <div className="border-t px-6 py-4">
-                    <AccionesOfertaComprador cotizacionId={cot.id} vencida={vencida} />
+                    <AccionesOfertaComprador
+                      cotizacionId={cot.id}
+                      proveedorNombre={cot.proveedor?.nombre_empresa ?? ''}
+                      totalOfertado={Number(cot.total_ofertado)}
+                      vencida={vencida}
+                    />
                   </div>
                 )}
 

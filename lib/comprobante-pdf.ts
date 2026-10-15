@@ -77,9 +77,11 @@ export function lineasComprobante(datos: DatosComprobante): string[] {
     const cantidad = item.cantidad_confirmada ?? item.cantidad
     const precio = item.precio_unitario ?? item.precio_ofertado ?? 0
     const bruto = cantidad * precio
-    const base = item.itbis_incluido ? r2(bruto / 1.18) : r2(bruto)
-    const impuesto = item.itbis_incluido ? r2(bruto - base) : r2(base * 0.18)
-    const importeTotal = base + impuesto
+    const lineaLibre = item.producto === null
+    const itbisIncluido = lineaLibre || item.itbis_incluido
+    const base = itbisIncluido ? r2(bruto / 1.18) : r2(bruto)
+    const impuesto = lineaLibre || itbisIncluido ? r2(bruto - base) : r2(base * 0.18)
+    const importeTotal = lineaLibre ? bruto : base + impuesto
     subtotalGeneral += base
     itbisTotal += impuesto
     total += importeTotal
