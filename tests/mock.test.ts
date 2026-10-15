@@ -29,9 +29,11 @@ describe('Datos mock — categorías', () => {
 
 describe('Datos mock — subcategorías', () => {
   it('cada producto mock tiene subcategoría de su categoría', () => {
-    expect(SUBCATEGORIAS_MOCK).toHaveLength(25)
+    expect(SUBCATEGORIAS_MOCK).toHaveLength(26)
     for (const categoria of CATEGORIAS_MOCK) {
-      expect(SUBCATEGORIAS_MOCK.filter((s) => s.categoria_id === categoria.id)).toHaveLength(5)
+      expect(SUBCATEGORIAS_MOCK.filter((s) => s.categoria_id === categoria.id)).toHaveLength(
+        categoria.slug === 'electricidad' ? 6 : 5,
+      )
     }
     for (const producto of PRODUCTOS_MOCK) {
       expect(producto.subcategoria_id).toBeTruthy()
@@ -42,8 +44,8 @@ describe('Datos mock — subcategorías', () => {
 })
 
 describe('Datos mock — productos', () => {
-  it('existen 10 productos de ejemplo', () => {
-    expect(PRODUCTOS_MOCK).toHaveLength(10)
+  it('existen 100 productos de ejemplo', () => {
+    expect(PRODUCTOS_MOCK).toHaveLength(100)
   })
 
   it('todos los productos tienen campos obligatorios', () => {
@@ -81,11 +83,16 @@ describe('Datos mock — productos', () => {
     expect(new Set(ids).size).toBe(PRODUCTOS_MOCK.length)
   })
 
-  it('los 3 proveedores de demo están presentes', () => {
+  it('los 10 proveedores de demo están presentes con diez productos cada uno', () => {
     const empresas = new Set(PRODUCTOS_MOCK.map((p) => p.proveedor?.nombre_empresa))
-    expect(empresas.has('Promeria')).toBe(true)
-    expect(empresas.has('Ferretería López')).toBe(true)
-    expect(empresas.has('Materiales del Norte')).toBe(true)
+    expect(empresas).toEqual(new Set([
+      'Promeria', 'Ferretería López', 'Materiales del Norte', 'SolarTech RD', 'AutoChequeo RD',
+      'Pinturas Caribe', 'EcoSolar Dominicana', 'MecaniExpress RD', 'Hidrosanitarios del Cibao',
+      'Aceros y Cemento del Este',
+    ]))
+    for (const empresa of empresas) {
+      expect(PRODUCTOS_MOCK.filter((p) => p.proveedor?.nombre_empresa === empresa)).toHaveLength(10)
+    }
   })
 
   it('todos los productos tienen categoría embebida con slug válido', () => {
