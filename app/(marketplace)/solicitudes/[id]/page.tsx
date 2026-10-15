@@ -28,7 +28,10 @@ export default async function SolicitudComparadorPage({
   if (!data) notFound()
 
   const { solicitud } = data
-  const cerrada = data.cotizaciones.some((cot) => cot.estado === 'aceptada')
+  // La solicitud sigue cerrada una vez despachada o recibida la oferta aceptada.
+  const cerrada = data.cotizaciones.some((cot) =>
+    ['aceptada', 'despachada', 'recibida'].includes(cot.estado)
+  )
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">

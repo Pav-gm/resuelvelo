@@ -188,6 +188,37 @@ describe('Comparador de solicitud multiproveedor', () => {
     expect(screen.queryByText('RD$ 0.00')).toBeNull()
   })
 
+  it('una columna Sin oferta no ofrece aceptar la oferta', () => {
+    const data = {
+      solicitud,
+      cotizaciones: [
+        {
+          id: 'cot-1',
+          numero: 1,
+          comprador_id: 'buyer-1',
+          proveedor_id: 'prov-a',
+          estado: 'respondida',
+          created_at: '2026-10-02T12:00:00.000Z',
+          plazo_dias: 5,
+          valida_hasta: '2999-01-01',
+          condiciones: null,
+          proveedor: {
+            id: 'prov-a',
+            nombre_empresa: 'Proveedor A',
+            verificado: true,
+            promedio_feedback: 4.5,
+            conteo_feedback: 2,
+          },
+          items: [itemCemento({ precio_ofertado: null, cantidad_ofertada: 0 })],
+        },
+      ],
+    } as unknown as SolicitudComparador
+
+    render(<ComparadorSolicitud data={data} />)
+
+    expect(screen.queryByRole('button', { name: 'Aceptar esta oferta' })).toBeNull()
+  })
+
   it('el comparador pide confirmación con proveedor y total antes de aceptar', async () => {
     const data = {
       solicitud,
@@ -316,6 +347,38 @@ describe('Comparador de solicitud multiproveedor', () => {
           comprador_id: 'buyer-1',
           proveedor_id: 'prov-a',
           estado: 'aceptada',
+          created_at: '2026-10-02T12:00:00.000Z',
+          plazo_dias: 5,
+          valida_hasta: '2999-01-01',
+          condiciones: null,
+          proveedor: {
+            id: 'prov-a',
+            nombre_empresa: 'Proveedor A',
+            verificado: true,
+            promedio_feedback: 4.5,
+            conteo_feedback: 2,
+          },
+          items: [itemCemento({ cotizacion_id: 'cot-a', precio_ofertado: 100 })],
+        },
+      ],
+    })
+
+    render(await SolicitudComparadorPage({ params: Promise.resolve({ id: 'sol-1' }) }))
+
+    expect(screen.getByText('Materiales obra')).toBeInTheDocument()
+    expect(screen.getByText('Cerrada')).toBeInTheDocument()
+  })
+
+  it('el encabezado del comparador sigue marcando Cerrada cuando la oferta aceptada ya se despachó', async () => {
+    h.getSolicitudComparador.mockResolvedValue({
+      solicitud,
+      cotizaciones: [
+        {
+          id: 'cot-a',
+          numero: 1,
+          comprador_id: 'buyer-1',
+          proveedor_id: 'prov-a',
+          estado: 'despachada',
           created_at: '2026-10-02T12:00:00.000Z',
           plazo_dias: 5,
           valida_hasta: '2999-01-01',

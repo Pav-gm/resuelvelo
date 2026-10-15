@@ -4,7 +4,7 @@
  * listas y legibilidad móvil (envoltura sin scroll horizontal).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
 import CotizacionDetallePage from '@/app/(marketplace)/cotizaciones/[id]/page'
@@ -1105,5 +1105,35 @@ describe('Página de detalle de cotización', () => {
     expect(screen.getByText('Pedido: 2 saco')).toBeInTheDocument()
     expect(screen.queryByText('Pedido: 2')).toBeNull()
     expect(h.getUnidadesDeProductos).toHaveBeenCalledWith(['prod-1'])
+  })
+
+  it('en el detalle, el diálogo Responder con oferta muestra la unidad del producto en líneas de catálogo', async () => {
+    h.state.user = { id: 'provider-user-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-2',
+      numero: 42,
+      estado: 'pendiente',
+      items: [
+        {
+          id: 'item-1',
+          cotizacion_id: 'cot-2',
+          producto_id: 'prod-1',
+          unidad: null,
+          cantidad: 2,
+          sujeta_disponibilidad: false,
+          stock_al_cotizar: null,
+          producto: { id: 'prod-1', nombre: 'Cemento', activo: true },
+        },
+      ],
+    })
+    h.getUnidadesDeProductos.mockResolvedValue({ 'prod-1': 'saco' })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-2' }) }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    expect(screen.getByRole('dialog', { name: 'Responder con oferta' })).toBeInTheDocument()
+    expect(screen.getByText('Cantidad solicitada: 2 saco')).toBeInTheDocument()
   })
 })
