@@ -52,7 +52,7 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const supabase = await createClient()
-    const { error: errorAlCerrar } = await supabase.auth.signOut()
+    const { error: errorAlCerrar } = await supabase.auth.signOut({ scope: 'local' })
     if (errorAlCerrar) return respuestaVacia(404)
 
     const { error: errorAlIniciar } = await supabase.auth.signInWithPassword({ email, password })

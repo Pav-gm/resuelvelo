@@ -4,9 +4,46 @@
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
+import type { ReactNode } from 'react'
 import CatalogoFiltros from '@/components/marketplace/CatalogoFiltros'
+import CatalogoPage from '@/app/(marketplace)/catalogo/page'
 import { getProductos, type ProveedorConConteo } from '@/lib/data'
 import type { Categoria, Subcategoria } from '@/types'
+
+// Proveedores originales con conteos que la ruta debe recalcular tras filtrar.
+const proveedoresCatalogo = vi.hoisted(() => [
+  {
+    id: 'prov-santiago',
+    user_id: 'u-santiago',
+    nombre_empresa: 'Proveedor Santiago',
+    verificado: true,
+    created_at: '',
+    productos_count: 4,
+    zonas_cobertura: ['Santiago'],
+  },
+  {
+    id: 'prov-duarte',
+    user_id: 'u-duarte',
+    nombre_empresa: 'Proveedor Duarte',
+    verificado: true,
+    created_at: '',
+    productos_count: 4,
+    zonas_cobertura: ['Duarte'],
+  },
+])
+
+vi.mock('@/lib/data', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/data')>()
+  return { ...actual, getProveedores: async () => proveedoresCatalogo }
+})
+
+// La tarjeta de producto no participa en la prueba de la lista lateral: se
+// reemplaza para no depender del router de Next.
+vi.mock('next/link', () => ({
+  default: ({ href, children }: { href: string; children?: ReactNode }) => (
+    <a href={href}>{children}</a>
+  ),
+}))
 
 const mocks = vi.hoisted(() => ({
   pushMock: vi.fn(),
@@ -492,5 +529,16 @@ describe('getProductos — provincia de cobertura', () => {
     const productos = await getProductos({})
 
     expect(productos.map((producto) => producto.id)).toEqual(['prod-santiago', 'prod-duarte'])
+  })
+})
+
+describe('Ruta /catalogo — proveedores del resultado filtrado', () => {
+  it('la lista lateral de proveedores refleja la provincia y los conteos del resultado filtrado', async () => {
+    render(await CatalogoPage({ searchParams: Promise.resolve({ provincia: 'Santiago' }) }))
+
+    const lateral = screen.getByRole('group', { name: 'Proveedores' })
+    expect(within(lateral).getByText('Proveedor Santiago')).toBeInTheDocument()
+    expect(within(lateral).getByText('(1)')).toBeInTheDocument()
+    expect(within(lateral).queryByText('Proveedor Duarte')).toBeNull()
   })
 })

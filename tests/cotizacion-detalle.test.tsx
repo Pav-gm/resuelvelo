@@ -24,6 +24,7 @@ const h = vi.hoisted(() => ({
   getProductosDeProveedor: vi.fn(),
   getCotizacionesDelComprador: vi.fn(),
   getFeedbackDeProveedor: vi.fn(),
+  getUnidadesDeProductos: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -66,6 +67,7 @@ vi.mock('@/lib/data', () => ({
   getProductosDeProveedor: h.getProductosDeProveedor,
   getCotizacionesDelComprador: h.getCotizacionesDelComprador,
   getFeedbackDeProveedor: h.getFeedbackDeProveedor,
+  getUnidadesDeProductos: h.getUnidadesDeProductos,
 }))
 
 const detalleBase = {
@@ -110,6 +112,7 @@ beforeEach(() => {
   h.getProductosDeProveedor.mockResolvedValue([])
   h.getCotizacionesDelComprador.mockResolvedValue([])
   h.getFeedbackDeProveedor.mockResolvedValue(null)
+  h.getUnidadesDeProductos.mockResolvedValue({})
 })
 
 afterEach(() => {
@@ -1023,5 +1026,84 @@ describe('Página de detalle de cotización', () => {
     expect(screen.getByText('Arena fina')).toBeInTheDocument()
     expect(screen.getByText('Pedido: 3 m3')).toBeInTheDocument()
     expect(screen.queryByText('Producto no disponible')).toBeNull()
+  })
+
+  it('las cotizaciones muestran la unidad del producto cuando la línea no trae unidad propia', async () => {
+    // Línea de catálogo sin `unidad` propia: la unidad vive en el producto.
+    const itemCatalogo = {
+      id: 'item-1',
+      cotizacion_id: 'cot-1',
+      producto_id: 'prod-1',
+      descripcion: null,
+      unidad: undefined,
+      cantidad: 2,
+      cantidad_confirmada: null,
+      precio_unitario: 10,
+      precio_ofertado: null,
+      sujeta_disponibilidad: false,
+      stock_al_cotizar: null,
+      producto: { id: 'prod-1', nombre: 'Cemento', activo: true, unidad: 'saco' },
+    }
+    const cotizacion = {
+      id: 'cot-1',
+      numero: 50,
+      comprador_id: 'buyer-1',
+      proveedor_id: 'prov-1',
+      estado: 'pendiente',
+      created_at: '2026-10-10T12:00:00.000Z',
+      items: [itemCatalogo],
+    }
+
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionesDelComprador.mockResolvedValue([cotizacion])
+    render(await MisCotizacionesPage({ searchParams: Promise.resolve({}) }))
+    expect(screen.getByText('Pedido: 2 saco')).toBeInTheDocument()
+    expect(screen.queryByText('Pedido: 2')).toBeNull()
+    cleanup()
+
+    h.getCotizacionDetalle.mockResolvedValue({ ...detalleBase, ...cotizacion })
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+    expect(screen.getByText('Pedido: 2 saco')).toBeInTheDocument()
+    expect(screen.queryByText('Pedido: 2')).toBeNull()
+    cleanup()
+
+    h.state.user = { id: 'provider-user-1' }
+    h.getProveedorDelUsuario.mockResolvedValue({
+      id: 'prov-1',
+      user_id: 'provider-user-1',
+      nombre_empresa: 'Promeria',
+      verificado: true,
+      created_at: '2026-01-01T00:00:00.000Z',
+    })
+    h.getCotizacionesDeProveedor.mockResolvedValue([cotizacion])
+    render(await PedidosPage())
+    expect(screen.getByText('Pedido: 2 saco')).toBeInTheDocument()
+    expect(screen.queryByText('Pedido: 2')).toBeNull()
+  })
+
+  it('el detalle muestra la unidad del producto leída aparte cuando el RPC no la trae', async () => {
+    h.state.user = { id: 'buyer-1' }
+    h.getCotizacionDetalle.mockResolvedValue({
+      ...detalleBase,
+      id: 'cot-1',
+      numero: 42,
+      estado: 'pendiente',
+      items: [
+        {
+          id: 'item-1',
+          producto_id: 'prod-1',
+          unidad: null,
+          cantidad: 2,
+          producto: { id: 'prod-1', nombre: 'Cemento', activo: true },
+        },
+      ],
+    })
+    h.getUnidadesDeProductos.mockResolvedValue({ 'prod-1': 'saco' })
+
+    render(await CotizacionDetallePage({ params: Promise.resolve({ id: 'cot-1' }) }))
+
+    expect(screen.getByText('Pedido: 2 saco')).toBeInTheDocument()
+    expect(screen.queryByText('Pedido: 2')).toBeNull()
+    expect(h.getUnidadesDeProductos).toHaveBeenCalledWith(['prod-1'])
   })
 })

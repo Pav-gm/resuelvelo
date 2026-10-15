@@ -28,6 +28,7 @@ export default async function ProductosProveedorPage({
   const productos = todos.filter((p) =>
     enArchivados ? Boolean(p.archivado_at) : !p.archivado_at
   )
+  const archivados = todos.filter((p) => Boolean(p.archivado_at)).length
 
   const baseTab = '-mb-px border-b-2 px-4 py-2 text-sm font-medium'
   const tabActiva = `${baseTab} border-orange-500 text-orange-600`
@@ -57,7 +58,7 @@ export default async function ProductosProveedorPage({
           aria-current={enArchivados ? 'page' : undefined}
           className={enArchivados ? tabActiva : tabInactiva}
         >
-          Archivados
+          {`Archivados (${archivados})`}
         </Link>
       </nav>
       <ListaProductosProveedor
