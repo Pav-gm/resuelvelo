@@ -1,18 +1,18 @@
 -- Catálogo demo de diez proveedores. Adición idempotente; conserva las filas preexistentes.
 -- Cuentas, proveedores, cobertura y 80 productos adicionales del catálogo demo.
 insert into auth.users (instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new) values
-('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000008','authenticated','authenticated','pinturascaribe@demo.com',crypt('Demo1234!',gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"Pinturas Caribe","rol":"proveedor"}',now(),now(),'','','',''),
-('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000009','authenticated','authenticated','ecosolar@demo.com',crypt('Demo1234!',gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"EcoSolar Dominicana","rol":"proveedor"}',now(),now(),'','','',''),
-('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000010','authenticated','authenticated','mecaniexpress@demo.com',crypt('Demo1234!',gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"MecaniExpress RD","rol":"proveedor"}',now(),now(),'','','',''),
-('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000011','authenticated','authenticated','hidrocibao@demo.com',crypt('Demo1234!',gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"Hidrosanitarios del Cibao","rol":"proveedor"}',now(),now(),'','','',''),
-('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000012','authenticated','authenticated','acerosdeleste@demo.com',crypt('Demo1234!',gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"Aceros y Cemento del Este","rol":"proveedor"}',now(),now(),'','','','')
+('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000008','authenticated','authenticated','pinturascaribe@demo.com',extensions.crypt('Demo1234!',extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"Pinturas Caribe","rol":"proveedor"}',now(),now(),'','','',''),
+('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000009','authenticated','authenticated','ecosolar@demo.com',extensions.crypt('Demo1234!',extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"EcoSolar Dominicana","rol":"proveedor"}',now(),now(),'','','',''),
+('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000010','authenticated','authenticated','mecaniexpress@demo.com',extensions.crypt('Demo1234!',extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"MecaniExpress RD","rol":"proveedor"}',now(),now(),'','','',''),
+('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000011','authenticated','authenticated','hidrocibao@demo.com',extensions.crypt('Demo1234!',extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"Hidrosanitarios del Cibao","rol":"proveedor"}',now(),now(),'','','',''),
+('00000000-0000-0000-0000-000000000000','a0000000-0000-0000-0000-000000000012','authenticated','authenticated','acerosdeleste@demo.com',extensions.crypt('Demo1234!',extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{"nombre":"Aceros y Cemento del Este","rol":"proveedor"}',now(),now(),'','','','')
 on conflict (id) do nothing;
-insert into auth.identities (provider_id,user_id,identity_data,provider,last_sign_in_at,created_at,updated_at) values
-('a0000000-0000-0000-0000-000000000008','a0000000-0000-0000-0000-000000000008','{"sub":"a0000000-0000-0000-0000-000000000008","email":"pinturascaribe@demo.com"}','email',now(),now(),now()),
-('a0000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-000000000009','{"sub":"a0000000-0000-0000-0000-000000000009","email":"ecosolar@demo.com"}','email',now(),now(),now()),
-('a0000000-0000-0000-0000-000000000010','a0000000-0000-0000-0000-000000000010','{"sub":"a0000000-0000-0000-0000-000000000010","email":"mecaniexpress@demo.com"}','email',now(),now(),now()),
-('a0000000-0000-0000-0000-000000000011','a0000000-0000-0000-0000-000000000011','{"sub":"a0000000-0000-0000-0000-000000000011","email":"hidrocibao@demo.com"}','email',now(),now(),now()),
-('a0000000-0000-0000-0000-000000000012','a0000000-0000-0000-0000-000000000012','{"sub":"a0000000-0000-0000-0000-000000000012","email":"acerosdeleste@demo.com"}','email',now(),now(),now())
+insert into auth.identities (id,provider_id,user_id,identity_data,provider,last_sign_in_at,created_at,updated_at) values
+(gen_random_uuid(),'a0000000-0000-0000-0000-000000000008','a0000000-0000-0000-0000-000000000008','{"sub":"a0000000-0000-0000-0000-000000000008","email":"pinturascaribe@demo.com"}','email',now(),now(),now()),
+(gen_random_uuid(),'a0000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-000000000009','{"sub":"a0000000-0000-0000-0000-000000000009","email":"ecosolar@demo.com"}','email',now(),now(),now()),
+(gen_random_uuid(),'a0000000-0000-0000-0000-000000000010','a0000000-0000-0000-0000-000000000010','{"sub":"a0000000-0000-0000-0000-000000000010","email":"mecaniexpress@demo.com"}','email',now(),now(),now()),
+(gen_random_uuid(),'a0000000-0000-0000-0000-000000000011','a0000000-0000-0000-0000-000000000011','{"sub":"a0000000-0000-0000-0000-000000000011","email":"hidrocibao@demo.com"}','email',now(),now(),now()),
+(gen_random_uuid(),'a0000000-0000-0000-0000-000000000012','a0000000-0000-0000-0000-000000000012','{"sub":"a0000000-0000-0000-0000-000000000012","email":"acerosdeleste@demo.com"}','email',now(),now(),now())
 on conflict do nothing;
 insert into public.profiles (id,email,nombre,rol) values
 ('a0000000-0000-0000-0000-000000000008','pinturascaribe@demo.com','Pinturas Caribe','proveedor'),
@@ -45,7 +45,7 @@ insert into public.proveedor_zonas (proveedor_id,provincia) values
 ('b0000000-0000-0000-0000-000000000009','Duarte'),
 ('b0000000-0000-0000-0000-000000000010','San Pedro de Macorís'),
 ('b0000000-0000-0000-0000-000000000010','Santo Domingo'),
-('b0000000-0000-0000-0000-000000000010','La Romana'),
+('b0000000-0000-0000-0000-000000000010','Hato Mayor'),
 ('b0000000-0000-0000-0000-000000000001','Santo Domingo'),
 ('b0000000-0000-0000-0000-000000000001','Santiago'),
 ('b0000000-0000-0000-0000-000000000002','Santiago'),

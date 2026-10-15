@@ -14,6 +14,11 @@
 --   admin@demo.com        (admin — sin fila en proveedores)
 --   solartech@demo.com    (proveedor — SolarTech RD)
 --   autochequeo@demo.com  (proveedor — AutoChequeo RD)
+--   pinturascaribe@demo.com (proveedor — Pinturas Caribe)
+--   ecosolar@demo.com      (proveedor — EcoSolar Dominicana)
+--   mecaniexpress@demo.com (proveedor — MecaniExpress RD)
+--   hidrocibao@demo.com    (proveedor — Hidrosanitarios del Cibao)
+--   acerosdeleste@demo.com (proveedor — Aceros y Cemento del Este)
 -- =============================================================
 
 create extension if not exists pgcrypto;
@@ -341,7 +346,7 @@ insert into public.proveedor_zonas (proveedor_id,provincia) values
 ('b0000000-0000-0000-0000-000000000009','Duarte'),
 ('b0000000-0000-0000-0000-000000000010','San Pedro de Macorís'),
 ('b0000000-0000-0000-0000-000000000010','Santo Domingo'),
-('b0000000-0000-0000-0000-000000000010','La Romana'),
+('b0000000-0000-0000-0000-000000000010','Hato Mayor'),
 ('b0000000-0000-0000-0000-000000000001','Santo Domingo'),
 ('b0000000-0000-0000-0000-000000000001','Santiago'),
 ('b0000000-0000-0000-0000-000000000002','Santiago'),
