@@ -19,7 +19,7 @@
 - [x] Layout global con `Navbar` + `Footer` (branding "Resuélvelo" con tilde).
 - [x] Página **Home** (`app/page.tsx`): hero, categorías (con slugs correctos), beneficios, CTA proveedores.
 - [x] Esquema de base de datos en Supabase (`supabase/schema.sql`) + RLS + trigger de `profile`.
-- [x] Seed de demo (`supabase/seed.sql`): 7 usuarios, 5 proveedores, 20 productos, cotizaciones de ejemplo.
+- [x] Seed de demo (`supabase/seed.sql`): 12 usuarios, 10 proveedores, 100 productos, cotizaciones de ejemplo.
 - [x] Refresco de sesión vía `proxy.ts` (reemplaza `middleware.ts` en Next 16).
 - [x] **Auth real**: registro (crea `profile` y, si aplica, `proveedor`), login con redirección por rol, logout.
 - [x] **Recuperación de contraseña** (`/recuperar` → email → `/actualizar-password`).

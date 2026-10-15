@@ -10,10 +10,10 @@ beforeAll(() => {
 })
 
 describe('getProductos — fallback a mock', () => {
-  it('devuelve los 10 productos mock sin filtros', async () => {
+  it('devuelve los 100 productos mock sin filtros', async () => {
     const { getProductos } = await import('@/lib/data')
     const productos = await getProductos()
-    expect(productos.length).toBe(10)
+    expect(productos.length).toBe(100)
   })
 
   it('filtra por búsqueda de texto', async () => {
@@ -97,7 +97,7 @@ describe('getProductos — fallback a mock', () => {
   it('conStock excluye productos con stock 0', async () => {
     const { getProductos } = await import('@/lib/data')
     const productos = await getProductos({ conStock: true })
-    expect(productos.length).toBe(9)
+    expect(productos.length).toBe(90)
     for (const p of productos) {
       expect(p.stock).toBeGreaterThan(0)
     }
@@ -107,7 +107,7 @@ describe('getProductos — fallback a mock', () => {
   it('combina conStock con categoría plomería', async () => {
     const { getProductos } = await import('@/lib/data')
     const productos = await getProductos({ categoriaSlug: 'plomeria', conStock: true })
-    expect(productos.length).toBe(3)
+    expect(productos.length).toBe(18)
     for (const p of productos) {
       expect(p.categoria?.slug).toBe('plomeria')
       expect(p.stock).toBeGreaterThan(0)
@@ -117,9 +117,9 @@ describe('getProductos — fallback a mock', () => {
   it('combina precio mínimo con búsqueda PVC', async () => {
     const { getProductos } = await import('@/lib/data')
     const productos = await getProductos({ busqueda: 'PVC', precioMin: 500 })
-    expect(productos.length).toBe(1)
-    expect(productos[0].id).toBe('1')
-    expect(productos[0].precio).toBeGreaterThanOrEqual(500)
+    expect(productos.length).toBe(2)
+    expect(productos.map((producto) => producto.id)).toEqual(['1', '81'])
+    expect(productos.every((producto) => producto.precio >= 500)).toBe(true)
   })
 })
 
