@@ -48,6 +48,9 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   const [motivoRechazo, setMotivoRechazo] = useState('')
   const [precios, setPrecios] = useState<Record<string, string>>({})
   const [cantidades, setCantidades] = useState<Record<string, string>>({})
+  // La indisponibilidad es explícita: la casilla «No disponible» de cada línea
+  // es la única que la marca (nunca un precio vacío por sí solo).
+  const [noDisponible, setNoDisponible] = useState<Record<string, boolean>>({})
   const [plazo, setPlazo] = useState('')
   const [validaHasta, setValidaHasta] = useState('')
   const [condiciones, setCondiciones] = useState('')
@@ -56,12 +59,15 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
     setError(null)
     const preciosIniciales: Record<string, string> = {}
     const cantidadesIniciales: Record<string, string> = {}
+    const noDisponiblesIniciales: Record<string, boolean> = {}
     for (const item of items) {
       preciosIniciales[item.id] = textoPrecioInicial(item)
       cantidadesIniciales[item.id] = String(cantidadInicial(item))
+      noDisponiblesIniciales[item.id] = false
     }
     setPrecios(preciosIniciales)
     setCantidades(cantidadesIniciales)
+    setNoDisponible(noDisponiblesIniciales)
     setPlazo('0')
     setValidaHasta(sumarDiasISOEnSantoDomingo(7))
     setCondiciones('')
@@ -97,25 +103,34 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   }
 
   /** Valida los datos en español y arma el payload de la oferta. */
-  function construirOferta(preciosUsados: Record<string, string>): OfertaConstruida {
-    // El precio vacío representa una línea no disponible; se serializa como
-    // `precioUnitario: null` y `cantidadOfertada: 0`.
-    const preciosNumericos: Record<string, number | null> = {}
+  function construirOferta(
+    preciosUsados: Record<string, string>,
+    noDisponibles: Record<string, boolean>
+  ): OfertaConstruida {
+    const lineas: LineaOfertaInput[] = []
     for (const item of items) {
-      const texto = (preciosUsados[item.id] ?? '').trim()
-      if (texto === '') {
-        preciosNumericos[item.id] = null
+      // La casilla es la única fuente de indisponibilidad: una línea marcada se
+      // serializa como `precioUnitario: null` y `cantidadOfertada: 0`.
+      if (noDisponibles[item.id]) {
+        lineas.push({ itemId: item.id, precioUnitario: null, cantidadOfertada: 0 })
         continue
       }
+
+      const texto = (preciosUsados[item.id] ?? '').trim()
       const precio = Number(texto)
-      if (!Number.isFinite(precio) || precio <= 0) {
+      if (texto === '' || !Number.isFinite(precio) || precio <= 0) {
         return { error: 'Indica el precio' }
       }
-      preciosNumericos[item.id] = precio
-    }
 
-    if (!items.some((item) => preciosNumericos[item.id] !== null)) {
-      return { error: 'La oferta debe incluir al menos una línea disponible.' }
+      if (item.sujeta_disponibilidad) {
+        const cantidad = parseEntero(cantidades[item.id] ?? '')
+        if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > item.cantidad) {
+          return { error: 'Indica cuántas unidades confirmas' }
+        }
+        lineas.push({ itemId: item.id, precioUnitario: precio, cantidadOfertada: cantidad })
+      } else {
+        lineas.push({ itemId: item.id, precioUnitario: precio, cantidadOfertada: null })
+      }
     }
 
     const plazoDias = plazo.trim() === '' ? Number.NaN : Number(plazo)
@@ -125,35 +140,6 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
 
     if (!esFechaISOFuturaEnSantoDomingo(validaHasta)) {
       return { error: 'La fecha de validez debe ser futura.' }
-    }
-
-    const lineas: LineaOfertaInput[] = []
-    let unidadesTotales = 0
-    for (const item of items) {
-      const precio = preciosNumericos[item.id]
-      if (item.sujeta_disponibilidad) {
-        const cantidad = parseEntero(cantidades[item.id] ?? '')
-        if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > item.cantidad) {
-          return { error: 'Indica cuántas unidades confirmas' }
-        }
-        unidadesTotales += precio === null ? 0 : cantidad
-        lineas.push({
-          itemId: item.id,
-          precioUnitario: precio,
-          cantidadOfertada: precio === null ? 0 : cantidad,
-        })
-      } else {
-        unidadesTotales += precio === null ? 0 : item.cantidad
-        lineas.push({
-          itemId: item.id,
-          precioUnitario: precio,
-          cantidadOfertada: precio === null ? 0 : null,
-        })
-      }
-    }
-
-    if (unidadesTotales === 0) {
-      return { error: 'Si no puedes servir nada, rechaza la cotización' }
     }
 
     return {
@@ -183,7 +169,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
   }
 
   function handleEnviarOferta() {
-    const resultado = construirOferta(precios)
+    const resultado = construirOferta(precios, noDisponible)
     if ('error' in resultado) {
       setError(resultado.error)
       return
@@ -193,8 +179,13 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
 
   function handleAceptarCatalogo() {
     const preciosCatalogo: Record<string, string> = {}
-    for (const item of items) preciosCatalogo[item.id] = textoPrecioInicial(item)
-    const resultado = construirOferta(preciosCatalogo)
+    const noDisponiblesCatalogo: Record<string, boolean> = {}
+    for (const item of items) {
+      preciosCatalogo[item.id] = textoPrecioInicial(item)
+      // Sin precio de catálogo la línea se ofrece como no disponible.
+      noDisponiblesCatalogo[item.id] = textoPrecioInicial(item) === ''
+    }
+    const resultado = construirOferta(preciosCatalogo, noDisponiblesCatalogo)
     if ('error' in resultado) {
       setError(resultado.error)
       return
@@ -265,7 +256,7 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
         <div
           role="dialog"
           aria-label="Responder con oferta"
-          className="rounded-lg border border-green-200 bg-green-50 px-4 py-3"
+          className="w-full rounded-lg border border-green-200 bg-green-50 px-4 py-3"
         >
           <p className="text-sm text-gray-900">
             Indica el precio ofertado de cada producto y los términos de la oferta.
@@ -277,12 +268,15 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                 item.producto?.nombre?.trim() ||
                 item.descripcion?.trim() ||
                 'Producto no disponible'
+              // Unidad efectiva: la propia de la línea o, si falta, la del producto.
+              const unidad = item.unidad?.trim() || item.producto?.unidad?.trim() || undefined
+              const marcado = noDisponible[item.id] ?? false
               return (
                 <div key={item.id} className="flex flex-col gap-2">
                   <span className="text-sm font-medium text-gray-900">
                     {nombre}
-                    {item.unidad && (
-                      <span className="ml-1 text-xs font-normal text-gray-500">{`(${item.unidad})`}</span>
+                    {unidad && (
+                      <span className="ml-1 text-xs font-normal text-gray-500">{`(${unidad})`}</span>
                     )}
                   </span>
                   <div className="flex flex-wrap items-center gap-2">
@@ -295,43 +289,60 @@ export default function ResponderCotizacionButton({ cotizacionId, items }: Props
                       min={0}
                       step="0.01"
                       value={precios[item.id] ?? ''}
-                      disabled={pending}
+                      disabled={pending || marcado}
                       onChange={(evento) => {
                         setPrecios((previos) => ({
                           ...previos,
                           [item.id]: evento.target.value,
                         }))
                       }}
-                      className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                      className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
                     />
                     <span className="text-xs text-gray-500">(opcional)</span>
                   </div>
-                  {(precios[item.id] ?? '').trim() === '' && (
-                    <p className="text-xs text-gray-500">No disponible</p>
-                  )}
+                  <label className="flex items-center gap-2 text-xs text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={marcado}
+                      disabled={pending}
+                      onChange={(evento) => {
+                        setNoDisponible((previos) => ({
+                          ...previos,
+                          [item.id]: evento.target.checked,
+                        }))
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400/20"
+                    />
+                    {`No disponible: ${nombre}`}
+                  </label>
+                  {marcado && <p className="text-xs text-gray-500">Cantidad ofertada: 0</p>}
                   {item.sujeta_disponibilidad ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <label htmlFor={`cantidad-${item.id}`} className="text-sm text-gray-700">
-                        {`Cantidad de ${nombre}`}
+                        {unidad
+                          ? `Cantidad de ${nombre}: ${item.cantidad} ${unidad}`
+                          : `Cantidad de ${nombre}`}
                       </label>
                       <input
                         id={`cantidad-${item.id}`}
                         type="number"
                         min={0}
                         max={item.cantidad}
-                        value={cantidades[item.id] ?? ''}
-                        disabled={pending}
+                        value={marcado ? '0' : (cantidades[item.id] ?? '')}
+                        disabled={pending || marcado}
                         onChange={(evento) => {
                           setCantidades((previas) => ({
                             ...previas,
                             [item.id]: evento.target.value,
                           }))
                         }}
-                        className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                        className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-gray-900 disabled:bg-gray-100 disabled:text-gray-400"
                       />
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500">{`Cantidad solicitada: ${item.cantidad}`}</p>
+                    <p className="text-xs text-gray-500">
+                      {`Cantidad solicitada: ${item.cantidad}${unidad ? ` ${unidad}` : ''}`}
+                    </p>
                   )}
                 </div>
               )

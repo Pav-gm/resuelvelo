@@ -258,7 +258,7 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     expect(h.ofertarCotizacion).not.toHaveBeenCalled()
   })
 
-  it('muestra el error de línea disponible cuando el precio está vacío y no envía la oferta', () => {
+  it('muestra el error de precio cuando el precio está vacío y no envía la oferta', () => {
     const items: ItemCotizacion[] = [
       item({ id: 'item-1', cantidad: 3, producto: producto('Tubo PVC', 15) }),
     ]
@@ -269,9 +269,7 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
     fireEvent.change(screen.getByLabelText('Precio unitario de Tubo PVC'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'La oferta debe incluir al menos una línea disponible.'
-    )
+    expect(screen.getByRole('alert')).toHaveTextContent('Indica el precio')
     expect(h.ofertarCotizacion).not.toHaveBeenCalled()
   })
 
@@ -355,5 +353,99 @@ describe('ResponderCotizacionButton — formulario de oferta', () => {
       'La cotización ya no está pendiente.'
     )
     expect(screen.getByRole('dialog', { name: 'Responder con oferta' })).toBeInTheDocument()
+  })
+
+  it('la línea libre muestra la unidad junto a la cantidad solicitada', () => {
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        cantidad: 2,
+        unidad: 'm3',
+        descripcion: 'Arena fina',
+        producto: null,
+        producto_id: null,
+        sujeta_disponibilidad: false,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    expect(screen.getByText('Cantidad solicitada: 2 m3')).toBeInTheDocument()
+  })
+
+  it('marcar No disponible deshabilita el precio y envía cantidad cero', async () => {
+    h.ofertarCotizacion.mockResolvedValue(null)
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        cantidad: 2,
+        unidad: 'saco',
+        descripcion: 'Cemento',
+        producto: null,
+        producto_id: null,
+        sujeta_disponibilidad: false,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    const precio = screen.getByLabelText('Precio unitario de Cemento')
+    fireEvent.click(screen.getByLabelText('No disponible: Cemento'))
+    expect(precio).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('Plazo de entrega en días'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Válida hasta'), { target: { value: '2026-10-20' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
+
+    await waitFor(() => {
+      expect(h.ofertarCotizacion).toHaveBeenCalledWith('cot-1', {
+        lineas: [{ itemId: 'item-1', precioUnitario: null, cantidadOfertada: 0 }],
+        plazoDias: 5,
+        validaHasta: '2026-10-20',
+        condiciones: null,
+      })
+    })
+  })
+
+  it('desmarcar No disponible exige un precio antes de enviar', () => {
+    const items: ItemCotizacion[] = [
+      item({
+        id: 'item-1',
+        cantidad: 2,
+        unidad: 'saco',
+        descripcion: 'Cemento',
+        producto: null,
+        producto_id: null,
+        sujeta_disponibilidad: false,
+      }),
+    ]
+
+    render(<ResponderCotizacionButton cotizacionId="cot-1" items={items} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    const casilla = screen.getByLabelText('No disponible: Cemento')
+    fireEvent.click(casilla)
+    fireEvent.click(casilla)
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar oferta' }))
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Indica el precio')
+    expect(h.ofertarCotizacion).not.toHaveBeenCalled()
+  })
+
+  it('el diálogo de oferta ocupa el ancho disponible de la tarjeta', () => {
+    const items: ItemCotizacion[] = [
+      item({ id: 'item-1', cantidad: 3, producto: producto('Tubo PVC', 15) }),
+    ]
+
+    render(
+      <div className="w-full">
+        <ResponderCotizacionButton cotizacionId="cot-1" items={items} />
+      </div>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Responder con oferta' }))
+
+    expect(screen.getByRole('dialog', { name: 'Responder con oferta' })).toHaveClass('w-full')
   })
 })

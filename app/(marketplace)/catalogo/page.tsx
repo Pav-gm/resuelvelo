@@ -69,6 +69,19 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
 
   const proveedoresUnicos = new Set(productos.map((p) => p.proveedor_id)).size
 
+  // La lista lateral se deriva del resultado ya filtrado: solo aparecen los
+  // proveedores con productos y su conteo refleja esos productos.
+  const conteosPorProveedor = new Map<string, number>()
+  for (const producto of productos) {
+    conteosPorProveedor.set(
+      producto.proveedor_id,
+      (conteosPorProveedor.get(producto.proveedor_id) ?? 0) + 1
+    )
+  }
+  const proveedoresFiltrados = proveedores
+    .filter((prov) => conteosPorProveedor.has(prov.id))
+    .map((prov) => ({ ...prov, productos_count: conteosPorProveedor.get(prov.id) as number }))
+
   const provincias = Array.from(
     new Set(proveedores.flatMap((prov) => prov.zonas_cobertura ?? []))
   ).sort((a, b) => collatorProvincias.compare(a, b))
@@ -93,7 +106,7 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
       <CatalogoFiltros
         categorias={categorias}
         subcategorias={subcategorias}
-        proveedores={proveedores}
+        proveedores={proveedoresFiltrados}
         busquedaInicial={busqueda}
         categoriaInicial={categoria}
         subcategoriaInicial={subcategoria}

@@ -331,7 +331,7 @@ export default async function MisCotizacionesPage({
                     const nombreProducto = item.producto?.nombre?.trim()
                     const descripcion = item.descripcion?.trim()
                     const rotulo = nombreProducto || descripcion || 'Línea sin descripción'
-                    const unidad = item.unidad?.trim()
+                    const unidad = item.unidad?.trim() || item.producto?.unidad?.trim()
                     // Con oferta manda el precio ofertado; desde aceptada en
                     // adelante rige la cantidad confirmada; antes, lo pedido.
                     const ofertada = tieneOferta && item.precio_ofertado != null

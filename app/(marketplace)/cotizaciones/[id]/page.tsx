@@ -213,7 +213,10 @@ export default async function CotizacionDetallePage({
             const nombreProducto = producto?.nombre?.trim()
             const descripcion = item.descripcion?.trim()
             const rotulo = nombreProducto || descripcion || 'Línea sin descripción'
-            const unidad = item.unidad?.trim()
+            // Unidad efectiva: la de la línea o, si falta, la del producto asociado.
+            const unidad =
+              item.unidad?.trim() ||
+              (item.producto as { unidad?: string | null } | null)?.unidad?.trim()
             // Con oferta manda el precio/cantidad ofertados; desde aceptada en
             // adelante, la cantidad confirmada; antes de aceptar, la ofertada;
             // antes de responder, lo pedido.

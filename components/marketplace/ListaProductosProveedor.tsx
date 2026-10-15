@@ -36,13 +36,27 @@ export default function ListaProductosProveedor({
   enTarjeta = true,
   mensajeVacio,
 }: Props) {
-  const [aviso, setAviso] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<{
+    mensaje: string
+    accion: 'archived' | 'deleted' | 'restored'
+  } | null>(null)
 
   return (
     <div className={enTarjeta ? 'rounded-2xl bg-white border shadow-sm divide-y' : 'divide-y'}>
       {aviso && (
         <p role="status" className="px-4 py-3 text-sm text-green-700 sm:px-6">
-          {aviso}
+          {aviso.mensaje}
+          {aviso.accion === 'archived' && (
+            <>
+              {' '}
+              <Link
+                href="/proveedor/productos?tab=archivados"
+                className="font-medium text-orange-600 hover:underline"
+              >
+                Ver archivados
+              </Link>
+            </>
+          )}
         </p>
       )}
       {productos.map((p) => (
@@ -81,7 +95,7 @@ export default function ListaProductosProveedor({
               nombre={p.nombre}
               tieneCotizaciones={p.tieneCotizaciones ?? false}
               archivado={Boolean(p.archivado_at)}
-              onExito={setAviso}
+              onExito={(mensaje, accion) => setAviso({ mensaje, accion })}
             />
           </div>
         </div>

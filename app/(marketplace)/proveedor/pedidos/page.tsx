@@ -169,13 +169,17 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
           <span className={`rounded-full px-3 py-1 text-xs font-medium ${estadoBadge[cot.estado]}`}>
             {cot.estado.charAt(0).toUpperCase() + cot.estado.slice(1)}
           </span>
-          {cot.estado === 'pendiente' && (
-            <ResponderCotizacionButton cotizacionId={cot.id} items={items} />
-          )}
           <Link href={`/cotizaciones/${cot.id}`}>
             <Button variant="outline" size="sm">Ver</Button>
           </Link>
         </div>
+        {/* El diálogo de oferta ocupa el ancho de la tarjeta: su sección usa
+            toda la fila en vez de quedar confinada a la columna de acciones. */}
+        {cot.estado === 'pendiente' && (
+          <div className="basis-full">
+            <ResponderCotizacionButton cotizacionId={cot.id} items={items} />
+          </div>
+        )}
       </div>
 
       <div className="divide-y">
@@ -185,7 +189,7 @@ function TarjetaCotizacion({ cot }: { cot: Cotizacion }) {
           const nombreProducto = item.producto?.nombre?.trim()
           const descripcion = item.descripcion?.trim()
           const rotulo = nombreProducto || descripcion || 'Línea sin descripción'
-          const unidad = item.unidad?.trim()
+          const unidad = item.unidad?.trim() || item.producto?.unidad?.trim()
           // Con oferta manda el precio/cantidad ofertados; desde aceptada en
           // adelante, lo confirmado; antes, lo pedido.
           const ofertada = respondida && item.precio_ofertado != null

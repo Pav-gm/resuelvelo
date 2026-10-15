@@ -170,6 +170,27 @@ describe('CarritoDrawer — controles y stock', () => {
     expect(screen.getByText('RD$ 1,234.50 / unidad')).toBeInTheDocument()
     expect(screen.getByText('RD$ 2,469.00')).toBeInTheDocument()
   })
+
+  it('el cajón muestra el proveedor al volver a pedir un producto', () => {
+    useCarritoStore.getState().agregar(
+      producto({
+        id: 'prod-1',
+        nombre: 'Cemento',
+        proveedor: {
+          id: 'prov-1',
+          user_id: 'u1',
+          nombre_empresa: 'Ferretería Norte',
+          verificado: true,
+          created_at: '',
+        },
+      }),
+      1
+    )
+    abrirCarrito()
+
+    const fila = screen.getByText('Cemento').closest('div') as HTMLElement
+    expect(within(fila).getByText('Ferretería Norte')).toBeInTheDocument()
+  })
 })
 
 describe('CarritoDrawer — envío de cotización', () => {

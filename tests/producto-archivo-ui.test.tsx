@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   archivarOEliminarProducto: vi.fn(),
   restaurarProducto: vi.fn(),
   toggleProducto: vi.fn(),
+  toggleProductoConResultado: vi.fn(),
   eliminarProducto: vi.fn(),
   solicitarVerificacionProveedor: vi.fn(),
   responderFeedbackProveedor: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   archivarOEliminarProducto: mocks.archivarOEliminarProducto,
   restaurarProducto: mocks.restaurarProducto,
   toggleProducto: mocks.toggleProducto,
+  toggleProductoConResultado: mocks.toggleProductoConResultado,
   eliminarProducto: mocks.eliminarProducto,
   solicitarVerificacionProveedor: mocks.solicitarVerificacionProveedor,
   responderFeedbackProveedor: mocks.responderFeedbackProveedor,
@@ -66,6 +68,7 @@ vi.mock('next/link', async () => {
 
 import EliminarProductoButton from '@/components/marketplace/EliminarProductoButton'
 import ListaProductosProveedor from '@/components/marketplace/ListaProductosProveedor'
+import ToggleProductoButton from '@/components/marketplace/ToggleProductoButton'
 import PanelProveedorPage from '@/app/(marketplace)/proveedor/page'
 import ProductosProveedorPage from '@/app/(marketplace)/proveedor/productos/page'
 
@@ -92,6 +95,15 @@ const PRODUCTO_ARCHIVADO = {
   archivado_at: '2026-10-08T12:00:00.000Z',
   tieneCotizaciones: true,
   created_at: '2026-03-01T12:00:00.000Z',
+}
+
+const PRODUCTO_ACTIVO = {
+  ...PRODUCTO_ARCHIVADO,
+  id: 'prod-2',
+  nombre: 'Cemento',
+  activo: true,
+  archivado_at: null,
+  tieneCotizaciones: false,
 }
 
 beforeEach(() => {
@@ -154,7 +166,7 @@ describe('Acción de producto — archivar, eliminar y restaurar', () => {
 })
 
 describe('Lista de productos — aviso persistente', () => {
-  it('el aviso de archivado sigue visible cuando la fila desaparece', async () => {
+  it('el aviso de archivado incluye enlace a la pestaña Archivados aunque desaparezca la fila', async () => {
     mocks.archivarOEliminarProducto.mockResolvedValue({ success: true, action: 'archived' })
 
     const { rerender } = render(
@@ -167,22 +179,75 @@ describe('Lista de productos — aviso persistente', () => {
 
     const aviso = await screen.findByRole('status')
     expect(aviso).toHaveTextContent('Producto archivado.')
+    expect(within(aviso).getByRole('link', { name: 'Ver archivados' })).toHaveAttribute(
+      'href',
+      '/proveedor/productos?tab=archivados'
+    )
 
     // La revalidación del servidor deja la fila fuera de la lista; el aviso
-    // vive en la lista, que sigue montada.
+    // vive en la lista, que sigue montada, y conserva su enlace.
     rerender(<ListaProductosProveedor productos={[]} />)
 
     expect(screen.getByRole('status')).toHaveTextContent('Producto archivado.')
+    expect(screen.getByRole('link', { name: 'Ver archivados' })).toHaveAttribute(
+      'href',
+      '/proveedor/productos?tab=archivados'
+    )
+  })
+
+  it('restaurar un producto muestra el aviso persistente Producto restaurado', async () => {
+    mocks.restaurarProducto.mockResolvedValue({ success: true, action: 'restored' })
+
+    render(
+      <ListaProductosProveedor
+        productos={[PRODUCTO_ARCHIVADO]}
+        mensajeVacio="No tienes productos archivados."
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar Tubo PVC' }))
+
+    const aviso = await screen.findByRole('status')
+    expect(aviso).toHaveTextContent('Producto restaurado.')
+    expect(within(aviso).queryByRole('link', { name: 'Ver archivados' })).toBeNull()
+  })
+})
+
+describe('ToggleProductoButton — avisos de estado', () => {
+  it('ToggleProductoButton muestra avisos de desactivación y activación', async () => {
+    mocks.toggleProductoConResultado.mockResolvedValue({ success: true })
+
+    const { rerender } = render(<ToggleProductoButton id="prod-1" activo={true} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar' }))
+    expect(await screen.findByText('Producto desactivado.')).toBeInTheDocument()
+
+    rerender(<ToggleProductoButton id="prod-1" activo={false} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Activar' }))
+    expect(await screen.findByText('Producto activado.')).toBeInTheDocument()
+  })
+
+  it('ToggleProductoButton muestra errores de activación sin mostrar éxito', async () => {
+    mocks.toggleProductoConResultado.mockResolvedValue({ error: 'update failed' })
+
+    render(<ToggleProductoButton id="prod-1" activo={true} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar' }))
+
+    const alerta = await screen.findByRole('alert')
+    expect(alerta).toHaveTextContent('update failed')
+    expect(screen.queryByText('Producto desactivado.')).toBeNull()
   })
 })
 
 describe('Ruta /proveedor/productos — pestaña de archivados', () => {
-  it('la pestaña Archivados muestra productos archivados con acción Restaurar', async () => {
-    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO_ARCHIVADO])
+  it('la pestaña Archivados muestra el número de productos archivados', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO_ARCHIVADO, PRODUCTO_ACTIVO])
 
     render(await ProductosProveedorPage({ searchParams: Promise.resolve({ tab: 'archivados' }) }))
 
-    expect(screen.getByRole('link', { name: 'Archivados' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Archivados (1)' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    )
     expect(screen.getByRole('link', { name: 'Productos' })).not.toHaveAttribute('aria-current')
     expect(screen.getByText('Tubo PVC')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Restaurar Tubo PVC' })).toBeInTheDocument()
@@ -198,11 +263,12 @@ describe('Ruta /proveedor/productos — pestaña de archivados', () => {
     expect(screen.getByRole('button', { name: 'Restaurar Tubo PVC' })).toBeInTheDocument()
   })
 
-  it('la pestaña Archivados vacía lo dice', async () => {
+  it('la pestaña Archivados vacía muestra el contador cero', async () => {
     mocks.getProductosDeProveedor.mockResolvedValue([])
 
     render(await ProductosProveedorPage({ searchParams: Promise.resolve({ tab: 'archivados' }) }))
 
+    expect(screen.getByRole('link', { name: 'Archivados (0)' })).toBeInTheDocument()
     expect(screen.getByText('No tienes productos archivados.')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Publicar ahora' })).toBeNull()
   })

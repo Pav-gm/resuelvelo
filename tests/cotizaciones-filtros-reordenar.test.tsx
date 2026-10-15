@@ -254,6 +254,13 @@ describe('Volver a pedir', () => {
         stock: 50,
         activo: true,
         created_at: '2026-01-01T00:00:00.000Z',
+        proveedor: {
+          id: 'prov-1',
+          user_id: 'user-prov',
+          nombre_empresa: 'Ferretería Norte',
+          verificado: true,
+          created_at: '',
+        },
       } satisfies Producto,
     ])
 
@@ -267,6 +274,7 @@ describe('Volver a pedir', () => {
     const [linea] = useCarritoStore.getState().items
     expect(linea.producto.id).toBe('prod-1')
     expect(linea.cantidad).toBe(3)
+    expect(linea.producto.proveedor?.nombre_empresa).toBe('Ferretería Norte')
 
     expect(
       screen.getByText('Algunas líneas ya no están disponibles y no se agregaron al carrito.')
