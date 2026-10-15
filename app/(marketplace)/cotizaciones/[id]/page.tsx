@@ -375,7 +375,12 @@ export default async function CotizacionDetallePage({
 
       {esComprador && respondida && (
         <div className="mt-4">
-          <AccionesOfertaComprador cotizacionId={detalle.id} vencida={vencida} />
+          <AccionesOfertaComprador
+            cotizacionId={detalle.id}
+            proveedorNombre={detalle.proveedor.nombre_empresa}
+            totalOfertado={Number(detalle.total_ofertado)}
+            vencida={vencida}
+          />
         </div>
       )}
 

@@ -51,22 +51,18 @@ export default async function NotificacionesPage() {
             )
 
             return (
-              <li
-                key={n.id}
-                data-testid="notificacion"
-                className="rounded-2xl bg-white border p-4 shadow-sm"
-              >
+              <li key={n.id} data-testid="notificacion">
                 {n.cotizacion_id ? (
                   <NotificacionLink
                     id={n.id}
                     leida={Boolean(n.leida_at)}
                     href={`/cotizaciones/${n.cotizacion_id}`}
-                    className="block"
+                    className="block rounded-2xl bg-white border p-4 shadow-sm"
                   >
                     {contenido}
                   </NotificacionLink>
                 ) : (
-                  contenido
+                  <div className="rounded-2xl bg-white border p-4 shadow-sm">{contenido}</div>
                 )}
               </li>
             )

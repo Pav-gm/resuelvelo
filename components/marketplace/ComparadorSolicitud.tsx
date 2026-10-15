@@ -58,6 +58,18 @@ function sinOferta(cotizacion: CotizacionComparador): boolean {
   return cotizacion.estado === 'respondida' && !tienePrecio(cotizacion)
 }
 
+/** Etiqueta del estado de la oferta elegida (aceptada y sus estados posteriores). */
+const ETIQUETA_ESTADO_ELEGIDA: Record<string, string> = {
+  aceptada: 'Aceptada',
+  despachada: 'Despachada',
+  recibida: 'Recibida',
+}
+
+/** Etiqueta legible del estado de la oferta elegida, o null si no aplica. */
+function estadoOfertaElegida(estado: string): string | null {
+  return ETIQUETA_ESTADO_ELEGIDA[estado] ?? null
+}
+
 /** Motivo de una oferta hermana cerrada por la elección de otra oferta. */
 function motivoEleccion(cotizacion: CotizacionComparador): string | null {
   if (cotizacion.estado !== 'rechazada') return null
@@ -154,6 +166,11 @@ export default function ComparadorSolicitud({ data }: Props) {
                     )}
                     {sinOferta(cot) && (
                       <span className="mt-1 block text-xs font-medium text-gray-500">Sin oferta</span>
+                    )}
+                    {estadoOfertaElegida(cot.estado) && (
+                      <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        {estadoOfertaElegida(cot.estado)}
+                      </span>
                     )}
                     {motivoEleccion(cot) && (
                       <span className="mt-1 block text-xs font-medium text-red-600">
@@ -278,6 +295,10 @@ export default function ComparadorSolicitud({ data }: Props) {
                       </Button>
                     ) : cot.estado === 'respondida' && vencida ? (
                       <span className="text-sm text-red-600">Oferta vencida</span>
+                    ) : estadoOfertaElegida(cot.estado) ? (
+                      <span className="text-sm font-medium text-gray-900">
+                        {estadoOfertaElegida(cot.estado)}
+                      </span>
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}

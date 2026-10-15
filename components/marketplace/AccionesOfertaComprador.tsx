@@ -7,14 +7,17 @@ import {
   rechazarOfertaCotizacion,
   solicitarNuevaOferta,
 } from '@/app/(marketplace)/cotizaciones/actions'
+import { formatearPrecio } from '@/lib/utils'
 import type { CotizacionActionResult } from '@/types'
 
 type Props = {
   cotizacionId: string
+  proveedorNombre: string
+  totalOfertado: number
   vencida: boolean
 }
 
-type Dialogo = 'rechazar' | 'nueva' | null
+type Dialogo = 'aceptar' | 'rechazar' | 'nueva' | null
 
 async function aResultado(
   accion: () => Promise<CotizacionActionResult>
@@ -32,14 +35,20 @@ async function aResultado(
 
 /**
  * Decisión del comprador sobre una oferta respondida. Con la oferta vigente
- * ofrece aceptarla o rechazarla con motivo; con la oferta vencida oculta la
- * aceptación, muestra «Oferta vencida» y permite pedir una nueva dejando una
- * nota al proveedor, conservando el rechazo. Cada diálogo exige un texto de
- * entre 1 y 500 caracteres. Los errores de la acción se muestran como estado,
- * los controles se deshabilitan mientras hay una acción pendiente y el diálogo
- * solo se cierra cuando la acción tiene éxito.
+ * pide confirmar la aceptación con el proveedor y el total antes de ejecutarla,
+ * y permite rechazarla con motivo; con la oferta vencida oculta la aceptación,
+ * muestra «Oferta vencida» y permite pedir una nueva dejando una nota al
+ * proveedor, conservando el rechazo. Cada diálogo exige un texto de entre 1 y
+ * 500 caracteres. Los errores de la acción se muestran como estado, los
+ * controles se deshabilitan mientras hay una acción pendiente y el diálogo solo
+ * se cierra cuando la acción tiene éxito.
  */
-export default function AccionesOfertaComprador({ cotizacionId, vencida }: Props) {
+export default function AccionesOfertaComprador({
+  cotizacionId,
+  proveedorNombre,
+  totalOfertado,
+  vencida,
+}: Props) {
   const [, startTransition] = useTransition()
   const [pendiente, setPendiente] = useState(false)
   const [dialogo, setDialogo] = useState<Dialogo>(null)
@@ -85,7 +94,8 @@ export default function AccionesOfertaComprador({ cotizacionId, vencida }: Props
             disabled={pendiente}
             onClick={() => {
               setError(null)
-              ejecutar(() => aceptarOfertaCotizacion(cotizacionId))
+              limpiar()
+              setDialogo('aceptar')
             }}
           >
             Aceptar oferta
@@ -120,6 +130,40 @@ export default function AccionesOfertaComprador({ cotizacionId, vencida }: Props
           Rechazar oferta
         </Button>
       </div>
+
+      {dialogo === 'aceptar' && (
+        <div
+          className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3"
+          role="dialog"
+          aria-label="Confirmar aceptación de la oferta"
+        >
+          <p className="text-sm text-gray-900">
+            {`¿Aceptar la oferta de ${proveedorNombre} por ${formatearPrecio(totalOfertado)}?`}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button
+              size="sm"
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              disabled={pendiente}
+              onClick={() => ejecutar(() => aceptarOfertaCotizacion(cotizacionId))}
+            >
+              Confirmar aceptación
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pendiente}
+              onClick={() => {
+                limpiar()
+                setDialogo(null)
+                setError(null)
+              }}
+            >
+              Volver
+            </Button>
+          </div>
+        </div>
+      )}
 
       {dialogo === 'rechazar' && (
         <div
