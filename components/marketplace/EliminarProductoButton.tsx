@@ -19,9 +19,10 @@ interface Props {
   /**
    * Cuando la acción la usa una lista que sobrevive a la revalidación del
    * servidor, el mensaje de éxito se delega en quien la contiene: la fila
-   * desaparece y con ella este botón.
+   * desaparece y con ella este botón. La lista recibe también la acción para
+   * poder ofrecer el enlace a la pestaña de archivados.
    */
-  onExito?: (mensaje: string) => void
+  onExito?: (mensaje: string, accion: 'archived' | 'deleted' | 'restored') => void
 }
 
 const MENSAJE_EXITO: Record<'archived' | 'deleted' | 'restored', string> = {
@@ -62,7 +63,7 @@ export default function EliminarProductoButton({
       }
       if (onExito) {
         setResultado(null)
-        onExito(MENSAJE_EXITO[result.action])
+        onExito(MENSAJE_EXITO[result.action], result.action)
         return
       }
       setResultado(result)
