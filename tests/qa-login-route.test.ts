@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => {
-  const signOut = vi.fn(async () => ({ error: null }))
+  const signOut = vi.fn(async (_options: { scope: 'local' }) => ({ error: null }))
   const signInWithPassword = vi.fn(async (): Promise<{ error: { message: string } | null }> => ({ error: null }))
   const createClient = vi.fn(async () => ({ auth: { signOut, signInWithPassword } }))
 
@@ -86,6 +86,7 @@ describe('GET /api/qa-login', () => {
     const response = await GET(solicitud('comprador', TOKEN, '198.51.100.3'))
 
     expect(mocks.signOut).toHaveBeenCalledTimes(1)
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' })
     expect(mocks.signInWithPassword).toHaveBeenCalledWith({ email: 'buyer.qa@example.test', password: 'buyer-pass-secret' })
     expect(response.status).toBe(302)
     expect(await response.text()).toBe('')
@@ -103,6 +104,7 @@ describe('GET /api/qa-login', () => {
     const response = await GET(solicitud('proveedor', TOKEN, '198.51.100.4'))
 
     expect(mocks.signOut).toHaveBeenCalledTimes(1)
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' })
     expect(mocks.signInWithPassword).toHaveBeenCalledWith({ email: 'seller.qa@example.test', password: 'seller-pass-secret' })
     expect(response.status).toBe(302)
     expect(await response.text()).toBe('')
@@ -121,6 +123,7 @@ describe('GET /api/qa-login', () => {
     const response = await GET(solicitud('comprador', TOKEN, '198.51.100.5'))
 
     expect(mocks.signOut).toHaveBeenCalledTimes(1)
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' })
     expect(mocks.signInWithPassword).toHaveBeenCalledTimes(1)
     await expectRespuestaVacia(response, 404)
     expect(response.headers.has('location')).toBe(false)
