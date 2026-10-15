@@ -974,7 +974,7 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
     ['respondida', false, false],
     ['aceptada', true, true],
     ['rechazada', false, false],
-    ['despachada', false, true],
+    ['despachada', false, false],
     ['recibida', false, false],
     ['cancelada', false, false],
   ] as const)(
@@ -1010,6 +1010,25 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
       expect(within(card).queryByRole('form', { name: 'Dejar reseña del proveedor' })).not.toBeInTheDocument()
     }
   )
+
+  it('en despachada no ofrece cancelar venta al proveedor', async () => {
+    h.cotizacionesProveedor.push(
+      cotizacion('despachada', COT_DESPACHADA, { despachada_at: DESPACHADA_AT })
+    )
+    h.cotizacionesProveedor.push(cotizacion('aceptada', '33333333-1111-4111-8111-111111111111'))
+
+    const ui = await PedidosPage()
+    render(ui)
+
+    const cardDespachada = tarjeta('DDDDDDDD')
+    const cardAceptada = tarjeta('33333333')
+    expect(
+      within(cardDespachada).queryByRole('button', { name: 'Cancelar venta' })
+    ).not.toBeInTheDocument()
+    expect(
+      within(cardAceptada).getByRole('button', { name: 'Cancelar venta' })
+    ).toBeInTheDocument()
+  })
 
   it('exige confirmación antes de despachar y muestra el error del RPC', async () => {
     const id = '33333333-1111-4111-8111-111111111111'
@@ -1097,22 +1116,19 @@ describe('Bandeja del proveedor — despacho, cancelación y seguimiento', () =>
     expect(screen.getByRole('button', { name: 'Marcar como despachada' })).toBeEnabled()
   })
 
-  it('en despachada proveedor exige motivo Otro y conserva error RPC', async () => {
-    const id = COT_DESPACHADA
+  it('en aceptada proveedor exige motivo Otro y conserva error RPC', async () => {
+    const id = '33333333-1111-4111-8111-111111111111'
     h.cancelarVenta.mockResolvedValue({ error: 'Esta venta ya no se puede cancelar.' })
-    h.cotizacionesProveedor.push(
-      cotizacion('despachada', id, { despachada_at: DESPACHADA_AT })
-    )
+    h.cotizacionesProveedor.push(cotizacion('aceptada', id))
 
     const ui = await PedidosPage()
     render(ui)
 
-    const card = tarjeta('DDDDDDDD')
+    const card = tarjeta('33333333')
     const linea = within(card).getByRole('region', { name: 'Seguimiento de la cotización' })
-    expect(linea).toHaveTextContent(fechaDespacho(DESPACHADA_AT))
-    expect(pasoSeguimiento(linea, 4, 'Despachada').className).toContain('font-medium')
-    expect(pasoSeguimiento(linea, 5, 'Recibida').className).toContain('text-gray-400')
-    expect(within(card).queryByRole('button', { name: 'Marcar como despachada' })).not.toBeInTheDocument()
+    expect(pasoSeguimiento(linea, 3, 'Aceptada').className).toContain('font-medium')
+    expect(pasoSeguimiento(linea, 4, 'Despachada').className).toContain('text-gray-400')
+    expect(within(card).getByRole('button', { name: 'Marcar como despachada' })).toBeInTheDocument()
 
     fireEvent.click(within(card).getByRole('button', { name: 'Cancelar venta' }))
     expect(h.cancelarVenta).not.toHaveBeenCalled()

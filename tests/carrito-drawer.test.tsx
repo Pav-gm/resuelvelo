@@ -291,6 +291,45 @@ describe('CarritoDrawer — envío de cotización', () => {
     )).toBeInTheDocument()
   })
 
+  it('corregir la fecha requerida limpia el error de fecha anterior a hoy', async () => {
+    cotizarDesdeCarrito.mockResolvedValue({
+      error: 'La fecha requerida no puede ser anterior a hoy.',
+    })
+    useCarritoStore.getState().agregar(producto(), 1)
+    abrirCarrito()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Solicitar cotización' }))
+    })
+
+    expect(screen.getByText('La fecha requerida no puede ser anterior a hoy.')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Fecha requerida (opcional)'), {
+      target: { value: '2026-10-20' },
+    })
+
+    expect(screen.queryByText('La fecha requerida no puede ser anterior a hoy.')).toBeNull()
+  })
+
+  it('vaciar el carrito limpia el error de fecha requerida', async () => {
+    cotizarDesdeCarrito.mockResolvedValue({
+      error: 'La fecha requerida no puede ser anterior a hoy.',
+    })
+    useCarritoStore.getState().agregar(producto(), 1)
+    abrirCarrito()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Solicitar cotización' }))
+    })
+
+    expect(screen.getByText('La fecha requerida no puede ser anterior a hoy.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vaciar carrito' }))
+
+    expect(screen.getByText('El carrito está vacío.')).toBeInTheDocument()
+    expect(screen.queryByText('La fecha requerida no puede ser anterior a hoy.')).toBeNull()
+  })
+
   it('el selector de dirección ofrece sin dirección y las direcciones guardadas', () => {
     useCarritoStore.getState().agregar(producto(), 1)
     abrirCarrito()

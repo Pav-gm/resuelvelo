@@ -11,11 +11,14 @@ interface EstadoSolicitud {
 }
 
 /**
- * Estado derivado de las cotizaciones de la solicitud: pendiente si queda
- * alguna pendiente, respondida si hay ofertas y cerrada si no queda ninguna
- * cotización activa.
+ * Estado derivado de las cotizaciones de la solicitud: cerrada si ya hay una
+ * oferta aceptada, pendiente si queda alguna pendiente, respondida si hay
+ * ofertas y cerrada si no queda ninguna cotización activa.
  */
 function estadoDeSolicitud(cotizaciones: Cotizacion[]): EstadoSolicitud {
+  if (cotizaciones.some((cot) => cot.estado === 'aceptada')) {
+    return { etiqueta: 'Cerrada', clase: 'bg-gray-200 text-gray-600' }
+  }
   if (cotizaciones.some((cot) => cot.estado === 'pendiente')) {
     return { etiqueta: 'Pendiente', clase: 'bg-yellow-100 text-yellow-700' }
   }
