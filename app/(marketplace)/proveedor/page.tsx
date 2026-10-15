@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
   Package, ShoppingBag, TrendingUp, AlertCircle, Truck, XCircle,
-  Plus, ArrowRight, CheckCircle2, Clock
+  Plus, ArrowRight, CheckCircle2, Clock, Archive, Star, MessageSquare
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
@@ -65,23 +65,25 @@ export default async function PanelProveedorPage() {
 
   const totalVendidoEsteMes = stats.totalVendidoEsteMes ?? 0
 
+  // Métricas derivadas de las lecturas ya cargadas.
+  const pedidosPorDespachar = cotizaciones.filter((cot) => cot.estado === 'aceptada').length
+  const productosArchivados = productos.filter((p) => p.archivado_at).length
+
   const statsCards: Array<{
     label: string
-    valor: number
+    valor: number | string
     icono: React.ElementType
     color: string
-    detalle?: string
+    testid: string
   }> = [
-    { label: 'Productos activos',   valor: stats.productosActivos,        icono: Package,      color: 'text-blue-600 bg-blue-50' },
-    { label: 'Cotizaciones nuevas', valor: stats.cotizacionesPendientes,  icono: ShoppingBag,  color: 'text-orange-600 bg-orange-50' },
-    {
-      label: 'Pedidos este mes',
-      valor: stats.pedidosEsteMes ?? 0,
-      icono: TrendingUp,
-      color: 'text-green-600 bg-green-50',
-      detalle: `Vendido: ${formatearPrecio(totalVendidoEsteMes)}`,
-    },
-    { label: 'Sin stock',           valor: stats.sinStock,                icono: AlertCircle,  color: 'text-red-600 bg-red-50' },
+    { label: 'Pedidos del mes',            valor: stats.pedidosEsteMes ?? 0,        icono: TrendingUp,     color: 'text-green-600 bg-green-50',   testid: 'stat-pedidos-mes' },
+    { label: 'Total vendido',              valor: formatearPrecio(totalVendidoEsteMes), icono: ShoppingBag, color: 'text-emerald-600 bg-emerald-50', testid: 'stat-total-vendido' },
+    { label: 'Cotizaciones pendientes',    valor: stats.cotizacionesPendientes,     icono: Clock,          color: 'text-orange-600 bg-orange-50', testid: 'stat-cotizaciones-pendientes' },
+    { label: 'Pedidos por despachar',      valor: pedidosPorDespachar,              icono: Truck,          color: 'text-purple-600 bg-purple-50', testid: 'stat-pedidos-por-despachar' },
+    { label: 'Productos activos',          valor: stats.productosActivos,           icono: Package,        color: 'text-blue-600 bg-blue-50',     testid: 'stat-productos-activos' },
+    { label: 'Productos archivados',       valor: productosArchivados,              icono: Archive,        color: 'text-gray-600 bg-gray-100',    testid: 'stat-productos-archivados' },
+    { label: 'Calificación promedio',      valor: (resenas?.promedio ?? 0).toFixed(2), icono: Star,        color: 'text-yellow-600 bg-yellow-50', testid: 'stat-calificacion' },
+    { label: 'Reseñas',                    valor: resenas?.conteo ?? 0,              icono: MessageSquare,  color: 'text-teal-600 bg-teal-50',     testid: 'stat-resenas' },
   ]
 
   return (
@@ -131,13 +133,12 @@ export default async function PanelProveedorPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mb-8">
         {statsCards.map((s) => (
-          <div key={s.label} className="rounded-2xl bg-white p-5 shadow-sm border">
+          <div key={s.label} data-testid={s.testid} className="rounded-2xl bg-white p-5 shadow-sm border">
             <div className={`inline-flex items-center justify-center rounded-xl p-2.5 ${s.color}`}>
               <s.icono className="h-5 w-5" />
             </div>
             <p className="mt-3 text-2xl font-bold text-gray-900">{s.valor}</p>
             <p className="text-sm text-gray-500">{s.label}</p>
-            {s.detalle && <p className="text-xs text-gray-500">{s.detalle}</p>}
           </div>
         ))}
       </div>
