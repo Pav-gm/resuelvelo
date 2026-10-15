@@ -33,23 +33,23 @@ export const CATEGORIAS_SVG = {
  */
 export const PRODUCTOS_SVG = [
   // Promeria (plomería)
-  { id: 'd0000000-0000-0000-0000-000000000021', nombre: 'Válvula de bola PVC 1/2" (roscada)', categoria: 'plomeria' },
+  { id: 'd0000000-0000-0000-0000-000000000021', nombre: 'Filtro de agua doméstico 10 pulgadas', categoria: 'plomeria' },
   { id: 'd0000000-0000-0000-0000-000000000022', nombre: 'Válvula check PVC 2"', categoria: 'plomeria' },
   { id: 'd0000000-0000-0000-0000-000000000023', nombre: 'Codo PVC sanitario 4"', categoria: 'plomeria' },
   { id: 'd0000000-0000-0000-0000-000000000024', nombre: 'Inodoro de dos piezas blanco', categoria: 'plomeria' },
   { id: 'd0000000-0000-0000-0000-000000000025', nombre: 'Bomba de agua 1/2 HP', categoria: 'plomeria' },
   { id: 'd0000000-0000-0000-0000-000000000026', nombre: 'Ducha eléctrica 4 temperaturas', categoria: 'plomeria' },
   // Ferretería López (ferretería y pinturas)
-  { id: 'd0000000-0000-0000-0000-000000000027', nombre: 'Brocha de 3" para pintura', categoria: 'ferreteria' },
-  { id: 'd0000000-0000-0000-0000-000000000028', nombre: 'Rodillo antigota 9"', categoria: 'ferreteria' },
-  { id: 'd0000000-0000-0000-0000-000000000029', nombre: 'Lija para pared 120', categoria: 'ferreteria' },
-  { id: 'd0000000-0000-0000-0000-000000000030', nombre: 'Cinta de enmascarar 1" x 50m', categoria: 'ferreteria' },
+  { id: 'd0000000-0000-0000-0000-000000000027', nombre: 'Brocha profesional 3 pulgadas', categoria: 'ferreteria' },
+  { id: 'd0000000-0000-0000-0000-000000000028', nombre: 'Rodillo para pintar 9 pulgadas', categoria: 'ferreteria' },
+  { id: 'd0000000-0000-0000-0000-000000000029', nombre: 'Lija para pared grano 120 (paquete)', categoria: 'ferreteria' },
+  { id: 'd0000000-0000-0000-0000-000000000030', nombre: 'Cinta de enmascarar 2 pulgadas', categoria: 'ferreteria' },
   { id: 'd0000000-0000-0000-0000-000000000031', nombre: 'Taladro percutor 1/2"', categoria: 'ferreteria' },
   { id: 'd0000000-0000-0000-0000-000000000032', nombre: 'Juego de destornilladores 6 piezas', categoria: 'ferreteria' },
   { id: 'd0000000-0000-0000-0000-000000000033', nombre: 'Tornillo para madera 2"', categoria: 'ferreteria' },
   // Materiales del Norte (materiales de construcción)
-  { id: 'd0000000-0000-0000-0000-000000000034', nombre: 'Varilla de hierro 1/2" x 6m', categoria: 'materiales' },
-  { id: 'd0000000-0000-0000-0000-000000000035', nombre: 'Alambre de amarre galvanizado (rollo 10 lb)', categoria: 'materiales' },
+  { id: 'd0000000-0000-0000-0000-000000000034', nombre: 'Alambre negro recocido calibre 16 (rollo)', categoria: 'materiales' },
+  { id: 'd0000000-0000-0000-0000-000000000035', nombre: 'Mortero premezclado de albañilería (saco)', categoria: 'materiales' },
   { id: 'd0000000-0000-0000-0000-000000000036', nombre: 'Arena lavada', categoria: 'materiales' },
   { id: 'd0000000-0000-0000-0000-000000000037', nombre: 'Grava triturada', categoria: 'materiales' },
   { id: 'd0000000-0000-0000-0000-000000000038', nombre: 'Cemento blanco', categoria: 'materiales' },
@@ -93,8 +93,8 @@ export const PRODUCTOS_SVG = [
   { id: 'd0000000-0000-0000-0000-000000000089', nombre: 'Tubo CPVC 3/4" x 6m', categoria: 'plomeria' },
   { id: 'd0000000-0000-0000-0000-000000000090', nombre: 'Bomba presurizadora 1/2 HP', categoria: 'plomeria' },
   // Aceros y Cemento del Este (materiales de construcción)
-  { id: 'd0000000-0000-0000-0000-000000000096', nombre: 'Malla electrosoldada 6x6', categoria: 'materiales' },
-  { id: 'd0000000-0000-0000-0000-000000000097', nombre: 'Cemento de albañilería', categoria: 'materiales' },
+  { id: 'd0000000-0000-0000-0000-000000000096', nombre: 'Malla electrosoldada 6x6 (panel)', categoria: 'materiales' },
+  { id: 'd0000000-0000-0000-0000-000000000097', nombre: 'Cemento de albañilería (saco)', categoria: 'materiales' },
   { id: 'd0000000-0000-0000-0000-000000000098', nombre: 'Varilla corrugada 1/2" x 6m', categoria: 'materiales' },
   { id: 'd0000000-0000-0000-0000-000000000099', nombre: 'Grava fina', categoria: 'materiales' },
   { id: 'd0000000-0000-0000-0000-000000000100', nombre: 'Bloque de hormigón 8"', categoria: 'materiales' },
@@ -112,16 +112,40 @@ export function escaparXml(valor) {
     .replaceAll("'", '&apos;')
 }
 
+const FUENTE = 'Arial, Helvetica, sans-serif'
+const MAX_CARACTERES_LINEA = 26
+
+/**
+ * Divide el nombre en una o dos líneas visibles dentro del recorte cuadrado.
+ * `ProductoImagen` recorta 100 unidades a cada lado de la imagen 800×600, por lo
+ * que el texto debe mantenerse dentro de x 120–680. Los nombres largos se parten
+ * en el último espacio en la posición 26 o anterior.
+ */
+export function dividirNombre(nombre) {
+  const texto = String(nombre)
+  if (texto.length <= MAX_CARACTERES_LINEA) return [texto]
+  let corte = texto.lastIndexOf(' ', MAX_CARACTERES_LINEA)
+  if (corte <= 0) corte = MAX_CARACTERES_LINEA
+  const primera = texto.slice(0, corte).trimEnd()
+  const segunda = texto.slice(corte + 1).trimStart()
+  return segunda ? [primera, segunda] : [texto]
+}
+
 /** Devuelve el SVG (determinista) de una fila `{ nombre, categoria }`. */
 export function generarSvg({ nombre, categoria }) {
   const estilo = CATEGORIAS_SVG[categoria]
   if (!estilo) throw new Error(`Categoría sin estilo declarado: ${categoria}`)
   const titulo = escaparXml(nombre)
+  const lineas = dividirNombre(nombre)
+  const texto =
+    lineas.length === 1
+      ? `  <text x="${ANCHO / 2}" y="460" font-size="34" font-weight="600" text-anchor="middle" fill="${estilo.texto}" font-family="${FUENTE}">${escaparXml(lineas[0])}</text>`
+      : `  <text x="${ANCHO / 2}" font-size="34" font-weight="600" text-anchor="middle" fill="${estilo.texto}" font-family="${FUENTE}"><tspan x="${ANCHO / 2}" y="430">${escaparXml(lineas[0])}</tspan><tspan x="${ANCHO / 2}" y="475">${escaparXml(lineas[1])}</tspan></text>`
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${ANCHO}" height="${ALTO}" viewBox="0 0 ${ANCHO} ${ALTO}" role="img" aria-label="${titulo}">`,
     `  <rect width="${ANCHO}" height="${ALTO}" fill="${estilo.fondo}"/>`,
     `  <text x="${ANCHO / 2}" y="250" font-size="200" text-anchor="middle" dominant-baseline="middle">${estilo.icono}</text>`,
-    `  <text x="${ANCHO / 2}" y="460" font-size="34" font-weight="600" text-anchor="middle" fill="${estilo.texto}" font-family="Arial, Helvetica, sans-serif">${titulo}</text>`,
+    texto,
     '</svg>',
     '',
   ].join('\n')

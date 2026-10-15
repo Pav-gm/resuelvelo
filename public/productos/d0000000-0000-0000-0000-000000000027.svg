@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Brocha de 3&quot; para pintura">
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Brocha profesional 3 pulgadas">
   <rect width="800" height="600" fill="#FCE7F3"/>
   <text x="400" y="250" font-size="200" text-anchor="middle" dominant-baseline="middle">🔨</text>
-  <text x="400" y="460" font-size="34" font-weight="600" text-anchor="middle" fill="#9D174D" font-family="Arial, Helvetica, sans-serif">Brocha de 3&quot; para pintura</text>
+  <text x="400" font-size="34" font-weight="600" text-anchor="middle" fill="#9D174D" font-family="Arial, Helvetica, sans-serif"><tspan x="400" y="430">Brocha profesional 3</tspan><tspan x="400" y="475">pulgadas</tspan></text>
 </svg>
