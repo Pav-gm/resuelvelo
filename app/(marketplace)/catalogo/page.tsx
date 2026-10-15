@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import ProductoCard from '@/components/marketplace/ProductoCard'
 import CatalogoFiltros, { type OrdenCatalogo } from '@/components/marketplace/CatalogoFiltros'
 import ErrorCarga from '@/components/marketplace/ErrorCarga'
@@ -14,10 +15,13 @@ interface CatalogoPageProps {
     precioMax?: string
     conStock?: string
     orden?: string
+    provincia?: string
   }>
 }
 
 const ORDENES: readonly OrdenCatalogo[] = ['precio_asc', 'precio_desc', 'nombre_asc']
+
+const collatorProvincias = new Intl.Collator('es', { sensitivity: 'base' })
 
 // Un precio de la URL que no es un número finito y no negativo se ignora: ni filtra ni aparece en chips o campos.
 function parsePrecioParam(value?: string): number | undefined {
@@ -40,6 +44,7 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
       : [proveedor]
     : undefined
   const orden = parseOrden(params.orden)
+  const provincia = params.provincia?.trim() ? params.provincia.trim() : undefined
 
   const datos = await Promise.all([
     getProductos({
@@ -51,6 +56,7 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
       precioMax: parsePrecioParam(precioMax),
       conStock: conStock === '1' ? true : undefined,
       orden,
+      provincia,
     }),
     getCategorias(),
     getSubcategorias(),
@@ -63,19 +69,44 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
 
   const proveedoresUnicos = new Set(productos.map((p) => p.proveedor_id)).size
 
+  // La lista lateral se deriva del resultado ya filtrado: solo aparecen los
+  // proveedores con productos y su conteo refleja esos productos.
+  const conteosPorProveedor = new Map<string, number>()
+  for (const producto of productos) {
+    conteosPorProveedor.set(
+      producto.proveedor_id,
+      (conteosPorProveedor.get(producto.proveedor_id) ?? 0) + 1
+    )
+  }
+  const proveedoresFiltrados = proveedores
+    .filter((prov) => conteosPorProveedor.has(prov.id))
+    .map((prov) => ({ ...prov, productos_count: conteosPorProveedor.get(prov.id) as number }))
+
+  const provincias = Array.from(
+    new Set(proveedores.flatMap((prov) => prov.zonas_cobertura ?? []))
+  ).sort((a, b) => collatorProvincias.compare(a, b))
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Catálogo de productos</h1>
-        <p className="mt-1 text-gray-500">
-          {productos.length} producto{productos.length !== 1 ? 's' : ''} de {proveedoresUnicos} proveedor{proveedoresUnicos !== 1 ? 'es' : ''}
-        </p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Catálogo de productos</h1>
+          <p className="mt-1 text-gray-500">
+            {productos.length} producto{productos.length !== 1 ? 's' : ''} de {proveedoresUnicos} proveedor{proveedoresUnicos !== 1 ? 'es' : ''}
+          </p>
+        </div>
+        <Link
+          href="/solicitudes/nueva"
+          className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+        >
+          Pedir cotización a varios proveedores
+        </Link>
       </div>
 
       <CatalogoFiltros
         categorias={categorias}
         subcategorias={subcategorias}
-        proveedores={proveedores}
+        proveedores={proveedoresFiltrados}
         busquedaInicial={busqueda}
         categoriaInicial={categoria}
         subcategoriaInicial={subcategoria}
@@ -84,6 +115,8 @@ export default async function CatalogoPage({ searchParams }: CatalogoPageProps) 
         precioMaxInicial={parsePrecioParam(precioMax) === undefined ? undefined : precioMax}
         conStockInicial={conStock === '1'}
         ordenInicial={orden}
+        provinciaInicial={provincia}
+        provincias={provincias}
       />
 
       <Suspense fallback={<GridSkeleton />}>

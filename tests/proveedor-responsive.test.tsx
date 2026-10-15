@@ -14,10 +14,16 @@ const mocks = vi.hoisted(() => ({
   getStatsProveedor: vi.fn(),
   getCotizacionesDeProveedor: vi.fn(),
   getProductosDeProveedor: vi.fn(),
+  getFeedbackDeProveedor: vi.fn(),
   redirect: vi.fn(),
   toggleProducto: vi.fn(),
   eliminarProducto: vi.fn(),
+  archivarOEliminarProducto: vi.fn(),
+  restaurarProducto: vi.fn(),
   despacharCotizacion: vi.fn(),
+  aceptarCotizacionConCantidades: vi.fn(),
+  ofertarCotizacion: vi.fn(),
+  rechazarCotizacionConMotivo: vi.fn(),
   responderCotizacion: vi.fn(),
   cancelarVenta: vi.fn(),
 }))
@@ -31,12 +37,18 @@ vi.mock('@/lib/data', () => ({
   getStatsProveedor: mocks.getStatsProveedor,
   getCotizacionesDeProveedor: mocks.getCotizacionesDeProveedor,
   getProductosDeProveedor: mocks.getProductosDeProveedor,
+  getFeedbackDeProveedor: mocks.getFeedbackDeProveedor,
 }))
 
 vi.mock('@/app/(marketplace)/proveedor/actions', () => ({
   toggleProducto: mocks.toggleProducto,
   eliminarProducto: mocks.eliminarProducto,
+  archivarOEliminarProducto: mocks.archivarOEliminarProducto,
+  restaurarProducto: mocks.restaurarProducto,
   despacharCotizacion: mocks.despacharCotizacion,
+  aceptarCotizacionConCantidades: mocks.aceptarCotizacionConCantidades,
+  ofertarCotizacion: mocks.ofertarCotizacion,
+  rechazarCotizacionConMotivo: mocks.rechazarCotizacionConMotivo,
 }))
 
 vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
@@ -47,6 +59,7 @@ vi.mock('@/app/(marketplace)/cotizaciones/actions', () => ({
 vi.mock('next/navigation', () => ({
   redirect: mocks.redirect,
   notFound: vi.fn(),
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
 vi.mock('next/link', async () => {
@@ -80,7 +93,10 @@ const PRODUCTO = {
   precio: 125.5,
   unidad: 'unidad',
   stock: 8,
+  stock_reservado: 2,
   activo: true,
+  archivado_at: null,
+  tieneCotizaciones: false,
   created_at: '2026-03-01T12:00:00.000Z',
 }
 
@@ -105,6 +121,7 @@ beforeEach(() => {
   })
   mocks.getCotizacionesDeProveedor.mockResolvedValue([])
   mocks.getProductosDeProveedor.mockResolvedValue([])
+  mocks.getFeedbackDeProveedor.mockResolvedValue(null)
 })
 
 afterEach(() => {
@@ -158,6 +175,58 @@ describe('Panel del proveedor — adaptación a móvil', () => {
       expect(boton.className).toContain('min-h-11')
     }
   })
+
+  it('el panel omite los productos archivados de su lista', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([
+      { ...PRODUCTO, id: 'prod-1', archivado_at: null },
+      {
+        ...PRODUCTO,
+        id: 'prod-2',
+        nombre: 'Producto archivado de prueba',
+        archivado_at: '2026-10-08T12:00:00.000Z',
+      },
+    ])
+
+    render(await PanelProveedorPage())
+
+    const filas = screen.getAllByTestId('product-row')
+    expect(filas).toHaveLength(1)
+    expect(within(filas[0]).getByText('Tubería PVC reforzada de dos pulgadas')).toBeInTheDocument()
+    expect(screen.queryByText('Producto archivado de prueba')).toBeNull()
+  })
+
+  it('el panel muestra el stock total y las unidades reservadas', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO])
+
+    render(await PanelProveedorPage())
+
+    const fila = screen.getByTestId('product-row')
+    expect(within(fila).getByText(/Stock: 8 \(2 reservadas\)/)).toBeInTheDocument()
+  })
+
+  it('el panel omite el sufijo cuando el producto no tiene reservas', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([{ ...PRODUCTO, stock_reservado: 0 }])
+
+    render(await PanelProveedorPage())
+
+    const fila = screen.getByTestId('product-row')
+    expect(within(fila).getByText(/Stock: 8/)).toBeInTheDocument()
+    expect(within(fila).queryByText(/\(0 reservadas\)/)).toBeNull()
+  })
+
+  it('el panel del proveedor muestra precios y fechas en formato dominicano', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO])
+    mocks.getCotizacionesDeProveedor.mockResolvedValue([
+      { ...COTIZACION, created_at: '2026-10-08T02:20:00.000Z' },
+    ])
+
+    render(await PanelProveedorPage())
+
+    const fila = screen.getByTestId('product-row')
+    expect(within(fila).getByText(/RD\$ 125\.50/)).toBeInTheDocument()
+
+    expect(screen.getByText(/7 de octubre de 2026/)).toBeInTheDocument()
+  })
 })
 
 describe('Ruta /proveedor/productos — lista compartida', () => {
@@ -177,10 +246,19 @@ describe('Ruta /proveedor/productos — lista compartida', () => {
     // La ruta de productos sí envuelve la lista en su propia tarjeta.
     expect(fila.parentElement?.className).toContain('rounded-2xl')
   })
+
+  it('enlaza el nombre de cada producto a su ficha pública', async () => {
+    mocks.getProductosDeProveedor.mockResolvedValue([PRODUCTO])
+
+    render(await ProductosProveedorPage())
+
+    const nombre = screen.getByText('Tubería PVC reforzada de dos pulgadas')
+    expect(nombre.closest('a')).toHaveAttribute('href', '/productos/prod-1')
+  })
 })
 
 describe('Bandeja de cotizaciones — adaptación a móvil', () => {
-  it('la bandeja permite envolver cabeceras y filas con nombres de artículo largos', async () => {
+  it('la bandeja del proveedor permite envolver la cabecera y las filas de cotizaciones', async () => {
     mocks.getCotizacionesDeProveedor.mockResolvedValue([
       {
         ...COTIZACION,
@@ -197,7 +275,7 @@ describe('Bandeja de cotizaciones — adaptación a móvil', () => {
       },
     ])
 
-    render(await PedidosPage())
+    render(await PedidosPage({ searchParams: Promise.resolve({}) }))
 
     expect(screen.getByTestId('order-header').className).toContain('flex-wrap')
 
@@ -208,6 +286,9 @@ describe('Bandeja de cotizaciones — adaptación a móvil', () => {
     expect(nombre.className).toContain('min-w-0')
 
     expect(screen.getByText('x2')).toBeInTheDocument()
-    expect(screen.getByText('$251.00')).toBeInTheDocument()
+    expect(screen.getByText('RD$ 251.00')).toBeInTheDocument()
+
+    // La fila pendiente conserva la acción de responder con oferta.
+    expect(screen.getByRole('button', { name: 'Responder con oferta' })).toBeInTheDocument()
   })
 })

@@ -20,7 +20,7 @@
 **Título del trabajo:** Contenidos del video sobre gestión de proyectos de software, aplicados al proyecto Resuélvelo  
 **Proyecto presentado en Seminario de Proyecto I:** Resuélvelo (marketplace B2B)  
 **Repositorio:** https://github.com/Pav-gm/resuelvelo  
-**Aplicación en producción:** https://resuelveloapp.vercel.app  
+**Aplicación en producción:** https://resuelveloapp.com  
 **Fecha:** agosto 2026  
 
 ---
@@ -227,7 +227,7 @@ Con evidencia objetiva, no con sensación de ocupado. Los criterios que usaría 
 - **Build de producción en verde** (`next build`) y lint sin errores nuevos.
 - **Pruebas automatizadas pasando.**
 - **Flujo manual completo** con dos cuentas: comprador (catálogo → carrito → cotización) y proveedor (CRUD + aceptar/rechazar).
-- **URL de producción respondiendo** (https://resuelveloapp.vercel.app).
+- **URL de producción respondiendo** (https://resuelveloapp.com).
 - **Commits en GitHub** en la semana en que se hizo el trabajo.
 - **Comparación fecha real vs. fecha planificada** de cada fase.
 
@@ -279,7 +279,7 @@ El responsable no debería presentar solo un porcentaje (“vamos al 70%”). De
 - **Cambios:** qué se agregó o se sacó del alcance y por qué.
 - **Evidencia de proceso:** repositorio actualizado, commits recientes, documento de seguimiento al día.
 
-En Resuélvelo, la demostración más honesta al cierre fue: repositorio https://github.com/Pav-gm/resuelvelo, app https://resuelveloapp.vercel.app, y un flujo real de cotización. Eso vale más que un discurso de avance.
+En Resuélvelo, la demostración más honesta al cierre fue: repositorio https://github.com/Pav-gm/resuelvelo, app https://resuelveloapp.com, y un flujo real de cotización. Eso vale más que un discurso de avance.
 
 ### 25. Después de observar el video, ¿qué aspecto de la gestión de proyectos considera que debe mejorar en tu propio proyecto y por qué?
 
@@ -315,7 +315,7 @@ Estos tres aspectos se refuerzan. El alcance dice qué implementar; el plan dice
 
 # Conclusión personal
 
-Seminario de Proyecto I me dejó un sistema publicado y, al mismo tiempo, una lección incómoda: se puede gestionar el producto mejor que el proceso. Resuélvelo tiene catálogo, autenticación, cotizaciones y un panel de proveedor en https://resuelveloapp.vercel.app, pero el repositorio y el plan de seguimiento se actualizaron tarde. Eso no anula el trabajo técnico; sí demuestra que la gestión de proyectos no es un capítulo del documento final, sino la forma de no perder el control cuando aparecen imprevistos.
+Seminario de Proyecto I me dejó un sistema publicado y, al mismo tiempo, una lección incómoda: se puede gestionar el producto mejor que el proceso. Resuélvelo tiene catálogo, autenticación, cotizaciones y un panel de proveedor en https://resuelveloapp.com, pero el repositorio y el plan de seguimiento se actualizaron tarde. Eso no anula el trabajo técnico; sí demuestra que la gestión de proyectos no es un capítulo del documento final, sino la forma de no perder el control cuando aparecen imprevistos.
 
 El video de esta semana conecta directo con esa experiencia. Planificar, estimar, definir actividades, controlar cambios y dar seguimiento no son temas aparte del código. En un marketplace B2B, una cotización mal dirigida o un deploy roto por un stack que no debía existir son fallas de gestión tanto como de programación. La relación más útil que extraigo es esta: los mismos elementos que el video enumera —objetivos, tiempo, recursos, riesgos, equipo— fueron los que, cuando se aplicaron, permitieron el MVP, y los que, cuando se pospusieron, comprimieron la entrega.
 
@@ -355,5 +355,5 @@ Candelario, H. (2026). *Gestión de proyectos de software* [Video de la asignatu
 - Project Management Institute. (2021). *A Guide to the Project Management Body of Knowledge (PMBOK Guide)* (7.ª ed.). PMI.
 - Schwaber, K., y Sutherland, J. (2020). *The Scrum Guide*. https://scrumguides.org
 - Gonzalez, P. (2026). *Resuélvelo* [Software]. https://github.com/Pav-gm/resuelvelo  
-- Gonzalez, P. (2026). Aplicación en producción. https://resuelveloapp.vercel.app  
+- Gonzalez, P. (2026). Aplicación en producción. https://resuelveloapp.com  
 - Gonzalez, P. (2026). Video de explicación del proyecto, Seminario de Proyecto I. https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing  

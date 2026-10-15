@@ -12,7 +12,7 @@ const categorias = [
 const beneficios = [
   { icono: Search, titulo: 'Compara precios al instante', descripcion: 'Consulta catálogos de múltiples proveedores en un solo lugar, sin llamadas ni visitas.' },
   { icono: Zap, titulo: 'Cotiza en minutos', descripcion: 'Envía solicitudes de cotización a varios proveedores simultáneamente y recibe respuestas rápidas.' },
-  { icono: Shield, titulo: 'Proveedores verificados', descripcion: 'Cada proveedor en la plataforma pasa por un proceso de verificación para garantizar confiabilidad.' },
+  { icono: Shield, titulo: 'Verificación de proveedores', descripcion: 'Los proveedores pueden solicitar que revisemos su RNC y sus datos de contacto. La insignia «Verificado» aparece tras la aprobación.' },
   { icono: Star, titulo: 'Historial y trazabilidad', descripcion: 'Todas tus cotizaciones, pedidos y facturas en un solo lugar, siempre disponibles.' },
 ]
 
@@ -86,6 +86,14 @@ export default function HomePage() {
                 <p className="mt-2 text-sm text-gray-500 leading-relaxed">{b.descripcion}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link
+              href="/como-funciona#verificacion-proveedores"
+              className="text-sm font-medium text-orange-500 hover:underline"
+            >
+              Cómo verificamos a los proveedores
+            </Link>
           </div>
         </div>
       </section>

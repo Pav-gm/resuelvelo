@@ -24,8 +24,8 @@ const h = vi.hoisted(() => {
           state.filtros.push({ table, column, value })
           return api
         },
-        order(column: string, options: { ascending: boolean }) {
-          state.orden.push({ table, column, ascending: options.ascending })
+        order(column: string, options?: { ascending: boolean }) {
+          state.orden.push({ table, column, ascending: options?.ascending ?? true })
           return Promise.resolve({ data: state.publico.data, error: state.publico.error })
         },
         maybeSingle() {
@@ -82,7 +82,7 @@ describe('getFeedbackDeProveedor', () => {
     expect(h.state.selects).toEqual([
       {
         table: 'feedback_publico',
-        columns: 'id, proveedor_id, calificacion, comentario, created_at, autor_anonimo',
+        columns: 'id, proveedor_id, calificacion, comentario, created_at, autor_anonimo, respuesta, respuesta_at',
       },
     ])
     expect(h.state.filtros).toEqual([{ table: 'feedback_publico', column: 'proveedor_id', value: 'prov-1' }])
@@ -92,6 +92,7 @@ describe('getFeedbackDeProveedor', () => {
     expect(resumen.conteo).toBe(3)
     expect(resumen.promedio).toBe(4.33)
     expect(resumen.reseñas).toHaveLength(3)
+    expect(resumen.reseñas[0]).toMatchObject({ respuesta: null, respuesta_at: null })
     expect(resumen.reseñas[0]).not.toHaveProperty('comprador_id')
   })
 
@@ -161,5 +162,7 @@ function reseña(calificacion: number, id = 'fb-1') {
     comentario: null,
     created_at: '2026-03-01T12:00:00.000Z',
     autor_anonimo: 'Comprador verificado',
+    respuesta: null,
+    respuesta_at: null,
   }
 }

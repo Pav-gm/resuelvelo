@@ -94,9 +94,10 @@ export async function iniciarSesion(
 
 export async function cerrarSesion(): Promise<void> {
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
   revalidatePath('/', 'layout')
-  redirect('/')
+  redirect('/login')
 }
 
 // ─── Recuperar contraseña ────────────────────────────────────

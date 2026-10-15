@@ -15,11 +15,13 @@ export default function TerminosPage() {
         <section>
           <h2 className="text-base font-semibold text-gray-900">1. Sobre Resuélvelo</h2>
           <p className="mt-2 leading-relaxed">
-            Resuélvelo es un marketplace B2B que conecta compradores profesionales (contratistas,
-            constructoras y PYMEs) con proveedores de materiales, insumos y servicios en República
-            Dominicana. Actuamos únicamente como intermediarios tecnológicos: facilitamos el
-            descubrimiento de proveedores y el intercambio de cotizaciones, pero no somos parte de
-            las transacciones comerciales entre compradores y proveedores.
+            «Resuélvelo» es el nombre comercial de la plataforma. La entidad legal que la opera se
+            identifica como <strong>[Razón social pendiente]</strong>. Resuélvelo es un marketplace
+            B2B que conecta compradores profesionales (contratistas, constructoras y PYMEs) con
+            proveedores de materiales, insumos y servicios en República Dominicana. Actuamos
+            únicamente como intermediarios tecnológicos: facilitamos el descubrimiento de
+            proveedores y el intercambio de cotizaciones, pero no somos parte de las transacciones
+            comerciales entre compradores y proveedores.
           </p>
         </section>
 
@@ -54,7 +56,51 @@ export default function TerminosPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-gray-900">5. Limitación de responsabilidad</h2>
+          <h2 className="text-base font-semibold text-gray-900">5. Cancelación por el comprador</h2>
+          <p className="mt-2 leading-relaxed">
+            Cada cancelación exige un motivo. El comprador puede solicitar la cancelación de una
+            cotización antes de que el pedido sea despachado y debe registrar el motivo en la
+            plataforma.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-gray-900">6. Cancelación por el proveedor</h2>
+          <p className="mt-2 leading-relaxed">
+            El proveedor puede cancelar una cotización cuando le sea imposible cumplir con lo
+            acordado. También debe registrar el motivo de la cancelación en la plataforma.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-gray-900">7. Disputas</h2>
+          <p className="mt-2 leading-relaxed">
+            Si surge una disputa por un pedido, repórtala desde la página de{' '}
+            <Link href="/contacto" className="font-medium text-orange-500 hover:underline">
+              Contacto
+            </Link>{' '}
+            indicando el número de cotización o pedido, el motivo y la evidencia que la respalde.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-gray-900">8. Comisiones</h2>
+          <p className="mt-2 leading-relaxed">
+            La comisión de Resuélvelo es 0 % por ahora. Si en el futuro cambia, se informará en
+            esta página antes de aplicarse.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-gray-900">9. Protección de datos</h2>
+          <p className="mt-2 leading-relaxed">
+            Tratamos los datos personales de acuerdo con la Ley 172-13 de protección de datos
+            personales de la República Dominicana.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-base font-semibold text-gray-900">10. Limitación de responsabilidad</h2>
           <p className="mt-2 leading-relaxed">
             Resuélvelo se ofrece &quot;tal cual&quot;, como proyecto en etapa de producto mínimo viable
             (MVP). No garantizamos disponibilidad ininterrumpida ni la exactitud de la información
@@ -63,10 +109,13 @@ export default function TerminosPage() {
         </section>
 
         <section>
-          <h2 className="text-base font-semibold text-gray-900">6. Contacto</h2>
+          <h2 className="text-base font-semibold text-gray-900">11. Contacto</h2>
           <p className="mt-2 leading-relaxed">
-            Para dudas sobre estos términos, contáctanos a través de los canales indicados en la
-            plataforma.
+            Para dudas sobre estos términos, escríbenos desde la página de{' '}
+            <Link href="/contacto" className="font-medium text-orange-500 hover:underline">
+              Contacto
+            </Link>
+            .
           </p>
         </section>
       </div>

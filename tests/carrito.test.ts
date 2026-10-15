@@ -195,6 +195,18 @@ describe('Carrito — topes de stock al agregar', () => {
   })
 })
 
+describe('Carrito — stock disponible con reservas', () => {
+  it('limita agregar al stock disponible descontando reservas', () => {
+    const producto: Producto = { ...PRODUCTO_A, stock: 299, stock_reservado: 213 }
+    useCarritoStore.getState().agregar(producto, 162)
+    useCarritoStore.getState().actualizarCantidad(producto.id, 162)
+
+    const { items } = useCarritoStore.getState()
+    expect(items).toHaveLength(1)
+    expect(items[0].cantidad).toBe(86)
+  })
+})
+
 describe('Carrito — actualizar cantidad con stock', () => {
   it('sigue quitando el producto con cantidad cero o negativa', () => {
     useCarritoStore.getState().agregar(PRODUCTO_A, 4)

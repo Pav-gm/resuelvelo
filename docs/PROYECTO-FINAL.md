@@ -63,7 +63,7 @@ Leyenda: Listo (revisado y aprobado) · Borrador (redactado en `docs/DOCUMENTO-F
 - [x] Código fuente completo y funcional — verificado end-to-end contra Supabase real.
 - [x] `README.md` con: nombre, descripción, objetivo, tecnologías, instalación/ejecución, capturas.
 - [x] `.gitignore` adecuado al lenguaje.
-- [x] Evidencia funcional (capturas en `docs/screenshots/` + URL en vivo: https://resuelveloapp.vercel.app).
+- [x] Evidencia funcional (capturas en `docs/screenshots/` + URL en vivo: https://resuelveloapp.com).
 - [x] Licencia (MIT, en `LICENSE`).
 - [x] Uso evidente de GitHub como control de versiones — **https://github.com/Pav-gm/resuelvelo** (repositorio público, historial de commits con todo el desarrollo).
 
@@ -91,7 +91,7 @@ Leyenda: Listo (revisado y aprobado) · Borrador (redactado en `docs/DOCUMENTO-F
 1. ~~Construir el núcleo funcional del repo~~ — hecho, Fases 1–7 completas y verificadas.
 2. ~~Redactar el documento de las 17 secciones~~ — completo en `docs/DOCUMENTO-FINAL.md` (se decidió no reconciliar con EMANA 2 / SEMANA 3 / SEMANA 5 / Miro); falta pasarlo a Google Docs con formato final.
 3. ~~Escribir el guion del video~~ — hecho en `docs/GUION-VIDEO.md`.
-4. ~~Tomar capturas, completar README, desplegar en Vercel~~ — hecho: `docs/screenshots/`, README reescrito, https://resuelveloapp.vercel.app.
+4. ~~Tomar capturas, completar README, desplegar en Vercel~~ — hecho: `docs/screenshots/`, README reescrito, https://resuelveloapp.com.
 5. ~~Publicar el repo en GitHub~~ — hecho: https://github.com/Pav-gm/resuelvelo
 6. ~~Grabar el video y compartir el enlace~~ — hecho: https://drive.google.com/file/d/15n7IPEHttmp6q8i0ufigFZhVpdqGt4-R/view?usp=sharing
 7. Revisar y ajustar el tono/contenido de `docs/DOCUMENTO-FINAL.md` a la voz propia antes de copiarlo a Google Docs.

@@ -40,6 +40,7 @@ export default async function EditarProductoPage({ params }: EditarProductoPageP
         categorias={categorias}
         subcategorias={subcategorias}
         producto={producto}
+        proveedorId={producto.proveedor_id}
       />
     </div>
   )

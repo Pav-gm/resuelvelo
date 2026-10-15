@@ -3,7 +3,7 @@
  * Cubren la validación previa a cualquier escritura, la fusión de duplicados
  * contra el stock actual y el flujo válido de inserción que ya existía.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ItemCarrito } from '@/types'
 
 const h = vi.hoisted(() => {
@@ -17,11 +17,13 @@ const h = vi.hoisted(() => {
 
   const state = {
     user: { id: 'comprador-1' } as { id: string } | null,
-    productos: [] as { id: string; proveedor_id: string; precio: number; stock: number; activo: boolean }[],
+    productos: [] as { id: string; proveedor_id: string; precio: number; stock: number; stock_reservado: number | null; activo: boolean }[],
+    direcciones: [] as { id: string; user_id: string }[],
     queryError: null as { message: string } | null,
     queryThrows: false,
     cotizacionError: null as { message: string } | null,
     itemsError: null as { message: string } | null,
+    itemsErrorCotizacionId: null as string | null,
     ops: [] as string[],
     inserts: [] as { table: string; payload: unknown }[],
     selects: [] as { columns: string; ids: string[] }[],
@@ -34,7 +36,8 @@ const h = vi.hoisted(() => {
     from(table: string) {
       return {
         select(columns: string) {
-          return {
+          const filtros: Record<string, string> = {}
+          const query = {
             in(_column: string, ids: string[]) {
               state.ops.push('select:productos')
               state.selects.push({ columns, ids: [...ids] })
@@ -42,7 +45,19 @@ const h = vi.hoisted(() => {
               if (state.queryError) return { data: null, error: state.queryError }
               return { data: state.productos.filter((producto) => ids.includes(producto.id)), error: null }
             },
+            eq(column: string, value: string) {
+              filtros[column] = value
+              return query
+            },
+            async maybeSingle() {
+              state.ops.push('select:direcciones_obra')
+              const direccion = state.direcciones.find((entry) =>
+                entry.id === filtros.id && entry.user_id === filtros.user_id
+              )
+              return { data: direccion ? { id: direccion.id } : null, error: null }
+            },
           }
+          return query
         },
         insert(payload: unknown) {
           state.ops.push(`insert:${table}`)
@@ -60,7 +75,8 @@ const h = vi.hoisted(() => {
               }),
             }
           }
-          return { error: state.itemsError }
+          const cotizacionId = Array.isArray(payload) ? (payload[0] as { cotizacion_id?: string } | undefined)?.cotizacion_id : undefined
+          return { error: state.itemsError && (!state.itemsErrorCotizacionId || state.itemsErrorCotizacionId === cotizacionId) ? state.itemsError : null }
         },
       }
     },
@@ -70,8 +86,9 @@ const h = vi.hoisted(() => {
     throw new RedirectSignal(url)
   })
   const revalidatePath = vi.fn()
+  const enviarNotificacionCotizacionEmail = vi.fn(async () => undefined)
 
-  return { RedirectSignal, state, createClient, redirect, revalidatePath }
+  return { RedirectSignal, state, createClient, redirect, revalidatePath, enviarNotificacionCotizacionEmail }
 })
 
 vi.mock('next/navigation', () => ({
@@ -84,6 +101,9 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: h.createClient,
+}))
+vi.mock('@/lib/notificaciones-email', () => ({
+  enviarNotificacionCotizacionEmail: h.enviarNotificacionCotizacionEmail,
 }))
 
 import { cotizarDesdeCarrito } from '@/app/(marketplace)/cotizaciones/actions'
@@ -138,6 +158,7 @@ function productoDb(overrides: {
   proveedor_id?: string
   precio?: number
   stock?: number
+  stock_reservado?: number | null
   activo?: boolean
 } = {}) {
   return {
@@ -145,6 +166,7 @@ function productoDb(overrides: {
     proveedor_id: overrides.proveedor_id ?? 'prov-db',
     precio: overrides.precio ?? 80,
     stock: overrides.stock ?? 10,
+    stock_reservado: overrides.stock_reservado ?? 0,
     activo: overrides.activo ?? true,
   }
 }
@@ -153,15 +175,22 @@ beforeEach(() => {
   h.createClient.mockClear()
   h.redirect.mockClear()
   h.revalidatePath.mockClear()
+  h.enviarNotificacionCotizacionEmail.mockClear()
   h.state.user = { id: 'comprador-1' }
   h.state.productos = []
+  h.state.direcciones = []
   h.state.queryError = null
   h.state.queryThrows = false
   h.state.cotizacionError = null
   h.state.itemsError = null
+  h.state.itemsErrorCotizacionId = null
   h.state.ops = []
   h.state.inserts = []
   h.state.selects = []
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('cotizarDesdeCarrito — validación antes de escribir', () => {
@@ -283,27 +312,47 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
     expect(h.state.inserts).toEqual([])
   })
 
-  it('fusiona productos repetidos y compara la suma con el stock antes de insertar', async () => {
-    h.state.productos = [productoDb({ stock: 7 })]
+  it('fusiona productos repetidos y guarda la disponibilidad según la cantidad fusionada', async () => {
+    h.state.productos = [productoDb({ stock: 7, precio: 1 })]
 
     const outcome = await ejecutar(formConItems([
       item({ cantidad: 4, nombre: 'Cemento', precio: 1, proveedor_id: 'cliente-a' }),
       item({ cantidad: 4, nombre: 'Cemento', precio: 1, proveedor_id: 'cliente-b' }),
     ]))
 
-    expect(outcome).toEqual({
-      kind: 'returned',
-      result: {
-        error: 'No hay stock suficiente para Cemento (disponible: 7, solicitado: 8).',
-      },
-    })
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
     expect(h.state.selects).toEqual([
-      { columns: 'id, proveedor_id, precio, stock, activo', ids: ['11111111-1111-4111-8111-111111111111'] },
+      { columns: 'id, proveedor_id, precio, stock, stock_reservado, activo', ids: ['11111111-1111-4111-8111-111111111111'] },
     ])
-    expect(h.state.ops).toEqual(['select:productos'])
-    expect(h.state.inserts).toEqual([])
-    expect(h.revalidatePath).not.toHaveBeenCalled()
-    expect(h.redirect).not.toHaveBeenCalled()
+    expect(h.state.inserts.find((i) => i.table === 'items_cotizacion')?.payload).toEqual([
+      {
+        cotizacion_id: 'cot-1',
+        producto_id: '11111111-1111-4111-8111-111111111111',
+        cantidad: 8,
+        precio_unitario: 1,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 7,
+      },
+    ])
+    expect(h.revalidatePath).toHaveBeenCalledWith('/mis-cotizaciones')
+  })
+
+  it('calcula sujeta_disponibilidad y stock_al_cotizar descontando reservas', async () => {
+    h.state.productos = [productoDb({ stock: 299, stock_reservado: 213, precio: 80 })]
+
+    const outcome = await ejecutar(formConItems([item({ cantidad: 162 })]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((i) => i.table === 'items_cotizacion')?.payload).toEqual([
+      {
+        cotizacion_id: 'cot-1',
+        producto_id: '11111111-1111-4111-8111-111111111111',
+        cantidad: 162,
+        precio_unitario: 80,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 86,
+      },
+    ])
   })
 
   it('usa un texto genérico si el producto fusionado no trae nombre', async () => {
@@ -313,16 +362,20 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
 
     const outcome = await ejecutar(formConItems([sinNombre]))
 
-    expect(outcome).toEqual({
-      kind: 'returned',
-      result: {
-        error: 'No hay stock suficiente para uno de los productos (disponible: 1, solicitado: 2).',
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((i) => i.table === 'items_cotizacion')?.payload).toEqual([
+      {
+        cotizacion_id: 'cot-1',
+        producto_id: '11111111-1111-4111-8111-111111111111',
+        cantidad: 2,
+        precio_unitario: 80,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 1,
       },
-    })
-    expect(h.state.inserts).toEqual([])
+    ])
   })
 
-  it('no inserta nada si un producto excede el stock aunque otro quepa', async () => {
+  it('crea cotización si una línea excede el stock aunque otra quepa', async () => {
     h.state.productos = [
       productoDb({ id: '11111111-1111-4111-8111-111111111111', stock: 5 }),
       productoDb({ id: '33333333-3333-4333-8333-333333333333', stock: 1, proveedor_id: 'prov-db-2' }),
@@ -333,11 +386,29 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
       item({ id: '33333333-3333-4333-8333-333333333333', cantidad: 4, proveedor_id: 'otro-cliente' }),
     ]))
 
-    expect(outcome.kind).toBe('returned')
-    if (outcome.kind === 'returned') {
-      expect(outcome.result?.error).toContain('solicitado: 4')
-    }
-    expect(h.state.inserts).toEqual([])
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.filter((i) => i.table === 'items_cotizacion').map((i) => i.payload)).toEqual([
+      [{ cotizacion_id: 'cot-1', producto_id: '11111111-1111-4111-8111-111111111111', cantidad: 2, precio_unitario: 80, sujeta_disponibilidad: false, stock_al_cotizar: 5 }],
+      [{ cotizacion_id: 'cot-2', producto_id: '33333333-3333-4333-8333-333333333333', cantidad: 4, precio_unitario: 80, sujeta_disponibilidad: true, stock_al_cotizar: 1 }],
+    ])
+  })
+
+  it('envía una línea sobre stock marcada con el stock consultado', async () => {
+    h.state.productos = [productoDb({ stock: 3, precio: 40 })]
+
+    const outcome = await ejecutar(formConItems([item({ cantidad: 6 })]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((i) => i.table === 'items_cotizacion')?.payload).toEqual([
+      {
+        cotizacion_id: 'cot-1',
+        producto_id: '11111111-1111-4111-8111-111111111111',
+        cantidad: 6,
+        precio_unitario: 40,
+        sujeta_disponibilidad: true,
+        stock_al_cotizar: 3,
+      },
+    ])
   })
 
   it('devuelve { error } si la consulta de stock falla y no inserta', async () => {
@@ -382,12 +453,114 @@ describe('cotizarDesdeCarrito — stock y duplicados', () => {
         producto_id: '11111111-1111-4111-8111-111111111111',
         cantidad: 5,
         precio_unitario: 40,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 5,
       },
     ])
   })
 })
 
 describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
+  it('cotizarDesdeCarrito rechaza una fecha requerida anterior a hoy en Santo Domingo sin insertar', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    h.state.productos = [productoDb()]
+    const form = formConItems([item()])
+    form.set('fecha_requerida', '2026-10-06')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({
+      kind: 'returned',
+      result: { error: 'La fecha requerida no puede ser anterior a hoy.' },
+    })
+    expect(h.createClient).not.toHaveBeenCalled()
+    expect(h.state.inserts.filter((insert) => ['cotizaciones', 'items_cotizacion'].includes(insert.table))).toEqual([])
+  })
+
+  it('cotizarDesdeCarrito acepta hoy en Santo Domingo', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    h.state.productos = [productoDb()]
+    const form = formConItems([item()])
+    form.set('fecha_requerida', '2026-10-07')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toMatchObject({
+      fecha_requerida: '2026-10-07',
+    })
+  })
+
+  it('cotizarDesdeCarrito acepta mañana en Santo Domingo', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    h.state.productos = [productoDb()]
+    const form = formConItems([item()])
+    form.set('fecha_requerida', '2026-10-08')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toMatchObject({
+      fecha_requerida: '2026-10-08',
+    })
+  })
+
+  it('cotizarDesdeCarrito guarda la dirección propia y la fecha requerida en cada cotización', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-08T00:30:00.000Z'))
+    h.state.productos = [productoDb()]
+    h.state.direcciones = [{ id: 'dir-1', user_id: 'comprador-1' }]
+    const form = formConItems([item()])
+    form.set('direccion_obra_id', 'dir-1')
+    form.set('fecha_requerida', '2026-11-03')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toMatchObject({
+      direccion_obra_id: 'dir-1',
+      fecha_requerida: '2026-11-03',
+    })
+  })
+
+  it('cotizarDesdeCarrito permite solicitar sin dirección ni fecha', async () => {
+    h.state.productos = [productoDb()]
+
+    const outcome = await ejecutar(formConItems([item()]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.state.inserts.find((insert) => insert.table === 'cotizaciones')?.payload).toMatchObject({
+      direccion_obra_id: null,
+      fecha_requerida: null,
+    })
+  })
+
+  it('cotizarDesdeCarrito rechaza una dirección que pertenece a otro comprador', async () => {
+    h.state.productos = [productoDb()]
+    h.state.direcciones = [{ id: 'dir-2', user_id: 'comprador-2' }]
+    const form = formConItems([item()])
+    form.set('direccion_obra_id', 'dir-2')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'returned', result: { error: 'La dirección de obra seleccionada no es válida.' } })
+    expect(h.state.inserts.filter((insert) => ['cotizaciones', 'items_cotizacion'].includes(insert.table))).toEqual([])
+  })
+
+  it('cotizarDesdeCarrito rechaza una fecha requerida con formato inválido', async () => {
+    h.state.productos = [productoDb()]
+    const form = formConItems([item()])
+    form.set('fecha_requerida', 'mañana')
+
+    const outcome = await ejecutar(form)
+
+    expect(outcome).toEqual({ kind: 'returned', result: { error: 'La fecha requerida no es válida.' } })
+    expect(h.state.inserts.filter((insert) => ['cotizaciones', 'items_cotizacion'].includes(insert.table))).toEqual([])
+  })
+
   it('inserta con proveedor y precio de la base y redirige', async () => {
     h.state.productos = [productoDb({
       id: '11111111-1111-4111-8111-111111111111',
@@ -418,6 +591,8 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
         proveedor_id: 'prov-db',
         estado: 'pendiente',
         total_estimado: 160,
+        direccion_obra_id: null,
+        fecha_requerida: null,
       },
     })
     expect(h.state.inserts[1]).toEqual({
@@ -428,6 +603,8 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
           producto_id: '11111111-1111-4111-8111-111111111111',
           cantidad: 2,
           precio_unitario: 80,
+          sujeta_disponibilidad: false,
+          stock_al_cotizar: 10,
         },
       ],
     })
@@ -435,7 +612,7 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
     expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
   })
 
-  it('crea una cotización por grupo y no usa el precio enviado por el cliente', async () => {
+  it('envía un correo por cada cotización cuyos ítems se guardaron', async () => {
     h.state.productos = [
       productoDb({ id: '11111111-1111-4111-8111-111111111111', proveedor_id: 'prov-db-1', precio: 10, stock: 4 }),
       productoDb({ id: '33333333-3333-4333-8333-333333333333', proveedor_id: 'prov-db-2', precio: 25, stock: 4 }),
@@ -447,6 +624,10 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
     ]))
 
     expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.enviarNotificacionCotizacionEmail.mock.calls).toEqual([
+      ['cot-1', 'nueva_solicitud'],
+      ['cot-2', 'nueva_solicitud'],
+    ])
     const cotizaciones = h.state.inserts.filter((i) => i.table === 'cotizaciones')
     expect(cotizaciones.map((i) => i.payload)).toEqual([
       {
@@ -454,14 +635,35 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
         proveedor_id: 'prov-db-1',
         estado: 'pendiente',
         total_estimado: 20,
+        direccion_obra_id: null,
+        fecha_requerida: null,
       },
       {
         comprador_id: 'comprador-1',
         proveedor_id: 'prov-db-2',
         estado: 'pendiente',
         total_estimado: 25,
+        direccion_obra_id: null,
+        fecha_requerida: null,
       },
     ])
+  })
+
+  it('no envía correo cuando falla la inserción de ítems', async () => {
+    h.state.productos = [
+      productoDb({ id: '11111111-1111-4111-8111-111111111111', proveedor_id: 'prov-1' }),
+      productoDb({ id: '33333333-3333-4333-8333-333333333333', proveedor_id: 'prov-2' }),
+    ]
+    h.state.itemsError = { message: 'falló la inserción' }
+    h.state.itemsErrorCotizacionId = 'cot-2'
+
+    const outcome = await ejecutar(formConItems([
+      item({ id: '11111111-1111-4111-8111-111111111111' }),
+      item({ id: '33333333-3333-4333-8333-333333333333' }),
+    ]))
+
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1' })
+    expect(h.enviarNotificacionCotizacionEmail.mock.calls).toEqual([['cot-1', 'nueva_solicitud']])
   })
 
   it('conserva el comportamiento parcial cuando falta un id', async () => {
@@ -477,18 +679,20 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
       item({ id: '22222222-2222-4222-8222-222222222222', cantidad: 1, nombre: 'Arena' }),
     ]))
 
-    expect(outcome).toEqual({
-      kind: 'returned',
-      result: {
-        error: 'Estos productos ya no están disponibles: Arena. Los quitamos del carrito.',
-        noDisponibles: ['22222222-2222-4222-8222-222222222222'],
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1&parcial=1' })
+    expect(h.state.inserts.filter((i) => i.table === 'items_cotizacion').map((i) => i.payload)).toEqual([[
+      {
+        cotizacion_id: 'cot-1',
+        producto_id: '11111111-1111-4111-8111-111111111111',
+        cantidad: 2,
+        precio_unitario: 15,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 6,
       },
-    })
-    expect(h.state.inserts).toEqual([])
-    expect(h.redirect).not.toHaveBeenCalled()
+    ]])
   })
 
-  it('si un ítem no está disponible, no inserta los otros ítems válidos', async () => {
+  it('si un ítem no está disponible, cotiza los otros ítems válidos', async () => {
     h.state.productos = [productoDb({ id: '11111111-1111-4111-8111-111111111111', precio: 15, stock: 6, proveedor_id: 'prov-db' })]
 
     const outcome = await ejecutar(formConItems([
@@ -496,15 +700,17 @@ describe('cotizarDesdeCarrito — flujo válido y parcial', () => {
       item({ id: '22222222-2222-4222-8222-222222222222', cantidad: 1, precio: 50, proveedor_id: 'cliente', nombre: 'Arena' }),
     ]))
 
-    expect(outcome).toEqual({
-      kind: 'returned',
-      result: {
-        error: 'Estos productos ya no están disponibles: Arena. Los quitamos del carrito.',
-        noDisponibles: ['22222222-2222-4222-8222-222222222222'],
+    expect(outcome).toEqual({ kind: 'redirect', url: '/mis-cotizaciones?enviada=1&parcial=1' })
+    expect(h.state.inserts.filter((i) => i.table === 'items_cotizacion').map((i) => i.payload)).toEqual([[
+      {
+        cotizacion_id: 'cot-1',
+        producto_id: '11111111-1111-4111-8111-111111111111',
+        cantidad: 2,
+        precio_unitario: 15,
+        sujeta_disponibilidad: false,
+        stock_al_cotizar: 6,
       },
-    })
-    expect(h.state.inserts).toEqual([])
-    expect(h.redirect).not.toHaveBeenCalled()
+    ]])
   })
 
   it('si ningún id existe devuelve el error de productos no disponibles y no redirige', async () => {

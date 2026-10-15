@@ -30,3 +30,17 @@ describe('Cómo funciona — llamada a la acción', () => {
     expect(boton.className.split(/\s+/)).toEqual(expect.arrayContaining(['bg-white', 'text-orange-600']))
   })
 })
+
+describe('Cómo funciona — verificación de proveedores', () => {
+  it('explica los criterios de revisión de proveedores', () => {
+    render(<ComoFunciona />)
+
+    const seccion = document.getElementById('verificacion-proveedores')
+    expect(seccion).not.toBeNull()
+    expect(
+      screen.getByRole('heading', { name: 'Cómo verificamos a los proveedores' })
+    ).toBeInTheDocument()
+    expect(seccion!).toHaveTextContent(/RNC/)
+    expect(seccion!).toHaveTextContent(/datos de contacto/)
+  })
+})

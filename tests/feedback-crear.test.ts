@@ -4,8 +4,9 @@
  * Identidad, estado `recibida` y duplicados los resuelve crear_feedback;
  * aquí el doble local aplica esa misma regla y la acción solo reenvía
  * cotizacionId, calificacion y comentario.
- * cancelarVenta y despacharCotizacion solo reenvían p_cotizacion_id,
- * propagan el error del RPC y no escriben cotizaciones ni productos.
+ * cancelarVenta valida y reenvía el motivo requerido a cancelar_venta;
+ * despacharCotizacion reenvía p_cotizacion_id. Ambas propagan errores del RPC
+ * y no escriben tablas directamente.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -116,12 +117,29 @@ const h = vi.hoisted(() => {
     async rpc(fn: string, args: Record<string, unknown>) {
       state.rpcCalls.push({ fn, args: { ...args } })
       if (fn === 'crear_feedback') return crearFeedbackLocal(args)
-      if (fn === 'confirmar_recepcion' || fn === 'despachar_cotizacion' || fn === 'cancelar_venta') {
+      if (fn === 'cancelar_venta') {
+        if (
+          Object.keys(args).length !== 2 ||
+          !('p_cotizacion_id' in args) ||
+          typeof args.p_cancelada_motivo !== 'string' ||
+          'estado' in args
+        ) {
+          return { data: null, error: { message: 'payload inesperado' } }
+        }
+        if (state.forzarErrorTransicion) {
+          return { data: null, error: { message: state.forzarErrorTransicion } }
+        }
+        return { data: null, error: null }
+      }
+      if (fn === 'confirmar_recepcion' || fn === 'despachar_cotizacion') {
         const claves = Object.keys(args)
         if (claves.length !== 1 || !('p_cotizacion_id' in args) || 'estado' in args) {
           return { data: null, error: { message: 'payload inesperado' } }
         }
-        if (state.forzarErrorTransicion && (fn === 'despachar_cotizacion' || fn === 'cancelar_venta')) {
+        if (
+          state.forzarErrorTransicion &&
+          (fn === 'despachar_cotizacion' || fn === 'confirmar_recepcion')
+        ) {
           return { data: null, error: { message: state.forzarErrorTransicion } }
         }
         return { data: null, error: null }
@@ -134,8 +152,9 @@ const h = vi.hoisted(() => {
     throw new RedirectSignal(url)
   })
   const revalidatePath = vi.fn()
+  const enviarNotificacionCotizacionEmail = vi.fn(async () => undefined)
 
-  return { RedirectSignal, state, createClient, redirect, revalidatePath }
+  return { RedirectSignal, state, createClient, redirect, revalidatePath, enviarNotificacionCotizacionEmail }
 })
 
 vi.mock('next/navigation', () => ({
@@ -148,6 +167,9 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: h.createClient,
+}))
+vi.mock('@/lib/notificaciones-email', () => ({
+  enviarNotificacionCotizacionEmail: h.enviarNotificacionCotizacionEmail,
 }))
 
 import { cancelarVenta, confirmarRecepcion, crearFeedback } from '@/app/(marketplace)/cotizaciones/actions'
@@ -175,6 +197,7 @@ beforeEach(() => {
   h.createClient.mockClear()
   h.redirect.mockClear()
   h.revalidatePath.mockClear()
+  h.enviarNotificacionCotizacionEmail.mockClear()
 })
 
 describe('crearFeedback — comprador propietario', () => {
@@ -346,14 +369,30 @@ describe('crearFeedback — rechazos', () => {
 })
 
 describe('recepción — el cliente no asigna el estado', () => {
-  it('confirmarRecepcion solo envía el id al RPC', async () => {
-    await confirmarRecepcion(COTIZACION_OTRA)
+  it('confirmarRecepcion envía el correo después del RPC exitoso', async () => {
+    await expect(confirmarRecepcion(COTIZACION_OTRA)).resolves.toBeUndefined()
 
     expect(h.state.rpcCalls).toEqual([
       { fn: 'confirmar_recepcion', args: { p_cotizacion_id: COTIZACION_OTRA } },
     ])
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledOnce()
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledWith(COTIZACION_OTRA, 'cotizacion_recibida')
     expect(h.revalidatePath).toHaveBeenCalledWith('/mis-cotizaciones')
     expect(h.revalidatePath).toHaveBeenCalledWith('/proveedor/pedidos')
+  })
+
+  it('confirmarRecepcion no envía correo cuando falla el RPC', async () => {
+    h.state.forzarErrorTransicion = 'Solo puedes marcar como recibido un pedido despachado.'
+
+    await expect(confirmarRecepcion(COTIZACION_OTRA)).rejects.toMatchObject({
+      name: 'Error',
+      message: 'Solo puedes marcar como recibido un pedido despachado.',
+    })
+    expect(h.state.rpcCalls).toEqual([
+      { fn: 'confirmar_recepcion', args: { p_cotizacion_id: COTIZACION_OTRA } },
+    ])
+    expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
   })
 
   it('confirmarRecepcion redirige al anónimo y no llama al RPC', async () => {
@@ -363,15 +402,18 @@ describe('recepción — el cliente no asigna el estado', () => {
     expect(h.state.rpcCalls).toHaveLength(0)
   })
 
-  it('despacharCotizacion solo envía el id al RPC', async () => {
+  it('despacharCotizacion envía correo después del RPC exitoso', async () => {
     const resultado = await despacharCotizacion(COTIZACION_OTRA)
 
     expect(resultado).toBeNull()
     expect(h.state.rpcCalls).toEqual([
       { fn: 'despachar_cotizacion', args: { p_cotizacion_id: COTIZACION_OTRA } },
     ])
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledOnce()
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledWith(COTIZACION_OTRA, 'cotizacion_despachada')
     expect(h.revalidatePath).toHaveBeenCalledWith('/proveedor/pedidos')
     expect(h.revalidatePath).toHaveBeenCalledWith('/mis-cotizaciones')
+    expect(h.revalidatePath).toHaveBeenCalledWith(`/cotizaciones/${COTIZACION_OTRA}`)
     expect(h.state.mutaciones).toEqual([])
   })
 
@@ -385,18 +427,21 @@ describe('recepción — el cliente no asigna el estado', () => {
       { fn: 'despachar_cotizacion', args: { p_cotizacion_id: COTIZACION_OTRA } },
     ])
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
     expect(h.state.mutaciones).toEqual([])
   })
 })
 
 describe('cancelarVenta — RPC, revalidación y errores', () => {
-  it('invoca cancelar_venta solo con el id y revalida las dos vistas', async () => {
-    const resultado = await cancelarVenta(COTIZACION_OTRA)
+  it('cancelarVenta envía correo después de cancelar', async () => {
+    const resultado = await cancelarVenta(COTIZACION_OTRA, { opcion: 'Ya no lo necesito' })
 
     expect(resultado).toBeNull()
     expect(h.state.rpcCalls).toEqual([
-      { fn: 'cancelar_venta', args: { p_cotizacion_id: COTIZACION_OTRA } },
+      { fn: 'cancelar_venta', args: { p_cotizacion_id: COTIZACION_OTRA, p_cancelada_motivo: 'Ya no lo necesito' } },
     ])
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledOnce()
+    expect(h.enviarNotificacionCotizacionEmail).toHaveBeenCalledWith(COTIZACION_OTRA, 'cotizacion_cancelada')
     expect(h.revalidatePath.mock.calls.map((llamada) => llamada[0]).sort()).toEqual([
       '/mis-cotizaciones',
       '/proveedor/pedidos',
@@ -404,35 +449,67 @@ describe('cancelarVenta — RPC, revalidación y errores', () => {
     expect(h.state.mutaciones).toEqual([])
   })
 
+  it('rechaza motivo faltante o inválido sin llamar al RPC', async () => {
+    await expect(cancelarVenta(COTIZACION_OTRA)).resolves.toEqual({
+      error: 'Indica un motivo válido para cancelar.',
+    })
+    await expect(cancelarVenta(COTIZACION_OTRA, { opcion: 'Otro', detalle: '   ' })).resolves.toEqual({
+      error: 'Indica un motivo válido para cancelar.',
+    })
+    expect(h.state.rpcCalls).toHaveLength(0)
+    expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
+    expect(h.state.mutaciones).toEqual([])
+  })
+
+  it('guarda Otro con el detalle recortado', async () => {
+    const resultado = await cancelarVenta(COTIZACION_OTRA, {
+      opcion: 'Otro',
+      detalle: '  Cambio de planes  ',
+    })
+
+    expect(resultado).toBeNull()
+    expect(h.state.rpcCalls).toEqual([
+      { fn: 'cancelar_venta', args: { p_cotizacion_id: COTIZACION_OTRA, p_cancelada_motivo: 'Otro: Cambio de planes' } },
+    ])
+    expect(h.revalidatePath.mock.calls.map((llamada) => llamada[0]).sort()).toEqual([
+      '/mis-cotizaciones',
+      '/proveedor/pedidos',
+    ])
+  })
+
   it('redirige al anónimo y no llama al RPC ni escribe tablas', async () => {
     h.state.user = null
 
-    await expect(cancelarVenta(COTIZACION_OTRA)).rejects.toMatchObject({ url: '/login' })
+    await expect(cancelarVenta(COTIZACION_OTRA, { opcion: 'Sin stock' })).rejects.toMatchObject({ url: '/login' })
     expect(h.state.rpcCalls).toHaveLength(0)
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
     expect(h.state.mutaciones).toEqual([])
   })
 
   it('propaga el error del RPC y no revalida', async () => {
     h.state.forzarErrorTransicion = 'Solo puedes cancelar antes de que el proveedor despache.'
 
-    await expect(cancelarVenta(COTIZACION_OTRA)).resolves.toEqual({
+    await expect(cancelarVenta(COTIZACION_OTRA, { opcion: 'Error en el pedido' })).resolves.toEqual({
       error: 'Solo puedes cancelar antes de que el proveedor despache.',
     })
     expect(h.state.rpcCalls).toEqual([
-      { fn: 'cancelar_venta', args: { p_cotizacion_id: COTIZACION_OTRA } },
+      { fn: 'cancelar_venta', args: { p_cotizacion_id: COTIZACION_OTRA, p_cancelada_motivo: 'Error en el pedido' } },
     ])
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
     expect(h.state.mutaciones).toEqual([])
   })
 
   it('propaga el rechazo del proveedor y no revalida', async () => {
     h.state.forzarErrorTransicion = 'Esta venta ya no se puede cancelar.'
 
-    await expect(cancelarVenta(COTIZACION_OTRA)).resolves.toEqual({
+    await expect(cancelarVenta(COTIZACION_OTRA, { opcion: 'Ya no lo necesito' })).resolves.toEqual({
       error: 'Esta venta ya no se puede cancelar.',
     })
     expect(h.revalidatePath).not.toHaveBeenCalled()
+    expect(h.enviarNotificacionCotizacionEmail).not.toHaveBeenCalled()
     expect(h.state.mutaciones).toEqual([])
   })
 })

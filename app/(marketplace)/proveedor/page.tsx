@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
   Package, ShoppingBag, TrendingUp, AlertCircle, Truck, XCircle,
-  Plus, ArrowRight, CheckCircle2, Clock
+  Plus, ArrowRight, CheckCircle2, Clock, Archive, Star, MessageSquare
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
@@ -11,9 +11,14 @@ import {
   getStatsProveedor,
   getCotizacionesDeProveedor,
   getProductosDeProveedor,
+  getFeedbackDeProveedor,
 } from '@/lib/data'
 import { formatNumeroCotizacion } from '@/lib/cotizaciones'
+import { formatearPrecio, formatearFecha } from '@/lib/utils'
 import ListaProductosProveedor from '@/components/marketplace/ListaProductosProveedor'
+import ResponderResenaForm from '@/components/marketplace/ResponderResenaForm'
+import SolicitudVerificacion from '@/components/marketplace/SolicitudVerificacion'
+import type { VerificacionEstado } from '@/types'
 
 const estadoBadge: Record<string, string> = {
   pendiente:  'bg-yellow-100 text-yellow-700',
@@ -43,17 +48,42 @@ export default async function PanelProveedorPage() {
   const proveedor = await getProveedorDelUsuario()
   if (!proveedor) redirect('/register?rol=proveedor')
 
-  const [stats, cotizaciones, productos] = await Promise.all([
+  const [stats, cotizaciones, productos, resenas] = await Promise.all([
     getStatsProveedor(proveedor.id),
     getCotizacionesDeProveedor(proveedor.id),
     getProductosDeProveedor(proveedor.id),
+    // Un error de lectura de reseñas no debe interrumpir el panel.
+    getFeedbackDeProveedor(proveedor.id).catch(() => null),
   ])
 
-  const statsCards = [
-    { label: 'Productos activos',   valor: stats.productosActivos,        icono: Package,      color: 'text-blue-600 bg-blue-50' },
-    { label: 'Cotizaciones nuevas', valor: stats.cotizacionesPendientes,  icono: ShoppingBag,  color: 'text-orange-600 bg-orange-50' },
-    { label: 'Pedidos este mes',    valor: cotizaciones.filter(c => c.estado === 'aceptada').length, icono: TrendingUp, color: 'text-green-600 bg-green-50' },
-    { label: 'Sin stock',           valor: stats.sinStock,                icono: AlertCircle,  color: 'text-red-600 bg-red-50' },
+  // Los productos archivados salen del catálogo y de la lista del panel; siguen
+  // visibles en la pestaña «Archivados» de la ruta de productos.
+  const productosVisibles = productos.filter((p) => !p.archivado_at)
+
+  const verificacionEstado: VerificacionEstado =
+    proveedor.verificacion_estado ?? (proveedor.verificado ? 'verificado' : 'sin_solicitar')
+
+  const totalVendidoEsteMes = stats.totalVendidoEsteMes ?? 0
+
+  // Métricas derivadas de las lecturas ya cargadas.
+  const pedidosPorDespachar = cotizaciones.filter((cot) => cot.estado === 'aceptada').length
+  const productosArchivados = productos.filter((p) => p.archivado_at).length
+
+  const statsCards: Array<{
+    label: string
+    valor: number | string
+    icono: React.ElementType
+    color: string
+    testid: string
+  }> = [
+    { label: 'Pedidos del mes',            valor: stats.pedidosEsteMes ?? 0,        icono: TrendingUp,     color: 'text-green-600 bg-green-50',   testid: 'stat-pedidos-mes' },
+    { label: 'Total vendido',              valor: formatearPrecio(totalVendidoEsteMes), icono: ShoppingBag, color: 'text-emerald-600 bg-emerald-50', testid: 'stat-total-vendido' },
+    { label: 'Cotizaciones pendientes',    valor: stats.cotizacionesPendientes,     icono: Clock,          color: 'text-orange-600 bg-orange-50', testid: 'stat-cotizaciones-pendientes' },
+    { label: 'Pedidos por despachar',      valor: pedidosPorDespachar,              icono: Truck,          color: 'text-purple-600 bg-purple-50', testid: 'stat-pedidos-por-despachar' },
+    { label: 'Productos activos',          valor: stats.productosActivos,           icono: Package,        color: 'text-blue-600 bg-blue-50',     testid: 'stat-productos-activos' },
+    { label: 'Productos archivados',       valor: productosArchivados,              icono: Archive,        color: 'text-gray-600 bg-gray-100',    testid: 'stat-productos-archivados' },
+    { label: 'Calificación promedio',      valor: (resenas?.promedio ?? 0).toFixed(2), icono: Star,        color: 'text-yellow-600 bg-yellow-50', testid: 'stat-calificacion' },
+    { label: 'Reseñas',                    valor: resenas?.conteo ?? 0,              icono: MessageSquare,  color: 'text-teal-600 bg-teal-50',     testid: 'stat-resenas' },
   ]
 
   return (
@@ -66,18 +96,44 @@ export default async function PanelProveedorPage() {
             {proveedor.ciudad && <span className="text-xs text-gray-400"> ({proveedor.ciudad})</span>}
           </p>
         </div>
-        <Link href="/proveedor/productos/nuevo">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-            <Plus className="mr-1.5 h-4 w-4" />
-            Nuevo producto
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/contacto">
+            <Button variant="outline" size="sm">
+              Contacto
+            </Button>
+          </Link>
+          <Link href="/proveedor/perfil">
+            <Button variant="outline" size="sm">
+              Editar perfil de empresa
+            </Button>
+          </Link>
+          <Link href="/proveedor/productos/nuevo">
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nuevo producto
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Verificación de la empresa */}
+      <div className="rounded-2xl bg-white border shadow-sm mb-8">
+        <div className="px-6 py-4 border-b">
+          <h2 className="font-semibold text-gray-900">Verifica tu empresa</h2>
+        </div>
+        <SolicitudVerificacion
+          estado={verificacionEstado}
+          rnc={proveedor.rnc ?? null}
+          telefono={proveedor.telefono ?? null}
+          nota={proveedor.verificacion_nota ?? null}
+          verificadoAt={proveedor.verificado_at ?? null}
+        />
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mb-8">
         {statsCards.map((s) => (
-          <div key={s.label} className="rounded-2xl bg-white p-5 shadow-sm border">
+          <div key={s.label} data-testid={s.testid} className="rounded-2xl bg-white p-5 shadow-sm border">
             <div className={`inline-flex items-center justify-center rounded-xl p-2.5 ${s.color}`}>
               <s.icono className="h-5 w-5" />
             </div>
@@ -115,10 +171,10 @@ export default async function PanelProveedorPage() {
                     Cotización #{cot.numero != null ? formatNumeroCotizacion(cot.numero) : cot.id.slice(0, 8)}
                   </p>
                   <p className="text-xs text-gray-400">
-                    {cantItems} producto{cantItems !== 1 ? 's' : ''} · {new Date(cot.created_at).toLocaleDateString('es-DO')}
+                    {cantItems} producto{cantItems !== 1 ? 's' : ''} · {formatearFecha(cot.created_at)}
                   </p>
                 </div>
-                <Link href={`/proveedor/pedidos`}>
+                <Link href={`/cotizaciones/${cot.id}`}>
                   <Button variant="outline" size="sm">Ver</Button>
                 </Link>
               </div>
@@ -130,12 +186,64 @@ export default async function PanelProveedorPage() {
         </div>
       </div>
 
+      {/* Reseñas */}
+      {resenas && (
+        <section aria-label="Reseñas" className="rounded-2xl bg-white border shadow-sm mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-4 sm:px-6 border-b">
+            <h2 className="font-semibold text-gray-900">Reseñas</h2>
+            {resenas.conteo > 0 && (
+              <p className="text-sm text-gray-500">
+                <span className="font-semibold text-gray-900">{resenas.promedio.toFixed(2)}</span>{' '}
+                <span className="text-yellow-400" aria-hidden="true">
+                  {'★'.repeat(Math.round(resenas.promedio))}
+                  <span className="text-gray-300">
+                    {'★'.repeat(5 - Math.round(resenas.promedio))}
+                  </span>
+                </span>{' '}
+                <span>({resenas.conteo} reseña{resenas.conteo !== 1 ? 's' : ''})</span>
+              </p>
+            )}
+          </div>
+          <div className="divide-y">
+            {resenas.conteo === 0 ? (
+              <p className="px-6 py-8 text-center text-sm text-gray-400">
+                Aún no tienes reseñas.
+              </p>
+            ) : (
+              resenas.reseñas.map((resena) => (
+                <div key={resena.id} className="px-4 py-4 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900">{resena.autor_anonimo}</span>
+                    <span className="text-xs text-gray-400">
+                      {formatearFecha(resena.created_at)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-yellow-400" aria-hidden="true">
+                      {'★'.repeat(resena.calificacion)}
+                      <span className="text-gray-300">{'★'.repeat(5 - resena.calificacion)}</span>
+                    </span>
+                    <span className="sr-only">{`${resena.calificacion} de 5 estrellas`}</span>
+                  </div>
+                  {resena.comentario && (
+                    <p className="mt-2 text-sm text-gray-700">{resena.comentario}</p>
+                  )}
+                  <div className="mt-3">
+                    <ResponderResenaForm feedbackId={resena.id} respuesta={resena.respuesta} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Mis productos */}
       <div className="rounded-2xl bg-white border shadow-sm">
         <div className="px-6 py-4 border-b">
           <h2 className="font-semibold text-gray-900">Mis productos</h2>
         </div>
-        <ListaProductosProveedor productos={productos} enTarjeta={false} />
+        <ListaProductosProveedor productos={productosVisibles} enTarjeta={false} />
       </div>
     </div>
   )

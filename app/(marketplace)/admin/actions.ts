@@ -2,6 +2,48 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import type { VerificacionActionResult } from '@/types'
+
+export async function resolverVerificacionProveedor(
+  proveedorId: string,
+  estado: 'verificado' | 'rechazado',
+  nota: string
+): Promise<VerificacionActionResult> {
+  const supabase = await createClient()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) return { error: 'No autorizado.' }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('rol')
+    .eq('id', user.id)
+    .single()
+  if (profileError || profile?.rol !== 'admin') return { error: 'No autorizado.' }
+  if (estado !== 'verificado' && estado !== 'rechazado') return { error: 'Estado de verificación no válido.' }
+  const notaRecortada = typeof nota === 'string' ? nota.trim() : ''
+  if (!notaRecortada || notaRecortada.length > 1000) {
+    return { error: 'La nota es obligatoria y no puede superar 1000 caracteres.' }
+  }
+
+  const { data, error } = await supabase
+    .from('proveedores')
+    .update({
+      verificacion_estado: estado,
+      verificacion_nota: notaRecortada,
+      verificado_at: estado === 'verificado' ? new Date().toISOString() : null,
+    })
+    .eq('id', proveedorId)
+    .eq('verificacion_estado', 'pendiente')
+    .select('id')
+    .maybeSingle()
+  if (error) return { error: error.message }
+  if (!data) return { error: 'La solicitud ya no está pendiente.' }
+
+  revalidatePath('/admin')
+  revalidatePath('/proveedor')
+  revalidatePath('/proveedores')
+  return { success: true }
+}
 
 export async function setProductoActivo(
   id: string,

@@ -18,22 +18,24 @@ export const useCarritoStore = create<CarritoStore>()(
       items: [],
 
       agregar: (producto, cantidad = 1) => {
-        // Cantidades no enteras positivas y productos sin stock se ignoran.
+        // Cantidades no enteras positivas y productos sin disponible se ignoran.
         if (!Number.isInteger(cantidad) || cantidad <= 0) return
-        if (producto.stock <= 0) return
+        // El tope es el stock disponible: total menos unidades reservadas.
+        const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+        if (disponible <= 0) return
         const items = get().items
         const existente = items.find((i) => i.producto.id === producto.id)
         if (existente) {
           set({
             items: items.map((i) =>
               i.producto.id === producto.id
-                ? { ...i, cantidad: Math.min(i.cantidad + cantidad, producto.stock) }
+                ? { ...i, producto, cantidad: Math.min(i.cantidad + cantidad, disponible) }
                 : i
             ),
           })
         } else {
           set({
-            items: [...items, { producto, cantidad: Math.min(cantidad, producto.stock) }],
+            items: [...items, { producto, cantidad: Math.min(cantidad, disponible) }],
           })
         }
       },
@@ -42,7 +44,7 @@ export const useCarritoStore = create<CarritoStore>()(
         set({ items: get().items.filter((i) => i.producto.id !== productoId) }),
 
       actualizarCantidad: (productoId, cantidad) => {
-        // Cero o negativo sigue quitando la línea; positivo se limita al stock.
+        // Cero o negativo sigue quitando la línea; positivo se limita al disponible.
         if (cantidad <= 0) {
           get().quitar(productoId)
           return
@@ -50,7 +52,13 @@ export const useCarritoStore = create<CarritoStore>()(
         set({
           items: get().items.map((i) =>
             i.producto.id === productoId
-              ? { ...i, cantidad: Math.min(cantidad, i.producto.stock) }
+              ? {
+                  ...i,
+                  cantidad: Math.min(
+                    cantidad,
+                    Math.max(0, i.producto.stock - (i.producto.stock_reservado ?? 0))
+                  ),
+                }
               : i
           ),
         })

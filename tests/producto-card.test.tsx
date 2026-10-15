@@ -55,6 +55,9 @@ describe('ProductoCard — diseño responsive', () => {
     // En móvil precio y botón se apilan y el botón ocupa el ancho de la tarjeta.
     expect(contenedor).toHaveClass('flex-col', 'sm:flex-row', 'min-w-0')
 
+    // El precio se muestra en pesos dominicanos.
+    expect(screen.getByText('RD$ 680.00')).toBeInTheDocument()
+
     // El texto puede partirse en móvil y el botón no se sale de la tarjeta.
     expect(boton).toHaveClass(
       'w-full',
@@ -69,6 +72,108 @@ describe('ProductoCard — diseño responsive', () => {
     // El icono no se encoge cuando el texto ocupa más espacio.
     const icono = boton.querySelector('svg')
     expect(icono?.getAttribute('class')).toContain('shrink-0')
+  })
+})
+
+describe('ProductoCard — enlace a la ficha', () => {
+  it('enlaza la miniatura y el nombre a la ficha sin envolver el botón Agregar', () => {
+    render(
+      <ProductoCard
+        producto={producto({
+          id: 'prod-1',
+          nombre: 'Tubo PVC 4 pulgadas',
+          proveedor_id: 'prov-1',
+          categoria_id: 'cat-1',
+          subcategoria_id: null,
+          precio: 680,
+          unidad: 'unidad',
+          stock: 5,
+          activo: true,
+          created_at: '',
+        })}
+      />
+    )
+
+    const miniatura = screen.getByRole('img', { name: 'Tubo PVC 4 pulgadas' })
+    expect(miniatura.closest('a')).toHaveAttribute('href', '/productos/prod-1')
+
+    const nombre = screen.getByRole('heading', { name: 'Tubo PVC 4 pulgadas' })
+    expect(nombre.closest('a')).toHaveAttribute('href', '/productos/prod-1')
+
+    const boton = screen.getByRole('button', { name: 'Agregar' })
+    expect(boton).toBeEnabled()
+    expect(boton.closest('a')).toBeNull()
+  })
+})
+
+describe('ProductoCard — insignia de proveedor verificado', () => {
+  it('la tarjeta muestra insignia con fecha y enlace solo si el proveedor está verificado', () => {
+    render(
+      <ProductoCard
+        producto={producto({
+          proveedor: {
+            id: 'prov-1',
+            user_id: 'user-1',
+            nombre_empresa: 'Promeria',
+            verificado: true,
+            verificacion_estado: 'verificado',
+            verificado_at: '2026-01-02T12:00:00.000Z',
+            created_at: '',
+          },
+        })}
+      />
+    )
+
+    const insignia = screen.getByRole('link', { name: 'Verificado' })
+    expect(insignia).toHaveAttribute('href', '/como-funciona#verificacion-proveedores')
+    expect(insignia).toHaveAttribute('title', expect.stringContaining('2 de enero de 2026'))
+
+    cleanup()
+
+    render(
+      <ProductoCard
+        producto={producto({
+          proveedor: {
+            id: 'prov-1',
+            user_id: 'user-1',
+            nombre_empresa: 'Promeria',
+            verificado: true,
+            created_at: '',
+          },
+        })}
+      />
+    )
+
+    expect(screen.queryByRole('link', { name: 'Verificado' })).toBeNull()
+  })
+})
+
+describe('ProductoCard — nombres largos', () => {
+  it('el catálogo permite leer nombres largos en dos líneas y conserva el nombre accesible de la insignia', () => {
+    render(
+      <ProductoCard
+        producto={producto({
+          nombre: 'Cemento Portland Tipo I de alta resistencia',
+          proveedor: {
+            id: 'prov-1',
+            user_id: 'user-1',
+            nombre_empresa: 'Promeria',
+            verificado: true,
+            verificacion_estado: 'verificado',
+            verificado_at: '2026-01-02T12:00:00.000Z',
+            created_at: '',
+          },
+        })}
+      />
+    )
+
+    const nombre = screen.getByRole('heading', {
+      name: 'Cemento Portland Tipo I de alta resistencia',
+    })
+    expect(nombre).toHaveClass('line-clamp-2', 'break-words', '[overflow-wrap:anywhere]')
+
+    const insignia = screen.getByRole('link', { name: 'Verificado' })
+    expect(insignia).toBeInTheDocument()
   })
 })
 
@@ -163,5 +268,15 @@ describe('ProductoCard — estados de stock', () => {
     expect(screen.getByRole('button', { name: 'Máximo en carrito' })).toBeDisabled()
     expect(useCarritoStore.getState().items[0].cantidad).toBe(1)
     expect(screen.queryByText('Agregado')).not.toBeInTheDocument()
+  })
+
+  it('limita el botón y muestra el aviso usando stock disponible', () => {
+    const actual = producto({ stock: 299, stock_reservado: 213 })
+    useCarritoStore.getState().agregar(actual, 86)
+
+    render(<ProductoCard producto={actual} />)
+
+    expect(screen.getByText('Stock disponible: 86')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Máximo en carrito' })).toBeDisabled()
   })
 })

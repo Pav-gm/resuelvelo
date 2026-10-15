@@ -3,7 +3,19 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { ItemCarrito } from '@/types'
+import { hoyISOEnSantoDomingo } from '@/lib/cotizaciones'
+import { enviarNotificacionCotizacionEmail } from '@/lib/notificaciones-email'
+import { getProductosActivosPorIds } from '@/lib/data'
+import type { TipoNotificacionEmail } from '@/lib/notificaciones-email'
+import type { CotizacionActionResult, CrearSolicitudInput, CrearSolicitudResultado, ItemCarrito, MotivoCancelacionInput, OpcionMotivoCancelacion, Producto } from '@/types'
+
+export async function obtenerProductosActivosParaReordenar(productoIds: string[]): Promise<Producto[]> {
+  if (!Array.isArray(productoIds) || !productoIds.every((id) => typeof id === 'string')) return []
+
+  const idsUnicos = [...new Set(productoIds.filter((id) => id.trim() !== ''))]
+  if (!idsUnicos.length) return []
+  return getProductosActivosPorIds(idsUnicos)
+}
 
 // ─── Crear cotización(es) desde el carrito ───────────────────
 // Agrupa los items por proveedor y crea una cotización por cada uno.
@@ -13,6 +25,18 @@ export type CotizarError = { error: string; noDisponibles?: string[] } | null
 // Forma de un uuid de Postgres, sin exigir versión ni variante: los productos del
 // seed (y de producción) usan ids como d0000000-0000-0000-0000-000000000001.
 const UUID_PRODUCTO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function leerCampoOpcional(formData: FormData, nombre: string): string | null {
+  const valor = formData.get(nombre)
+  return typeof valor === 'string' && valor !== '' ? valor : null
+}
+
+function fechaRequeridaValida(fecha: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return false
+  const [year, month, day] = fecha.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
 
 export async function cotizarDesdeCarrito(
   _prevState: CotizarError,
@@ -32,6 +56,15 @@ export async function cotizarDesdeCarrito(
     return { error: 'Datos del carrito inválidos.' }
   }
   if (!itemsRawParsed.length) return { error: 'El carrito está vacío.' }
+
+  const direccionObraId = leerCampoOpcional(formData, 'direccion_obra_id')
+  const fechaRequerida = leerCampoOpcional(formData, 'fecha_requerida')
+  if (fechaRequerida && !fechaRequeridaValida(fechaRequerida)) {
+    return { error: 'La fecha requerida no es válida.' }
+  }
+  if (fechaRequerida && fechaRequerida < hoyISOEnSantoDomingo()) {
+    return { error: 'La fecha requerida no puede ser anterior a hoy.' }
+  }
 
   const itemsUnicos = new Map<string, ItemCarrito>()
   for (const item of itemsRawParsed) {
@@ -70,17 +103,27 @@ export async function cotizarDesdeCarrito(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  if (direccionObraId) {
+    const { data: direccion } = await supabase
+      .from('direcciones_obra')
+      .select('id')
+      .eq('id', direccionObraId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!direccion) return { error: 'La dirección de obra seleccionada no es válida.' }
+  }
+
   // Resolver todos los productos de una vez contra la base de datos: nunca
   // confiamos en proveedor_id/precio que llega del carrito del cliente, ya
   // que puede provenir de datos mock (IDs no-UUID) o estar desactualizado.
   const todosLosProductoIds = items.map((i) => i.producto.id)
   const idsUuid = todosLosProductoIds.filter((id) => UUID_PRODUCTO.test(id))
-  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; activo: boolean }[]
+  let productosDb: { id: string; proveedor_id: string; precio: number; stock: number; stock_reservado: number | null; activo: boolean }[]
   try {
     if (idsUuid.length) {
       const { data, error } = await supabase
         .from('productos')
-        .select('id, proveedor_id, precio, stock, activo')
+        .select('id, proveedor_id, precio, stock, stock_reservado, activo')
         .in('id', idsUuid)
 
       if (error) return { error: 'No se pudo validar el stock actual. Intenta de nuevo.' }
@@ -98,7 +141,7 @@ export async function cotizarDesdeCarrito(
     const productoDb = productoPorId.get(item.producto.id)
     return !productoDb || !productoDb.activo
   })
-  if (noDisponibles.length) {
+  if (noDisponibles.length && noDisponibles.length === items.length) {
     const nombres = noDisponibles.map((item) => {
       const nombre = (item.producto as { nombre?: unknown }).nombre
       return typeof nombre === 'string' && nombre.trim() ? nombre : 'uno de los productos'
@@ -109,17 +152,10 @@ export async function cotizarDesdeCarrito(
     }
   }
 
-  for (const item of items) {
-    const productoDb = productoPorId.get(item.producto.id)!
-    if (item.cantidad > productoDb.stock) {
-      return {
-        error: `No hay stock suficiente para ${item.producto.nombre ?? 'uno de los productos'} (disponible: ${productoDb.stock}, solicitado: ${item.cantidad}).`,
-      }
-    }
-  }
+  const itemsValidos = items.filter((item) => !noDisponibles.includes(item))
 
   const grupos: Record<string, ItemCarrito[]> = {}
-  for (const item of items) {
+  for (const item of itemsValidos) {
     const proveedorId = productoPorId.get(item.producto.id)!.proveedor_id
     if (!grupos[proveedorId]) grupos[proveedorId] = []
     grupos[proveedorId].push(item)
@@ -143,22 +179,31 @@ export async function cotizarDesdeCarrito(
         proveedor_id: proveedorId,
         estado: 'pendiente',
         total_estimado: total,
+        direccion_obra_id: direccionObraId,
+        fecha_requerida: fechaRequerida,
       })
       .select('id')
       .single()
 
     if (errCot || !cotizacion) continue
 
-    const itemsInsert = itemsGrupo.map((i) => ({
-      cotizacion_id: cotizacion.id,
-      producto_id: i.producto.id,
-      cantidad: i.cantidad,
-      precio_unitario: productoPorId.get(i.producto.id)!.precio,
-    }))
+    const itemsInsert = itemsGrupo.map((i) => {
+      const producto = productoPorId.get(i.producto.id)!
+      const disponible = Math.max(0, producto.stock - (producto.stock_reservado ?? 0))
+      return {
+        cotizacion_id: cotizacion.id,
+        producto_id: i.producto.id,
+        cantidad: i.cantidad,
+        precio_unitario: producto.precio,
+        sujeta_disponibilidad: i.cantidad > disponible,
+        stock_al_cotizar: disponible,
+      }
+    })
 
     const { error: errItems } = await supabase.from('items_cotizacion').insert(itemsInsert)
     if (errItems) continue
 
+    await enviarNotificacionCotizacionEmail(cotizacion.id, 'nueva_solicitud')
     creadas++
   }
 
@@ -169,17 +214,18 @@ export async function cotizarDesdeCarrito(
   }
 
   revalidatePath('/mis-cotizaciones')
-  redirect('/mis-cotizaciones?enviada=1')
+  redirect(`/mis-cotizaciones?enviada=1${noDisponibles.length ? '&parcial=1' : ''}`)
 }
 
 // ─── Responder cotización (proveedor) ────────────────────────
 
-type EstadoCotizacion = 'aceptada' | 'rechazada'
+type EstadoCotizacion = 'rechazada'
 
 export async function responderCotizacion(
   cotizacionId: string,
   estado: EstadoCotizacion
 ): Promise<void> {
+  void estado
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -192,14 +238,141 @@ export async function responderCotizacion(
 
   if (!prov) return
 
-  const { error } = estado === 'aceptada'
-    ? await supabase.rpc('aceptar_cotizacion', { p_cotizacion_id: cotizacionId })
-    : await supabase.rpc('rechazar_cotizacion', { p_cotizacion_id: cotizacionId })
+  const { error } = await supabase.rpc('rechazar_cotizacion', { p_cotizacion_id: cotizacionId })
 
   if (error) return
 
+  const tipo: TipoNotificacionEmail = 'cotizacion_rechazada'
+  await enviarNotificacionCotizacionEmail(cotizacionId, tipo)
+
   revalidatePath('/proveedor')
   revalidatePath('/proveedor/pedidos')
+}
+
+const RUTAS_DECISION_COTIZACION = (cotizacionId: string) => [
+  `/cotizaciones/${cotizacionId}`,
+  '/mis-cotizaciones',
+  '/proveedor',
+  '/proveedor/pedidos',
+]
+
+function revalidarDecisionCotizacion(cotizacionId: string): void {
+  for (const ruta of RUTAS_DECISION_COTIZACION(cotizacionId)) revalidatePath(ruta)
+}
+
+export async function aceptarOfertaCotizacion(cotizacionId: string): Promise<CotizacionActionResult> {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('aceptar_oferta_cotizacion', { p_cotizacion_id: cotizacionId })
+  if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_aceptada')
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
+}
+
+export async function crearSolicitudAProveedores(input: CrearSolicitudInput): Promise<CrearSolicitudResultado> {
+  if (!input || typeof input.titulo !== 'string' || !input.titulo.trim()) {
+    return { error: 'Indica el título de la solicitud.' }
+  }
+  if (!Array.isArray(input.proveedorIds) || input.proveedorIds.length < 1 || input.proveedorIds.length > 5) {
+    return { error: 'Selecciona entre 1 y 5 proveedores.' }
+  }
+  if (new Set(input.proveedorIds).size !== input.proveedorIds.length) {
+    return { error: 'Selecciona proveedores distintos.' }
+  }
+  if (!Array.isArray(input.lineas) || input.lineas.length === 0 || input.lineas.some((linea) =>
+    !linea || !Number.isSafeInteger(linea.cantidad) || linea.cantidad <= 0 ||
+    (typeof linea.productoId !== 'string' && !(typeof linea.descripcion === 'string' && linea.descripcion.trim()))
+  )) {
+    return { error: 'Agrega al menos una línea válida a la solicitud.' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autorizado.' }
+
+  const { data, error } = await supabase.rpc('crear_solicitud_a_proveedores', {
+    p_titulo: input.titulo,
+    p_notas: input.notas,
+    p_fecha_requerida: input.fechaRequerida,
+    p_proveedor_ids: input.proveedorIds,
+    p_lineas: input.lineas.map(({ productoId, descripcion, cantidad, unidad }) => ({
+      producto_id: productoId,
+      descripcion,
+      cantidad,
+      unidad,
+    })),
+  })
+  if (error) return { error: error.message }
+  if (!data || typeof data.solicitud_id !== 'string' || !Array.isArray(data.cotizacion_ids)) {
+    return { error: 'No se pudo crear la solicitud.' }
+  }
+
+  const cotizacionIds = data.cotizacion_ids as string[]
+  await Promise.all(cotizacionIds.map((id) => enviarNotificacionCotizacionEmail(id, 'nueva_solicitud')))
+  revalidatePath('/solicitudes')
+  revalidatePath('/mis-cotizaciones')
+  revalidatePath(`/solicitudes/${data.solicitud_id}`)
+  return { solicitudId: data.solicitud_id, cotizacionIds }
+}
+
+export async function aceptarOfertaDeSolicitud(cotizacionId: string): Promise<CotizacionActionResult> {
+  const supabase = await createClient()
+  const { data: cotizacion } = await supabase
+    .from('cotizaciones')
+    .select('solicitud_id')
+    .eq('id', cotizacionId)
+    .maybeSingle()
+
+  const { error } = await supabase.rpc('aceptar_oferta_de_solicitud', { p_cotizacion_id: cotizacionId })
+  if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_aceptada')
+  revalidarDecisionCotizacion(cotizacionId)
+  revalidatePath('/solicitudes')
+  if (cotizacion?.solicitud_id) revalidatePath(`/solicitudes/${cotizacion.solicitud_id}`)
+  return null
+}
+
+export async function rechazarOfertaCotizacion(
+  cotizacionId: string,
+  motivo: string
+): Promise<CotizacionActionResult> {
+  const motivoRecortado = typeof motivo === 'string' ? motivo.trim() : ''
+  if (motivoRecortado.length < 1 || motivoRecortado.length > 500) {
+    return { error: 'El motivo debe tener entre 1 y 500 caracteres.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('rechazar_oferta_cotizacion', {
+    p_cotizacion_id: cotizacionId,
+    p_motivo: motivoRecortado,
+  })
+  if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_rechazada')
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
+}
+
+export async function solicitarNuevaOferta(
+  cotizacionId: string,
+  nota: string
+): Promise<CotizacionActionResult> {
+  const notaRecortada = typeof nota === 'string' ? nota.trim() : ''
+  if (notaRecortada.length < 1 || notaRecortada.length > 500) {
+    return { error: 'El motivo debe tener entre 1 y 500 caracteres.' }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('solicitar_nueva_oferta', {
+    p_cotizacion_id: cotizacionId,
+    p_nota: notaRecortada,
+  })
+  if (error) return { error: error.message }
+
+  revalidarDecisionCotizacion(cotizacionId)
+  return null
 }
 
 export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
@@ -207,21 +380,56 @@ export async function confirmarRecepcion(cotizacionId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
+  const { error } = await supabase.rpc('confirmar_recepcion', { p_cotizacion_id: cotizacionId })
+  if (error) throw new Error(error.message)
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_recibida')
+
   revalidatePath('/mis-cotizaciones')
   revalidatePath('/proveedor/pedidos')
 }
 
-export async function cancelarVenta(cotizacionId: string): Promise<{ error: string } | null> {
+const OPCIONES_MOTIVO_CANCELACION: readonly OpcionMotivoCancelacion[] = [
+  'Ya no lo necesito',
+  'Encontré mejor precio',
+  'Error en el pedido',
+  'Sin stock',
+  'Otro',
+]
+
+export async function cancelarVenta(
+  cotizacionId: string,
+  motivo?: MotivoCancelacionInput
+): Promise<{ error: string } | null> {
+  const mensajeMotivoInvalido = 'Indica un motivo válido para cancelar.'
+  if (!motivo || !OPCIONES_MOTIVO_CANCELACION.includes(motivo.opcion)) {
+    return { error: mensajeMotivoInvalido }
+  }
+
+  let textoMotivo: string = motivo.opcion
+  if (motivo.opcion === 'Otro') {
+    if (
+      typeof motivo.detalle !== 'string' ||
+      !motivo.detalle.trim() ||
+      motivo.detalle.length > 500
+    ) {
+      return { error: mensajeMotivoInvalido }
+    }
+    textoMotivo = `Otro: ${motivo.detalle.trim()}`
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { error } = await supabase.rpc('cancelar_venta', {
     p_cotizacion_id: cotizacionId,
+    p_cancelada_motivo: textoMotivo,
   })
 
   if (error) return { error: error.message }
+
+  await enviarNotificacionCotizacionEmail(cotizacionId, 'cotizacion_cancelada')
 
   revalidatePath('/proveedor/pedidos')
   revalidatePath('/mis-cotizaciones')

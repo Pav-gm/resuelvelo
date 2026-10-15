@@ -13,7 +13,9 @@ function rutaProtegida(pathname: string) {
   return (
     coincidePrefijo(pathname, '/admin') ||
     coincidePrefijo(pathname, '/proveedor') ||
-    coincidePrefijo(pathname, '/mis-cotizaciones')
+    coincidePrefijo(pathname, '/cotizaciones') ||
+    coincidePrefijo(pathname, '/mis-cotizaciones') ||
+    coincidePrefijo(pathname, '/perfil')
   )
 }
 
@@ -83,6 +85,12 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Ruta compartida entre comprador y proveedor: no se impone un rol único.
+  // La RPC de lectura decide si el usuario participa en esa cotización.
+  if (coincidePrefijo(pathname, '/cotizaciones')) {
+    return supabaseResponse
+  }
+
   const { data: profile, error } = await supabase
     .from('profiles')
     .select('rol')
@@ -96,6 +104,10 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (coincidePrefijo(pathname, '/proveedor') && rol !== 'proveedor') {
+    return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
+  }
+
+  if (coincidePrefijo(pathname, '/perfil') && rol !== 'comprador') {
     return redirigirConCookies(request, cookiesRefrescadas, '/catalogo')
   }
 

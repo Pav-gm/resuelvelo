@@ -1,4 +1,6 @@
 export type UserRole = 'comprador' | 'proveedor' | 'admin'
+export type VerificacionEstado = 'sin_solicitar' | 'pendiente' | 'verificado' | 'rechazado'
+export type VerificacionActionResult = { success: true } | { error: string }
 
 export interface Profile {
   id: string
@@ -10,6 +12,26 @@ export interface Profile {
   created_at: string
 }
 
+export type NotificacionTipo =
+  | 'nueva_solicitud'
+  | 'cotizacion_respondida'
+  | 'cotizacion_aceptada'
+  | 'cotizacion_rechazada'
+  | 'cotizacion_despachada'
+  | 'cotizacion_recibida'
+  | 'cotizacion_cancelada'
+
+export interface Notificacion {
+  id: string
+  user_id: string
+  tipo: string
+  cotizacion_id: string | null
+  titulo: string
+  cuerpo: string
+  leida_at: string | null
+  created_at: string
+}
+
 export interface Proveedor {
   id: string
   user_id: string
@@ -18,9 +40,32 @@ export interface Proveedor {
   direccion?: string
   ciudad?: string
   logo_url?: string
+  rnc?: string | null
+  telefono?: string | null
+  whatsapp?: string | null
+  horario?: string | null
+  sitio_web?: string | null
+  zonas_cobertura?: string[]
   verificado: boolean
+  verificacion_estado?: VerificacionEstado
+  verificacion_nota?: string | null
+  verificacion_solicitada_at?: string | null
+  verificado_at?: string | null
   created_at: string
+  promedio_feedback?: number
+  conteo_feedback?: number
 }
+
+export type PerfilProveedor = Proveedor & {
+  rnc: string | null
+  telefono: string | null
+  whatsapp: string | null
+  horario: string | null
+  sitio_web: string | null
+  zonas_cobertura: string[]
+}
+
+export type PerfilProveedorActionResult = { error: string } | { success: true }
 
 export interface Categoria {
   id: string
@@ -46,13 +91,23 @@ export interface Producto {
   precio: number
   unidad: string
   stock: number
-  imagen_url?: string
+  stock_reservado?: number
+  imagen_url?: string | null
+  sku?: string | null
+  especificaciones?: string | null
+  itbis_incluido?: boolean
   activo: boolean
+  archivado_at?: string | null
+  tieneCotizaciones?: boolean
   created_at: string
   proveedor?: Proveedor
   categoria?: Categoria
   subcategoria?: Subcategoria | null
 }
+
+export type ProductoActionResult =
+  | { success: true; action: 'archived' | 'deleted' | 'restored' }
+  | { error: string }
 
 export interface ItemCarrito {
   producto: Producto
@@ -67,12 +122,122 @@ export interface Cotizacion {
   estado: 'pendiente' | 'respondida' | 'aceptada' | 'rechazada' | 'despachada' | 'recibida' | 'cancelada'
   mensaje?: string
   total_estimado?: number
+  direccion_obra_id?: string | null
+  fecha_requerida?: string | null
   created_at: string
   /** Fecha de despacho (columna despachada_at); null hasta que el proveedor despache. */
   despachada_at?: string | null
   /** Quién canceló la venta; null si no está cancelada. */
   cancelada_por?: 'comprador' | 'proveedor' | null
+  /** Fecha de cancelación; null en cotizaciones históricas sin esos datos. */
+  cancelada_at?: string | null
+  /** Motivo de cancelación; null en cotizaciones históricas sin esos datos. */
+  cancelada_motivo?: string | null
+  plazo_dias?: number | null
+  valida_hasta?: string | null
+  condiciones?: string | null
+  respondida_at?: string | null
+  total_ofertado?: number | null
+  motivo_rechazo?: string | null
+  rechazada_at?: string | null
+  aceptada_at?: string | null
+  rechazada_motivo?: string | null
+  solicitud_id?: string | null
+  proveedor?: Pick<Proveedor, 'nombre_empresa'> | null
   items?: ItemCotizacion[]
+}
+
+export type LineaOfertaInput = {
+  itemId: string
+  precioUnitario: number | null
+  cantidadOfertada: number | null
+}
+
+export interface Solicitud {
+  id: string
+  comprador_id: string
+  titulo: string
+  notas: string | null
+  fecha_requerida: string | null
+  created_at: string
+}
+
+export type LineaSolicitudInput = {
+  productoId: string | null
+  descripcion: string | null
+  cantidad: number
+  unidad: string | null
+}
+
+export type CrearSolicitudInput = {
+  titulo: string
+  notas: string | null
+  fechaRequerida: string | null
+  proveedorIds: string[]
+  lineas: LineaSolicitudInput[]
+}
+
+export type CrearSolicitudResultado =
+  | { solicitudId: string; cotizacionIds: string[] }
+  | { error: string }
+
+export type SolicitudComparador = {
+  solicitud: Solicitud
+  cotizaciones: CotizacionComparador[]
+}
+
+export type CotizacionComparador = Cotizacion & {
+  proveedor: {
+    id: string
+    nombre_empresa: string
+    verificado: boolean
+    promedio_feedback: number
+    conteo_feedback: number
+  }
+  items?: Array<ItemCotizacion & { producto: Pick<Producto, 'nombre'> | null }>
+}
+
+export type OfertaCotizacionInput = {
+  lineas: LineaOfertaInput[]
+  plazoDias: number
+  validaHasta: string
+  condiciones: string | null
+}
+
+export type CotizacionActionResult = { error: string } | null
+
+export type OpcionMotivoCancelacion =
+  | 'Ya no lo necesito'
+  | 'Encontré mejor precio'
+  | 'Error en el pedido'
+  | 'Sin stock'
+  | 'Otro'
+
+export type MotivoCancelacionInput = {
+  opcion: OpcionMotivoCancelacion
+  detalle?: string
+}
+
+export type CotizacionDetalle = Cotizacion & {
+  direccion_obra: {
+    id: string
+    provincia: string
+    municipio: string | null
+    referencia: string | null
+  } | null
+  proveedor: Pick<Proveedor, 'id' | 'nombre_empresa' | 'ciudad' | 'verificado'> & {
+    rnc?: string | null
+    direccion?: string | null
+    telefono?: string | null
+  }
+  comprador: Pick<Profile, 'id' | 'nombre' | 'email'> & {
+    telefono: string | null
+    razon_social?: string | null
+    rnc?: string | null
+  }
+  items: Array<ItemCotizacion & {
+    producto: (Pick<Producto, 'id' | 'nombre' | 'activo'> & { precio?: number; itbis_incluido?: boolean | null }) | null
+  }>
 }
 
 export interface Feedback {
@@ -84,6 +249,8 @@ export interface Feedback {
   created_at: string
   /** Identidad pública anonimizada; no representa un dato de perfil. */
   autor_anonimo: string
+  respuesta?: string | null
+  respuesta_at?: string | null
 }
 
 export type FeedbackPublico = Omit<Feedback, 'cotizacion_id'>
@@ -97,8 +264,18 @@ export interface ResumenFeedbackProveedor {
 export interface ItemCotizacion {
   id: string
   cotizacion_id: string
-  producto_id: string
+  producto_id: string | null
+  descripcion?: string | null
+  unidad?: string | null
   cantidad: number
+  /** Cantidad aceptada por el proveedor; null en cotizaciones anteriores o pendientes. */
+  cantidad_confirmada?: number | null
+  precio_ofertado?: number | null
+  cantidad_ofertada?: number | null
   precio_unitario?: number
-  producto?: Producto
+  producto?: Producto | null
+  /** true si la cantidad pedida superaba el stock al cotizar. */
+  sujeta_disponibilidad: boolean
+  /** Stock observado al cotizar; null en líneas históricas o sin snapshot. */
+  stock_al_cotizar: number | null
 }

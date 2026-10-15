@@ -11,6 +11,13 @@ export default async function NuevoProductoPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: proveedor } = await supabase
+    .from('proveedores')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!proveedor) redirect('/register?rol=proveedor')
+
   const [categorias, subcategorias] = await Promise.all([
     getCategorias(),
     getSubcategorias(),
@@ -27,7 +34,11 @@ export default async function NuevoProductoPage() {
         </Link>
         <h1 className="text-xl font-bold text-gray-900">Nuevo producto</h1>
       </div>
-      <ProductoForm categorias={categorias} subcategorias={subcategorias} />
+      <ProductoForm
+        categorias={categorias}
+        subcategorias={subcategorias}
+        proveedorId={proveedor.id}
+      />
     </div>
   )
 }
